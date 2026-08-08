@@ -28,7 +28,7 @@
 
             <div class="relative flex flex-1 items-center justify-center p-6 xl:p-10">
                 <div class="relative w-full max-w-5xl aspect-square">
-                    <div class="relative overflow-hidden rounded-[2rem] border border-white/15 bg-slate-900/30 p-3 shadow-2xl shadow-slate-950/40">
+                    <div class="relative overflow-hidden rounded-[2rem] border border-white/15 bg-slate-900/30 p-3 ">
                         <img src="{{ asset('images/hero-finance.svg') }}" alt="Ilustrasi dashboard keuangan dan pengendalian budget" class="aspect-square w-full rounded-[1.6rem] object-cover" />
                     </div>
                 </div>
@@ -48,7 +48,7 @@
                     <p class="mt-2 text-sm text-slate-500">{{ __('Sign in to continue to') }} <span class="font-semibold text-slate-700">{{ $companyName ?? 'myfinance' }}</span></p>
                 </div>
 
-                <div class="rounded-3xl border border-slate-200/80 bg-white px-8 py-10 shadow-2xl shadow-slate-300/35">
+                <div class="rounded-3xl border border-slate-200/80 bg-white px-8 py-10 ">
                     {{ $slot }}
                 </div>
             </div>
@@ -57,3 +57,4 @@
 </body>
 
 </html>
+
