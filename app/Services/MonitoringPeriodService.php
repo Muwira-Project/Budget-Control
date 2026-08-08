@@ -77,28 +77,28 @@ class MonitoringPeriodService
         $cacheKey = "monitoring.breakdown.{$period->id}";
         
         return Cache::remember($cacheKey, 3600, function () use ($period) {
-        $budgets = $this->budgetPerAccount($period);
-        $actuals = $this->actualPerAccount($period);
+            $budgets = $this->budgetPerAccount($period);
+            $actuals = $this->actualPerAccount($period);
 
-        $akunIds = $budgets->keys()->merge($actuals->keys())->unique()->values();
+            $akunIds = $budgets->keys()->merge($actuals->keys())->unique()->values();
 
-        return Akun::query()
-            ->whereIn('id', $akunIds)
-            ->orderBy('kode_akun')
-            ->get()
-            ->map(function (Akun $akun) use ($budgets, $actuals) {
-                $budget = (float) ($budgets[$akun->id] ?? 0);
-                $actual = (float) ($actuals[$akun->id] ?? 0);
+            return Akun::query()
+                ->whereIn('id', $akunIds)
+                ->orderBy('kode_akun')
+                ->get()
+                ->map(function (Akun $akun) use ($budgets, $actuals) {
+                    $budget = (float) ($budgets[$akun->id] ?? 0);
+                    $actual = (float) ($actuals[$akun->id] ?? 0);
 
-                return [
-                    'akun' => $akun,
-                    'budget' => $budget,
-                    'actual' => $actual,
-                    'variance' => $budget - $actual,
-                ];
-            })
-            ->values();
-    }
+                    return [
+                        'akun' => $akun,
+                        'budget' => $budget,
+                        'actual' => $actual,
+                        'variance' => $budget - $actual,
+                    ];
+                })
+                ->values();
+        });
 
     /**
      * Total budget for the period across all accounts.
@@ -190,4 +190,5 @@ class MonitoringPeriodService
         return 'MON-'.now()->format('Y').'-'.str_pad((string) $next, 3, '0', STR_PAD_LEFT);
     }
 }
+
 
