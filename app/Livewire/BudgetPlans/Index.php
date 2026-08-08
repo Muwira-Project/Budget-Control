@@ -48,7 +48,7 @@ class Index extends Component
         $created = $service->createAllocationsFromPlan($budgetPlan);
 
         session()->flash('status', $created > 0
-            ? $created.' allocation draft(s) created from the Budget Plan. Submit them under Budget Allocation for admin approval.'
+            ? $created.' allocation draft(s) created from the Budget. Submit them under Budget Allocation for admin approval.'
             : 'All accounts in this budget plan have already been allocated to the project.');
     }
 

@@ -61,6 +61,6 @@ class BudgetPlan extends Model
      */
     protected function activityLabel(): string
     {
-        return 'Budget Plan '.($this->periode ?: '#'.$this->id);
+        return 'Budget '.($this->periode ?: '#'.$this->id);
     }
 }

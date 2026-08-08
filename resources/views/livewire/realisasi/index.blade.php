@@ -1,4 +1,4 @@
-﻿<div class="py-12">
+<div class="py-12">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
@@ -111,7 +111,7 @@
                                         </td>
                                         <td class="px-6 py-4 text-gray-500">{{ $item->keterangan }}</td>
                                         <td class="px-6 py-4 text-right font-medium text-gray-900">
-                                            <a href="{{ route('realisasi.edit', $item) }}" wire:navigate class="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer">{{ format_idr($item->nominal) }}</a>
+                                            <a href="{{ route('realisasi.show', $item) }}" wire:navigate class="text-blue-600 hover:text-blue-800 hover:underline cursor-pointer">{{ format_idr($item->nominal) }}</a>
                                         </td>
                                         <td class="px-6 py-4 text-right whitespace-nowrap">
     <x-action-buttons :edit-href="route('realisasi.edit', $item)" :delete-id="$item->id" />

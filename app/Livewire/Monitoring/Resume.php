@@ -3,6 +3,7 @@
 namespace App\Livewire\Monitoring;
 
 use App\Models\MonitoringPeriod;
+use App\Models\Realisasi;
 use App\Services\MonitoringPeriodService;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
@@ -14,9 +15,21 @@ class Resume extends Component
 {
     public MonitoringPeriod $monitoringPeriod;
 
+    public ?int $selectedAkunId = null;
+
     public function mount(MonitoringPeriod $monitoringPeriod): void
     {
         $this->monitoringPeriod = $monitoringPeriod->load('project');
+    }
+
+    public function showAccountDetail(int $akunId): void
+    {
+        $this->selectedAkunId = $akunId;
+    }
+
+    public function closeAccountDetail(): void
+    {
+        $this->selectedAkunId = null;
     }
 
     #[Computed]
@@ -35,6 +48,36 @@ class Resume extends Component
             'actual' => $service->actualTotal($this->monitoringPeriod),
             'variance' => $service->budgetTotal($this->monitoringPeriod) - $service->actualTotal($this->monitoringPeriod),
         ];
+    }
+
+    /**
+     * Realisasi (actual) rows for the selected account inside the period.
+     */
+    #[Computed]
+    public function accountRealisations(): Collection
+    {
+        if ($this->selectedAkunId === null) {
+            return collect();
+        }
+
+        return Realisasi::query()
+            ->with(['akun', 'kategori', 'vendor', 'supplier', 'mandor', 'investor', 'project'])
+            ->where('akun_id', $this->selectedAkunId)
+            ->when($this->monitoringPeriod->project_id, fn ($query) => $query->where('project_id', $this->monitoringPeriod->project_id))
+            ->whereDate('tanggal', '>=', $this->monitoringPeriod->tanggal_mulai->format('Y-m-d'))
+            ->whereDate('tanggal', '<=', $this->monitoringPeriod->tanggal_selesai->format('Y-m-d'))
+            ->orderByDesc('tanggal')
+            ->get();
+    }
+
+    #[Computed]
+    public function selectedAkun()
+    {
+        if ($this->selectedAkunId === null) {
+            return null;
+        }
+
+        return \App\Models\Akun::find($this->selectedAkunId);
     }
 
     public function render()

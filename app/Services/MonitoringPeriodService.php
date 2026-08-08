@@ -1,8 +1,6 @@
-﻿<?php
+<?php
 
 namespace App\Services;
-
-use Illuminate\Support\Facades\Cache;
 
 use App\Models\Akun;
 use App\Models\BudgetPlanItem;
@@ -11,6 +9,7 @@ use App\Models\NumberSequence;
 use App\Models\Realisasi;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class MonitoringPeriodService
 {
@@ -74,31 +73,28 @@ class MonitoringPeriodService
      */
     public function accountBreakdown(MonitoringPeriod $period): Collection
     {
-        $cacheKey = "monitoring.breakdown.{$period->id}";
-        
-        return Cache::remember($cacheKey, 3600, function () use ($period) {
-            $budgets = $this->budgetPerAccount($period);
-            $actuals = $this->actualPerAccount($period);
+        $budgets = $this->budgetPerAccount($period);
+        $actuals = $this->actualPerAccount($period);
 
-            $akunIds = $budgets->keys()->merge($actuals->keys())->unique()->values();
+        $akunIds = $budgets->keys()->merge($actuals->keys())->unique()->values();
 
-            return Akun::query()
-                ->whereIn('id', $akunIds)
-                ->orderBy('kode_akun')
-                ->get()
-                ->map(function (Akun $akun) use ($budgets, $actuals) {
-                    $budget = (float) ($budgets[$akun->id] ?? 0);
-                    $actual = (float) ($actuals[$akun->id] ?? 0);
+        return Akun::query()
+            ->whereIn('id', $akunIds)
+            ->orderBy('kode_akun')
+            ->get()
+            ->map(function (Akun $akun) use ($budgets, $actuals) {
+                $budget = (float) ($budgets[$akun->id] ?? 0);
+                $actual = (float) ($actuals[$akun->id] ?? 0);
 
-                    return [
-                        'akun' => $akun,
-                        'budget' => $budget,
-                        'actual' => $actual,
-                        'variance' => $budget - $actual,
-                    ];
-                })
-                ->values();
-        });
+                return [
+                    'akun' => $akun,
+                    'budget' => $budget,
+                    'actual' => $actual,
+                    'variance' => $budget - $actual,
+                ];
+            })
+            ->values();
+    }
 
     /**
      * Total budget for the period across all accounts.
@@ -114,6 +110,161 @@ class MonitoringPeriodService
     public function actualTotal(MonitoringPeriod $period): float
     {
         return (float) $this->actualPerAccount($period)->sum();
+    }
+
+    /**
+     * Budget, actual, and variance totals for many periods at once.
+     *
+     * Uses batched queries instead of per-period queries (N+1) so the
+     * monitoring index loads quickly even with many periods.
+     *
+     * @param  Collection<int, MonitoringPeriod>  $periods
+     * @return array<int, array{budget: float, actual: float, variance: float}>
+     */
+    public function totalsForPeriods(Collection $periods): array
+    {
+        $periods = $periods->values();
+
+        if ($periods->isEmpty()) {
+            return [];
+        }
+
+        $firstIds = $this->firstPeriodIdsOfMonth($periods);
+
+        $budgetRows = $this->bulkBudgetTotals($periods, $firstIds);
+        $actualRows = $this->bulkActualTotals($periods);
+
+        $result = [];
+
+        foreach ($periods as $period) {
+            $budget = (float) ($budgetRows[$period->id] ?? 0);
+            $actual = (float) ($actualRows[$period->id] ?? 0);
+            $result[$period->id] = [
+                'budget' => $budget,
+                'actual' => $actual,
+                'variance' => $budget - $actual,
+            ];
+        }
+
+        return $result;
+    }
+
+    /**
+     * Period ids that are the first period of the month for their scope.
+     *
+     * Legacy budget plan items without a date range are only counted in the
+     * first period of each month to avoid double counting.
+     *
+     * @param  Collection<int, MonitoringPeriod>  $periods
+     * @return array<int, int>
+     */
+    protected function firstPeriodIdsOfMonth(Collection $periods): array
+    {
+        $firstIds = [];
+
+        $groups = $periods->groupBy(function (MonitoringPeriod $period) {
+            return ($period->project_id ?? 'global').'|'.$period->tanggal_mulai->format('Y-m');
+        });
+
+        foreach ($groups as $key => $group) {
+            [$projectScope, $yearMonth] = explode('|', $key);
+            [$year, $month] = array_map('intval', explode('-', $yearMonth));
+
+            $query = MonitoringPeriod::query()
+                ->whereYear('tanggal_mulai', $year)
+                ->whereMonth('tanggal_mulai', $month);
+
+            if ($projectScope === 'global') {
+                $query->whereNull('project_id');
+            } else {
+                $query->where('project_id', (int) $projectScope);
+            }
+
+            $earliestStart = $query->min('tanggal_mulai');
+
+            if ($earliestStart === null) {
+                continue;
+            }
+
+            $earliest = \Illuminate\Support\Carbon::parse($earliestStart);
+
+            foreach ($group as $period) {
+                if ($period->tanggal_mulai->format('Y-m-d') === $earliest->format('Y-m-d')) {
+                    $firstIds[] = (int) $period->id;
+                }
+            }
+        }
+
+        return $firstIds;
+    }
+
+    /**
+     * Sum realisasi across many periods with one query.
+     *
+     * @param  Collection<int, MonitoringPeriod>  $periods
+     * @return array<int, float>
+     */
+    protected function bulkActualTotals(Collection $periods): array
+    {
+        $rows = Realisasi::query()
+            ->join('monitoring_periods as mp', function ($join) {
+                $join->on(function ($query) {
+                    $query->whereColumn('realisasi.tanggal', '>=', 'mp.tanggal_mulai')
+                        ->whereColumn('realisasi.tanggal', '<=', 'mp.tanggal_selesai')
+                        ->where(function ($scope) {
+                            $scope->whereNull('mp.project_id')
+                                ->orWhereColumn('realisasi.project_id', '=', 'mp.project_id');
+                        });
+                });
+            })
+            ->whereIn('mp.id', $periods->pluck('id')->all())
+            ->selectRaw('mp.id AS period_id, SUM(realisasi.nominal) AS total')
+            ->groupBy('mp.id')
+            ->pluck('total', 'period_id')
+            ->all();
+
+        return array_map('floatval', $rows);
+    }
+
+    /**
+     * Budget plan item totals per period with one query.
+     *
+     * @param  Collection<int, MonitoringPeriod>  $periods
+     * @param  array<int, int>  $firstIds
+     * @return array<int, float>
+     */
+    protected function bulkBudgetTotals(Collection $periods, array $firstIds): array
+    {
+        return BudgetPlanItem::query()
+            ->join('budget_plans', 'budget_plans.id', '=', 'budget_plan_items.budget_plan_id')
+            ->join('monitoring_periods as mp', function ($join) use ($firstIds) {
+                $join->on(function ($query) use ($firstIds) {
+                    $query->whereNotNull('budget_plan_items.tanggal_mulai')
+                        ->whereNotNull('budget_plan_items.tanggal_selesai')
+                        ->whereColumn('budget_plan_items.tanggal_mulai', '<=', 'mp.tanggal_selesai')
+                        ->whereColumn('budget_plan_items.tanggal_selesai', '>=', 'mp.tanggal_mulai');
+
+                    if ($firstIds !== []) {
+                        $query->orWhere(function ($legacy) use ($firstIds) {
+                            $legacy->whereIn('mp.id', $firstIds)
+                                ->where(function ($nullRange) {
+                                    $nullRange->whereNull('budget_plan_items.tanggal_mulai')
+                                        ->orWhereNull('budget_plan_items.tanggal_selesai');
+                                });
+                        });
+                    }
+                });
+            })
+            ->whereIn('mp.id', $periods->pluck('id')->all())
+            ->where(function ($scope) {
+                $scope->whereNull('mp.project_id')
+                    ->orWhereColumn('budget_plans.project_id', '=', 'mp.project_id');
+            })
+            ->selectRaw('mp.id AS period_id, SUM(budget_plan_items.nominal) AS total')
+            ->groupBy('mp.id')
+            ->pluck('total', 'period_id')
+            ->mapWithKeys(fn ($total, $periodId) => [(int) $periodId => (float) $total])
+            ->all();
     }
 
     /**
@@ -190,5 +341,3 @@ class MonitoringPeriodService
         return 'MON-'.now()->format('Y').'-'.str_pad((string) $next, 3, '0', STR_PAD_LEFT);
     }
 }
-
-

@@ -18,7 +18,7 @@
         'exports.page' => ['Dashboard', 'Export', match ($type) {
             'akuns' => 'Export Account',
             'realisasi' => 'Export Actual',
-            'vs' => 'Export Account vs Actual',
+            'vs' => 'Export Account Detail',
             default => 'Export',
         }],
         'vendors.index' => ['Dashboard', 'Master', 'Vendor'],

@@ -51,28 +51,17 @@ class Index extends Component
         return Project::orderBy('nama')->get();
     }
 
-    /**
-     * Budget, actual, and variance totals keyed by period id (one pass per render).
+        /**
+     * Budget, actual, and variance totals keyed by period id.
+     *
+     * Batched into a small number of queries for fast page loads.
      *
      * @return array<int, array{budget: float, actual: float, variance: float}>
      */
     #[Computed]
     public function totalsByPeriod(): array
     {
-        $service = app(MonitoringPeriodService::class);
-        $totals = [];
-
-        foreach ($this->periods as $period) {
-            $budget = $service->budgetTotal($period);
-            $actual = $service->actualTotal($period);
-            $totals[$period->id] = [
-                'budget' => $budget,
-                'actual' => $actual,
-                'variance' => $budget - $actual,
-            ];
-        }
-
-        return $totals;
+        return app(MonitoringPeriodService::class)->totalsForPeriods(collect($this->periods->items()));
     }
 
     protected function bulkCollectionProperty(): string

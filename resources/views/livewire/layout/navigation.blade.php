@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 
 use App\Livewire\Actions\Logout;
 use Livewire\Attributes\Computed;
@@ -47,7 +47,7 @@ new class extends Component
     <!-- Desktop Sidebar -->
     <aside class="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-emerald-400/10 bg-[#054316] lg:flex">
         <a href="{{ route('dashboard') }}" wire:navigate class="flex items-center gap-3 border-b border-emerald-400/10 px-5 py-5">
-            <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 p-1 shadow-lg shadow-emerald-500/25"><x-application-logo class="h-full w-full fill-current text-white" /></span>
+            <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 p-1"><x-application-logo class="h-full w-full fill-current text-white" /></span>
             <span class="leading-tight">
                 <span class="block text-sm font-bold text-white">{{ $companyName ?? 'myfinance' }}</span>
                 <span class="block text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-200/70">myfinance</span>

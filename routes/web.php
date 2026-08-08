@@ -45,6 +45,7 @@ use App\Livewire\Projects\Index as IndexProject;
 use App\Livewire\Realisasi\Create as CreateRealisasi;
 use App\Livewire\Realisasi\Edit as EditRealisasi;
 use App\Livewire\Realisasi\Index as IndexRealisasi;
+use App\Livewire\Realisasi\Show as ShowRealisasi;
 use App\Livewire\Receivables\Create as CreateReceivable;
 use App\Livewire\Receivables\Edit as EditReceivable;
 use App\Livewire\Receivables\Index as IndexReceivable;
@@ -109,6 +110,7 @@ Route::middleware(['auth', 'verified', 'draft-staff'])->group(function () {
 
     Route::get('/realisasi', IndexRealisasi::class)->name('realisasi.index');
     Route::get('/realisasi/create', CreateRealisasi::class)->name('realisasi.create');
+    Route::get('/realisasi/{realisasi}', ShowRealisasi::class)->name('realisasi.show');
     Route::get('/realisasi/{realisasi}/edit', EditRealisasi::class)->name('realisasi.edit');
 
     Route::get('/vendors', IndexVendor::class)->name('vendors.index');

@@ -1,6 +1,6 @@
 <div class="py-12">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <h2 class="text-xl font-semibold text-gray-800 leading-tight">{{ __('Add Budget Plan') }}</h2>
+        <h2 class="text-xl font-semibold text-gray-800 leading-tight">{{ __('Add Budget') }}</h2>
 
         <div class="mt-6 max-w-4xl bg-white overflow-hidden shadow-sm sm:rounded-lg">
             <form wire:submit="save" class="p-6">

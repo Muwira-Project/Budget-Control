@@ -2,12 +2,12 @@
     $titles = [
         'akuns' => 'Export Account',
         'realisasi' => 'Export Actual',
-        'vs' => 'Export Account vs Actual',
+        'vs' => 'Export Account Detail',
     ];
     $columns = [
         'akuns' => 'Account Code, Account Name, Type, Category',
         'realisasi' => 'Project, Account, Category, Date, Vendor, Amount, Description',
-        'vs' => 'Project, Account Code, Account Name, Budget, Allocation, Total Actual, Remaining (Variance), Percentage (%)',
+        'vs' => 'Account Code, Account Name, Budget, Allocation, Total Actual, Remaining (Variance), Percentage (%)',
     ];
 @endphp
 

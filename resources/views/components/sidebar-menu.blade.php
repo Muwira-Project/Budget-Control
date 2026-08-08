@@ -1,4 +1,4 @@
-﻿<nav class="flex-1 space-y-1 overflow-y-auto px-3 py-4">
+<nav class="flex-1 space-y-1 overflow-y-auto px-3 py-4">
     <x-sidebar-link href="{{ route('dashboard') }}" label="Dashboard" icon="home" :active="request()->routeIs('dashboard')" />
     @if (auth()->user()->isAdmin())
     <x-sidebar-link href="{{ route('projects.index') }}" label="Project" icon="folder" :active="request()->routeIs('projects.*')" />
@@ -10,9 +10,9 @@
     <x-sidebar-link href="{{ route('payment-requests.index') }}" label="Payment Request" icon="credit-card" :active="request()->routeIs('payment-requests.*')" />
     <x-sidebar-link href="{{ route('cashflows.index') }}" label="Cashflow" icon="wallet" :active="request()->routeIs('cashflows.*')" />
 
-    <x-sidebar-dropdown label="AR & AP" icon="receipt" :active="request()->routeIs('receivables.*') || request()->routeIs('payables.*') || request()->routeIs('payments.*')">
-        <x-sidebar-link href="{{ route('receivables.index') }}" label="Receivables (AR)" :active="request()->routeIs('receivables.*')" />
-        <x-sidebar-link href="{{ route('payables.index') }}" label="Payables (AP)" :active="request()->routeIs('payables.*')" />
+    <x-sidebar-dropdown label="Receivable & Payable" icon="receipt" :active="request()->routeIs('receivables.*') || request()->routeIs('payables.*') || request()->routeIs('payments.*')">
+        <x-sidebar-link href="{{ route('receivables.index') }}" label="Account Receivable" :active="request()->routeIs('receivables.*')" />
+        <x-sidebar-link href="{{ route('payables.index') }}" label="Account Payable" :active="request()->routeIs('payables.*')" />
         <x-sidebar-link href="{{ route('payments.index') }}" label="Payment" :active="request()->routeIs('payments.*')" />
     </x-sidebar-dropdown>
     @endif

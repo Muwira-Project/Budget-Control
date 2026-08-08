@@ -4,105 +4,118 @@
       <stop offset="0" stop-color="#054316"/>
       <stop offset="1" stop-color="#0a6d3b"/>
     </linearGradient>
-    <linearGradient id="cardA" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#10b981"/>
-      <stop offset="1" stop-color="#059669"/>
+    <linearGradient id="coinGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#fbbf24"/>
+      <stop offset="1" stop-color="#d97706"/>
     </linearGradient>
-    <linearGradient id="cardB" x1="0" y1="0" x2="1" y2="1">
+    <linearGradient id="wallGrad" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#34d399"/>
-      <stop offset="1" stop-color="#0d9488"/>
-    </linearGradient>
-    <linearGradient id="cardC" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#22c55e"/>
-      <stop offset="1" stop-color="#15803d"/>
+      <stop offset="1" stop-color="#059669"/>
     </linearGradient>
     <linearGradient id="trend" x1="0" y1="1" x2="1" y2="0">
       <stop offset="0" stop-color="#bbf7d0"/>
       <stop offset="1" stop-color="#ecfdf5"/>
     </linearGradient>
     <radialGradient id="halo" cx="0.5" cy="0.5" r="0.5">
-      <stop offset="0" stop-color="#ecfdf5" stop-opacity="0.45"/>
+      <stop offset="0" stop-color="#ecfdf5" stop-opacity="0.4"/>
       <stop offset="1" stop-color="#ecfdf5" stop-opacity="0"/>
     </radialGradient>
   </defs>
 
   <rect width="800" height="600" rx="40" fill="url(#bgGrad)"/>
-
   <circle cx="160" cy="120" r="220" fill="url(#halo)"/>
   <circle cx="640" cy="520" r="180" fill="url(#halo)"/>
 
-  <g opacity="0.35" stroke="#a7f3d0" stroke-width="2" fill="none" stroke-linecap="round">
-    <path d="M40 90 H760"/>
-    <path d="M40 230 H760"/>
-    <path d="M40 380 H760"/>
-    <path d="M40 520 H760"/>
-  </g>
-
-  <rect x="60" y="100" width="240" height="280" rx="22" fill="url(#cardA)"/>
-  <rect x="540" y="160" width="220" height="260" rx="22" fill="url(#cardB)"/>
-  <rect x="320" y="200" width="160" height="240" rx="22" fill="url(#cardC)"/>
-
-  <rect x="80" y="130" width="60" height="60" rx="14" fill="#a7f3d0" opacity="0.55"/>
-  <rect x="150" y="130" width="60" height="60" rx="14" fill="#ecfdf5" opacity="0.45"/>
-
-  <rect x="80" y="210" width="170" height="14" rx="7" fill="#ecfdf5" opacity="0.85"/>
-  <rect x="80" y="240" width="120" height="10" rx="5" fill="#d1fae5" opacity="0.9"/>
-  <rect x="80" y="262" width="150" height="10" rx="5" fill="#d1fae5" opacity="0.7"/>
-
-  <rect x="80" y="290" width="190" height="40" rx="12" fill="#022c1c" opacity="0.85"/>
-  <text x="98" y="318" font-family="ui-monospace, Menlo, monospace" font-size="18" fill="#a7f3d0">Rp 1.250.000</text>
-
-  <rect x="80" y="345" width="190" height="10" rx="5" fill="#34d399" opacity="0.85"/>
-  <rect x="80" y="370" width="150" height="10" rx="5" fill="#34d399" opacity="0.7"/>
-
-  <rect x="560" y="190" width="180" height="14" rx="7" fill="#ecfdf5" opacity="0.85"/>
-  <rect x="560" y="220" width="120" height="10" rx="5" fill="#a7f3d0" opacity="0.85"/>
-  <rect x="560" y="242" width="150" height="10" rx="5" fill="#a7f3d0" opacity="0.7"/>
-
-  <rect x="560" y="278" width="180" height="40" rx="12" fill="#022c1c" opacity="0.85"/>
-  <text x="578" y="306" font-family="ui-monospace, Menlo, monospace" font-size="18" fill="#6ee7b7">+12,4%</text>
-
-  <rect x="335" y="225" width="130" height="14" rx="7" fill="#ecfdf5" opacity="0.85"/>
-  <rect x="335" y="250" width="80" height="10" rx="5" fill="#a7f3d0" opacity="0.85"/>
-  <rect x="335" y="272" width="100" height="10" rx="5" fill="#a7f3d0" opacity="0.7"/>
-
-  <rect x="325" y="305" width="150" height="40" rx="12" fill="#022c1c" opacity="0.85"/>
-  <text x="343" y="332" font-family="ui-monospace, Menlo, monospace" font-size="16" fill="#bbf7d0">$ 4,920</text>
-
-  <circle cx="395" cy="120" r="22" fill="#022c1c" opacity="0.55"/>
-  <circle cx="395" cy="120" r="14" fill="#a7f3d0"/>
-  <path d="M388 113 L395 120 L402 113" stroke="#022c1c" stroke-width="2.5" fill="none" stroke-linecap="round"/>
-
-  <path d="M80 460 C140 460 200 440 250 410 C300 380 350 350 420 350 C490 350 550 380 620 410 C660 425 700 425 740 410" stroke="url(#trend)" stroke-width="10" fill="none" stroke-linecap="round"/>
-
+  <!-- Chart line tanpa angka -->
+  <path d="M70 470 C130 470 190 430 250 400 C310 370 360 320 430 320 C500 320 560 350 630 380 C670 395 710 395 740 380" stroke="url(#trend)" stroke-width="12" fill="none" stroke-linecap="round"/>
   <g fill="#a7f3d0">
-    <circle cx="250" cy="410" r="6"/>
-    <circle cx="350" cy="365" r="6"/>
-    <circle cx="490" cy="350" r="6"/>
-    <circle cx="620" cy="410" r="6"/>
-    <circle cx="700" cy="410" r="6"/>
+    <circle cx="250" cy="400" r="7"/>
+    <circle cx="360" cy="345" r="7"/>
+    <circle cx="500" cy="330" r="7"/>
+    <circle cx="630" cy="380" r="7"/>
+    <circle cx="715" cy="385" r="7"/>
   </g>
 
-  <g fill="#022c1c" opacity="0.85">
-    <rect x="190" y="490" width="180" height="44" rx="14"/>
-    <text x="210" y="518" font-family="ui-sans-serif, system-ui" font-size="16" fill="#bbf7d0" font-weight="600">MYFINANCE</text>
+  <!-- Bank building -->
+  <g>
+    <rect x="90" y="210" width="200" height="200" rx="12" fill="#022c1c" opacity="0.9"/>
+    <rect x="90" y="210" width="200" height="46" rx="12" fill="#10b981"/>
+    <path d="M105 256 L145 210 L185 256 Z" fill="#34d399" opacity="0.35"/>
+    <rect x="120" y="270" width="34" height="140" rx="6" fill="#10b981" opacity="0.85"/>
+    <rect x="168" y="270" width="34" height="140" rx="6" fill="#34d399" opacity="0.85"/>
+    <rect x="216" y="270" width="34" height="140" rx="6" fill="#10b981" opacity="0.85"/>
+    <!-- Door -->
+    <rect x="132" y="330" width="40" height="80" rx="20" fill="#a7f3d0" opacity="0.9"/>
+    <circle cx="162" cy="370" r="3" fill="#054316"/>
+    <!-- Dollar/logo circle -->
+    <circle cx="250" cy="190" r="34" fill="url(#halo)"/>
+    <circle cx="250" cy="190" r="20" fill="#a7f3d0" opacity="0.9"/>
+    <path d="M244 182 L250 188 L256 182" stroke="#022c1c" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
   </g>
 
-  <g stroke="#bbf7d0" stroke-width="1.5" fill="none" opacity="0.55">
-    <rect x="190" y="490" width="180" height="44" rx="14"/>
+  <!-- Wallet -->
+  <g>
+    <rect x="470" y="330" width="190" height="130" rx="18" fill="url(#wallGrad)"/>
+    <rect x="470" y="330" width="190" height="42" rx="18" fill="#047857"/>
+    <rect x="510" y="350" width="28" height="22" rx="8" fill="#022c1c" opacity="0.55"/>
+    <rect x="552" y="350" width="28" height="22" rx="8" fill="#022c1c" opacity="0.35"/>
+    <rect x="495" y="392" width="140" height="18" rx="9" fill="#d1fae5" opacity="0.85"/>
+    <rect x="495" y="422" width="110" height="14" rx="7" fill="#a7f3d0" opacity="0.7"/>
+    <circle cx="564" cy="330" r="12" fill="#fbbf24"/>
+    <circle cx="610" cy="330" r="12" fill="#f59e0b"/>
+    <circle cx="656" cy="330" r="12" fill="#fbbf24"/>
   </g>
 
-  <g fill="#bbf7d0" opacity="0.7">
-    <rect x="430" y="498" width="14" height="14" rx="3"/>
-    <rect x="450" y="498" width="14" height="14" rx="3"/>
-    <rect x="470" y="498" width="14" height="14" rx="3"/>
-    <rect x="490" y="498" width="14" height="14" rx="3"/>
-    <rect x="510" y="498" width="14" height="14" rx="3"/>
-    <rect x="530" y="498" width="14" height="14" rx="3"/>
+  <!-- Coins + banknotes on the right -->
+  <g>
+    <circle cx="160" cy="540" r="20" fill="url(#coinGrad)"/>
+    <circle cx="196" cy="548" r="20" fill="url(#coinGrad)"/>
+    <circle cx="232" cy="540" r="20" fill="url(#coinGrad)"/>
+    <ellipse cx="160" cy="540" rx="12" ry="12" fill="#022c1c" opacity="0.35"/>
+    <ellipse cx="196" cy="548" rx="12" ry="12" fill="#022c1c" opacity="0.35"/>
+    <ellipse cx="232" cy="540" rx="12" ry="12" fill="#022c1c" opacity="0.35"/>
+
+    <g transform="translate(560,120) rotate(-8)">
+      <rect width="150" height="64" rx="8" fill="#34d399" opacity="0.95"/>
+      <rect x="10" y="10" width="130" height="44" rx="6" fill="#022c1c" opacity="0.9"/>
+      <g fill="#6ee7b7">
+        <rect x="20" y="18" width="22" height="14" rx="3"/>
+        <rect x="48" y="18" width="22" height="14" rx="3"/>
+        <rect x="76" y="18" width="22" height="14" rx="3"/>
+        <rect x="104" y="18" width="22" height="14" rx="3"/>
+        <rect x="20" y="38" width="22" height="14" rx="3"/>
+        <rect x="48" y="38" width="22" height="14" rx="3"/>
+        <rect x="76" y="38" width="22" height="14" rx="3"/>
+      </g>
+    </g>
   </g>
 
-  <g fill="#022c1c" opacity="0.7">
-    <rect x="430" y="520" width="120" height="8" rx="3"/>
-    <rect x="430" y="528" width="80" height="8" rx="3"/>
+  <!-- Person doing finance (simple abstract) -->
+  <g>
+    <circle cx="418" cy="150" r="34" fill="#a7f3d0" opacity="0.9"/>
+    <path d="M300 240 C300 190 336 160 418 160 C500 160 536 190 536 240 L536 246 C536 258 526 266 514 266 L322 266 C310 266 300 258 300 246 Z" fill="#10b981"/>
+    <!-- Desk -->
+    <rect x="330" y="266" width="176" height="14" rx="6" fill="#047857"/>
+    <rect x="352" y="280" width="14" height="60" fill="#047857"/>
+    <rect x="470" y="280" width="14" height="60" fill="#047857"/>
+  </g>
+
+  <!-- Invoice / receipt PAPER with pen -->
+  <g transform="translate(600,430)">
+    <rect width="120" height="140" rx="12" fill="#f0fdf4"/>
+    <rect x="18" y="16" width="84" height="12" rx="6" fill="#d1fae5"/>
+    <rect x="18" y="38" width="60" height="10" rx="5" fill="#a7f3d0"/>
+    <rect x="18" y="60" width="70" height="10" rx="5" fill="#a7f3d0"/>
+    <path d="M30 88 L90 88" stroke="#34d399" stroke-width="6" stroke-linecap="round"/>
+    <path d="M30 108 L70 108" stroke="#34d399" stroke-width="6" stroke-linecap="round"/>
+    <line x1="18" y1="118" x2="102" y2="118" stroke="#d1fae5" stroke-width="2" stroke-dasharray="4 4"/>
+  </g>
+
+  <!-- Light overlay -->
+  <g fill="#bbf7d0" opacity="0.55">
+    <rect x="300" y="70" width="14" height="14" rx="3"/>
+    <rect x="320" y="70" width="14" height="14" rx="3"/>
+    <rect x="340" y="70" width="14" height="14" rx="3"/>
+    <rect x="360" y="70" width="14" height="14" rx="3"/>
   </g>
 </svg>

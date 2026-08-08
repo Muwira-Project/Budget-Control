@@ -133,6 +133,6 @@ return [
     | Data and routes remain intact; set to true to show them again.
     */
 
-    'show_finance_modules' => env('SHOW_FINANCE_MODULES', false),
+    'show_finance_modules' => env('SHOW_FINANCE_MODULES', true),
 
 ];

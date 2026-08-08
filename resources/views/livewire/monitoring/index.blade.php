@@ -1,9 +1,9 @@
-﻿<div class="py-12">
+<div class="py-12">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
                 <h2 class="text-xl font-semibold text-gray-800 leading-tight">{{ __('Monitoring') }}</h2>
-                <p class="mt-1 text-sm text-slate-500">Period-based budget, actual, and variance per project or global.</p>
+                <p class="mt-1 text-sm text-slate-500">Period-based budget, actual, and variance.</p>
             </div>
             <a href="{{ route('monitoring.create') }}" wire:navigate class="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
                 + Add Monitoring Period
@@ -48,7 +48,6 @@
                                 <tr>
                                     <th class="w-8 px-6 py-3"><input type="checkbox" disabled class="rounded border-gray-300 text-blue-600 cursor-not-allowed" aria-hidden="true" /></th>
                                     <th class="px-6 py-3">Number</th>
-                                    
                                     <th class="px-6 py-3">Period</th>
                                     <th class="px-6 py-3">Week</th>
                                     <th class="px-6 py-3">Month</th>
@@ -66,7 +65,7 @@
                                         <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
                                         <a href="{{ route('monitoring.show', $period) }}" wire:navigate class="text-blue-600 hover:text-blue-800 hover:underline">{{ $period->nomor }}</a>
                                     </td>
-                                        <td class="px-6 py-4 text-gray-700">{{ $period->project ? $period->project->kode.' - '.$period->project->nama : 'All Projects' }}</td>
+
                                         <td class="px-6 py-4 text-gray-700 whitespace-nowrap">{{ $period->periode_label }}</td>
                                         <td class="px-6 py-4 text-gray-700">{{ $period->week }}</td>
                                         <td class="px-6 py-4 text-gray-700">{{ $period->month }}</td>
