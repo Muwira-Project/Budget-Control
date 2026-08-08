@@ -1,0 +1,190 @@
+<?php
+
+namespace App\Services;
+
+use App\Enums\AllocationStatus;
+use App\Enums\ProjectJenis;
+use App\Models\Kategori;
+use App\Models\Payable;
+use App\Models\Project;
+use App\Models\ProjectAkun;
+use App\Models\Realisasi;
+use App\Models\Receivable;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Cache;
+
+class DashboardService
+{
+    /**
+     * Cache TTL in seconds (10 minutes).
+     */
+    private const CACHE_TTL = 600;
+
+    /**
+     * Get the summary statistics for the dashboard.
+     *
+     * @return array<string, int|float|array<string, float>>
+     */
+    public function statistics(?string $startDate = null, ?string $endDate = null): array
+    {
+        // Generate cache key based on date range
+        $cacheKey = $this->getCacheKey($startDate, $endDate);
+
+        return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($startDate, $endDate) {
+            return $this->computeStatistics($startDate, $endDate);
+        });
+    }
+
+    /**
+     * Compute statistics without caching (internal use).
+     *
+     * @return array<string, int|float|array<string, float>>
+     */
+    private function computeStatistics(?string $startDate = null, ?string $endDate = null): array
+    {
+        $totalBudget = (float) ProjectAkun::sum('budget');
+        $totalAllocation = (float) ProjectAkun::where('status', AllocationStatus::Approved)->sum('allocation');
+
+        $realisasiQuery = Realisasi::query()
+            ->when($startDate, fn ($query) => $query->whereDate('tanggal', '>=', $startDate))
+            ->when($endDate, fn ($query) => $query->whereDate('tanggal', '<=', $endDate));
+
+        $totalRealisasi = (float) (clone $realisasiQuery)->sum('nominal');
+
+        $projects = Project::query()
+            ->withSum('projectAkuns as budget_total', 'budget')
+            ->withSum(['projectAkuns as approved_total' => fn (Builder $query) => $query->where('status', AllocationStatus::Approved)], 'allocation')
+            ->withSum(['realisasi as realisasi_total' => fn ($query) => $this->applyDateRange($query, $startDate, $endDate)], 'nominal')
+            ->orderBy('kode')
+            ->get();
+
+        $cashflow = app(CashflowService::class)->statistics($startDate, $endDate);
+
+        $outstandingAr = (float) Receivable::selectRaw('COALESCE(SUM(nominal - nominal_dibayar), 0) as total')->value('total');
+        $outstandingAp = (float) Payable::selectRaw('COALESCE(SUM(nominal - nominal_dibayar), 0) as total')->value('total');
+
+        $profitProjects = $projects->map(fn (Project $project) => [
+            'kode' => $project->kode,
+            'nama' => $project->nama,
+            'nilai' => $project->nilai_total,
+            'realisasi' => $project->realisasi_total ?? 0,
+            'profit' => $project->nilai_total - (float) ($project->realisasi_total ?? 0),
+        ])->sortByDesc('profit')->values()->all();
+
+        $chartBudgetRealisasi = $projects
+            ->sortByDesc('approved_total')
+            ->take(10)
+            ->values()
+            ->map(fn (Project $project) => [
+                'kode' => $project->kode,
+                'nama' => $project->nama,
+                'budget' => (float) ($project->approved_total ?? 0),
+                'realisasi' => (float) ($project->realisasi_total ?? 0),
+            ])
+            ->all();
+
+        return [
+            'total_projects' => $projects->count(),
+            'projects_barang' => $projects->where('jenis', ProjectJenis::Barang)->count(),
+            'projects_jasa' => $projects->where('jenis', ProjectJenis::Jasa)->count(),
+            'total_budget' => $totalBudget,
+            'total_allocation' => $totalAllocation,
+            'total_realisasi' => $totalRealisasi,
+            'total_sisa' => $totalBudget - $totalRealisasi,
+            'total_nilai' => $projects->sum(fn (Project $project) => $project->nilai_total),
+            'total_pajak' => $projects->sum(fn (Project $project) => $project->nilai_pajak),
+            'persentase' => $totalBudget > 0 ? round(($totalRealisasi / $totalBudget) * 100, 1) : 0,
+            'kategori_breakdown' => $this->kategoriBreakdown($realisasiQuery),
+            'cash_in' => $cashflow['total_masuk'],
+            'cash_out' => $cashflow['total_keluar'],
+            'saldo_kas' => $cashflow['saldo'],
+            'outstanding_ar' => $outstandingAr,
+            'outstanding_ap' => $outstandingAp,
+            'total_profit' => array_sum(array_column($profitProjects, 'profit')),
+            'profit_projects' => $profitProjects,
+            'chart_budget_realisasi' => $chartBudgetRealisasi,
+        ];
+    }
+
+    /**
+     * Generate cache key based on date range.
+     */
+    private function getCacheKey(?string $startDate = null, ?string $endDate = null): string
+    {
+        $base = 'dashboard_stats';
+        
+        if ($startDate === null && $endDate === null) {
+            return $base . ':all';
+        }
+
+        $start = $startDate ?? 'null';
+        $end = $endDate ?? 'null';
+
+        return "{$base}:{$start}:{$end}";
+    }
+
+    /**
+     * Clear dashboard cache (call after creating/updating realisasi, projects, etc).
+     */
+    public static function clearCache(): void
+    {
+        // Clear all dashboard cache keys
+        Cache::forget('dashboard_stats:all');
+        
+        // Clear date range caches by pattern (if using Redis/Memcached)
+        // For database cache, we'll clear specific known keys
+        $dates = self::getRecentDateRanges();
+        foreach ($dates as $start => $end) {
+            Cache::forget("dashboard_stats:{$start}:{$end}");
+        }
+    }
+
+    /**
+     * Get common date ranges for cache invalidation.
+     */
+    private static function getRecentDateRanges(): array
+    {
+        $today = now();
+        
+        return [
+            'null:null' => true, // all time
+            $today->toDateString() => $today->toDateString(), // today
+            $today->subDay()->toDateString() => $today->toDateString(), // last 2 days
+            $today->subDays(7)->toDateString() => $today->toDateString(), // last week
+            $today->subDays(30)->toDateString() => $today->toDateString(), // last month
+        ];
+    }
+
+    /**
+     * Apply the date range filter to a query.
+     */
+    protected function applyDateRange($query, ?string $startDate, ?string $endDate): void
+    {
+        $query->when($startDate, fn ($q) => $q->whereDate('tanggal', '>=', $startDate))
+            ->when($endDate, fn ($q) => $q->whereDate('tanggal', '<=', $endDate));
+    }
+
+    /**
+     * Total realisasi grouped by the six budgeting categories.
+     *
+     * @param  Builder  $realisasiQuery
+     * @return array<string, float>
+     */
+    protected function kategoriBreakdown($realisasiQuery): array
+    {
+        $totals = Kategori::orderBy('kode')->get()
+            ->mapWithKeys(fn (Kategori $kategori) => [$kategori->nama => 0.0])
+            ->all();
+
+        foreach ((clone $realisasiQuery)
+            ->join('kategoris', 'kategoris.id', '=', 'realisasi.kategori_id')
+            ->selectRaw('kategoris.nama as nama, COALESCE(SUM(realisasi.nominal), 0) as total')
+            ->groupBy('kategoris.nama')
+            ->get() as $row) {
+            $totals[$row->nama] = (float) $row->total;
+        }
+
+        return $totals;
+    }
+}
+

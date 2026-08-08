@@ -1,0 +1,108 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600" width="800" height="600" fill="none">
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#054316"/>
+      <stop offset="1" stop-color="#0a6d3b"/>
+    </linearGradient>
+    <linearGradient id="cardA" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#10b981"/>
+      <stop offset="1" stop-color="#059669"/>
+    </linearGradient>
+    <linearGradient id="cardB" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#34d399"/>
+      <stop offset="1" stop-color="#0d9488"/>
+    </linearGradient>
+    <linearGradient id="cardC" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#22c55e"/>
+      <stop offset="1" stop-color="#15803d"/>
+    </linearGradient>
+    <linearGradient id="trend" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#bbf7d0"/>
+      <stop offset="1" stop-color="#ecfdf5"/>
+    </linearGradient>
+    <radialGradient id="halo" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#ecfdf5" stop-opacity="0.45"/>
+      <stop offset="1" stop-color="#ecfdf5" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <rect width="800" height="600" rx="40" fill="url(#bgGrad)"/>
+
+  <circle cx="160" cy="120" r="220" fill="url(#halo)"/>
+  <circle cx="640" cy="520" r="180" fill="url(#halo)"/>
+
+  <g opacity="0.35" stroke="#a7f3d0" stroke-width="2" fill="none" stroke-linecap="round">
+    <path d="M40 90 H760"/>
+    <path d="M40 230 H760"/>
+    <path d="M40 380 H760"/>
+    <path d="M40 520 H760"/>
+  </g>
+
+  <rect x="60" y="100" width="240" height="280" rx="22" fill="url(#cardA)"/>
+  <rect x="540" y="160" width="220" height="260" rx="22" fill="url(#cardB)"/>
+  <rect x="320" y="200" width="160" height="240" rx="22" fill="url(#cardC)"/>
+
+  <rect x="80" y="130" width="60" height="60" rx="14" fill="#a7f3d0" opacity="0.55"/>
+  <rect x="150" y="130" width="60" height="60" rx="14" fill="#ecfdf5" opacity="0.45"/>
+
+  <rect x="80" y="210" width="170" height="14" rx="7" fill="#ecfdf5" opacity="0.85"/>
+  <rect x="80" y="240" width="120" height="10" rx="5" fill="#d1fae5" opacity="0.9"/>
+  <rect x="80" y="262" width="150" height="10" rx="5" fill="#d1fae5" opacity="0.7"/>
+
+  <rect x="80" y="290" width="190" height="40" rx="12" fill="#022c1c" opacity="0.85"/>
+  <text x="98" y="318" font-family="ui-monospace, Menlo, monospace" font-size="18" fill="#a7f3d0">Rp 1.250.000</text>
+
+  <rect x="80" y="345" width="190" height="10" rx="5" fill="#34d399" opacity="0.85"/>
+  <rect x="80" y="370" width="150" height="10" rx="5" fill="#34d399" opacity="0.7"/>
+
+  <rect x="560" y="190" width="180" height="14" rx="7" fill="#ecfdf5" opacity="0.85"/>
+  <rect x="560" y="220" width="120" height="10" rx="5" fill="#a7f3d0" opacity="0.85"/>
+  <rect x="560" y="242" width="150" height="10" rx="5" fill="#a7f3d0" opacity="0.7"/>
+
+  <rect x="560" y="278" width="180" height="40" rx="12" fill="#022c1c" opacity="0.85"/>
+  <text x="578" y="306" font-family="ui-monospace, Menlo, monospace" font-size="18" fill="#6ee7b7">+12,4%</text>
+
+  <rect x="335" y="225" width="130" height="14" rx="7" fill="#ecfdf5" opacity="0.85"/>
+  <rect x="335" y="250" width="80" height="10" rx="5" fill="#a7f3d0" opacity="0.85"/>
+  <rect x="335" y="272" width="100" height="10" rx="5" fill="#a7f3d0" opacity="0.7"/>
+
+  <rect x="325" y="305" width="150" height="40" rx="12" fill="#022c1c" opacity="0.85"/>
+  <text x="343" y="332" font-family="ui-monospace, Menlo, monospace" font-size="16" fill="#bbf7d0">$ 4,920</text>
+
+  <circle cx="395" cy="120" r="22" fill="#022c1c" opacity="0.55"/>
+  <circle cx="395" cy="120" r="14" fill="#a7f3d0"/>
+  <path d="M388 113 L395 120 L402 113" stroke="#022c1c" stroke-width="2.5" fill="none" stroke-linecap="round"/>
+
+  <path d="M80 460 C140 460 200 440 250 410 C300 380 350 350 420 350 C490 350 550 380 620 410 C660 425 700 425 740 410" stroke="url(#trend)" stroke-width="10" fill="none" stroke-linecap="round"/>
+
+  <g fill="#a7f3d0">
+    <circle cx="250" cy="410" r="6"/>
+    <circle cx="350" cy="365" r="6"/>
+    <circle cx="490" cy="350" r="6"/>
+    <circle cx="620" cy="410" r="6"/>
+    <circle cx="700" cy="410" r="6"/>
+  </g>
+
+  <g fill="#022c1c" opacity="0.85">
+    <rect x="190" y="490" width="180" height="44" rx="14"/>
+    <text x="210" y="518" font-family="ui-sans-serif, system-ui" font-size="16" fill="#bbf7d0" font-weight="600">MYFINANCE</text>
+  </g>
+
+  <g stroke="#bbf7d0" stroke-width="1.5" fill="none" opacity="0.55">
+    <rect x="190" y="490" width="180" height="44" rx="14"/>
+  </g>
+
+  <g fill="#bbf7d0" opacity="0.7">
+    <rect x="430" y="498" width="14" height="14" rx="3"/>
+    <rect x="450" y="498" width="14" height="14" rx="3"/>
+    <rect x="470" y="498" width="14" height="14" rx="3"/>
+    <rect x="490" y="498" width="14" height="14" rx="3"/>
+    <rect x="510" y="498" width="14" height="14" rx="3"/>
+    <rect x="530" y="498" width="14" height="14" rx="3"/>
+  </g>
+
+  <g fill="#022c1c" opacity="0.7">
+    <rect x="430" y="520" width="120" height="8" rx="3"/>
+    <rect x="430" y="528" width="80" height="8" rx="3"/>
+  </g>
+</svg>

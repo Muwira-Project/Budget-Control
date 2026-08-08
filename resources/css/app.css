@@ -1,0 +1,59 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+[x-cloak] { display: none !important; }
+
+@layer base {
+    body {
+        @apply bg-slate-50 text-slate-700;
+    }
+
+    main input:not([type='checkbox']):not([type='radio']),
+    main select,
+    main textarea {
+        @apply rounded-xl border-slate-200 bg-white shadow-sm transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10;
+    }
+}
+
+@layer components {
+    .page-shell {
+        @apply min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-50/70 via-slate-50 to-slate-100;
+    }
+
+    .app-card {
+        @apply rounded-2xl border border-slate-200/80 bg-white shadow-[0_8px_24px_rgb(15_23_42/0.04)];
+    }
+
+    .app-card:hover {
+        @apply shadow-[0_12px_32px_rgb(15_23_42/0.07)];
+    }
+
+    main .rounded-2xl.bg-white {
+        @apply border border-slate-200/80 shadow-[0_8px_24px_rgb(15_23_42/0.04)] transition-shadow duration-200;
+    }
+
+    main .rounded-2xl.bg-white:hover {
+        @apply shadow-[0_12px_32px_rgb(15_23_42/0.07)];
+    }
+}
+
+/* Prevent wide tables/cards from pushing the whole page sideways on phones. */
+html {
+    -webkit-text-size-adjust: 100%;
+}
+
+/* Compact tables on small screens so they need less horizontal scrolling. */
+@media (max-width: 640px) {
+    main table {
+        font-size: 0.8125rem;
+    }
+
+    main table th,
+    main table td {
+        padding-top: 0.625rem !important;
+        padding-bottom: 0.625rem !important;
+        padding-left: 0.625rem !important;
+        padding-right: 0.625rem !important;
+    }
+}

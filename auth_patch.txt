@@ -1,0 +1,18 @@
+﻿*** Begin Patch
+*** Update File: resources/views/layouts/auth.blade.php
+@@ -32,7 +32,6 @@
+             <div class="relative flex flex-1 items-center justify-center p-6 xl:p-10">
+                 <div class="relative w-full max-w-5xl aspect-square">
+-                    <div class="absolute -inset-8 rounded-[2rem] bg-emerald-400/20 blur-3xl"></div>
+                     <div class="relative overflow-hidden rounded-[2rem] border border-white/15 bg-slate-900/30 p-3 shadow-2xl shadow-slate-950/40">
+                         <img src="{{ asset('images/hero-finance.svg') }}" alt="Ilustrasi dashboard keuangan dan pengendalian budget" class="aspect-square w-full rounded-[1.6rem] object-cover" />
+                     </div>
+@@ -46,7 +45,7 @@
+                 <div class="mb-8 text-center">
+                     <!-- Single logo above Welcome back -->
+-                    <div class="mx-auto mb-5 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-600 shadow-lg shadow-emerald-200">
++                    <div class="mx-auto mb-5 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-600">
+                         <x-application-logo class="h-9 w-auto fill-current text-white" />
+                     </div>
+                     <p class="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-emerald-600">myfinance</p>
+*** End Patch
