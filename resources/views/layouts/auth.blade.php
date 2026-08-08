@@ -39,12 +39,14 @@
         <div class="flex w-full items-center justify-center px-6 py-12 lg:w-[46%] lg:px-10">
             <div class="w-full max-w-md">
                 <div class="mb-8 text-center">
-                    <!-- Flat logo (green) beside the brand name, merged with the white background -->
-                    <div class="mb-6 flex items-center justify-center">
-                        <x-application-logo class="h-10 w-auto fill-current text-emerald-600" />
+                    <!-- White box + green logo, merged with the white background (no shadow) -->
+                    <div class="mb-6 inline-flex items-center justify-center gap-3">
+                        <span class="inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white ring-1 ring-emerald-600/10">
+                            <x-application-logo class="h-8 w-auto fill-current text-emerald-600" />
+                        </span>
+                        <span class="text-xl font-bold tracking-tight text-emerald-700">myfinance</span>
                     </div>
                     <h2 class="text-3xl font-bold tracking-tight text-slate-900">{{ __('Welcome back') }}</h2>
-                    <p class="mt-2 text-sm text-slate-500">{{ __('Sign in to continue to') }} <span class="font-semibold text-slate-700">{{ $companyName ?? 'myfinance' }}</span></p>
                 </div>
 
                 <div class="rounded-3xl border border-slate-200/80 bg-white px-8 py-10 ">
