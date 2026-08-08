@@ -44,44 +44,48 @@ new class extends Component
 ?>
 
 <div x-data="{ sidebarOpen: false }">
-    <!-- Desktop Sidebar -->
-    <aside class="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-emerald-400/10 bg-[#054316] lg:flex">
-        <a href="{{ route('dashboard') }}" wire:navigate class="flex items-center gap-3 border-b border-emerald-400/10 px-5 py-5">
-            <x-application-logo class="h-9 w-auto shrink-0 fill-current text-emerald-100" />
+    {{-- Desktop Sidebar --}}
+    <aside class="fixed inset-y-0 left-0 z-40 hidden w-[248px] flex-col border-r border-white/5 bg-brand-950 lg:flex">
+        <a href="{{ route('dashboard') }}" wire:navigate class="flex h-16 shrink-0 items-center gap-3 border-b border-white/5 px-5">
+            <x-application-logo class="h-8 w-auto shrink-0 fill-current text-emerald-300" />
             <span class="leading-tight">
-                <span class="block text-sm font-bold text-white">{{ $companyName ?? 'myfinance' }}</span>
-                <span class="block text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-200/70">myfinance</span>
+                <span class="block text-[15px] font-bold tracking-tight text-white">ERGE</span>
+                <span class="block text-[10px] font-semibold uppercase tracking-[0.24em] text-emerald-300/80">MyFinance</span>
             </span>
         </a>
 
-        <x-sidebar-menu />
+        <div class="flex-1 overflow-y-auto px-3 py-4">
+            <x-sidebar-menu />
+        </div>
 
-        <div class="border-t border-emerald-400/10 p-3">
-            <button wire:click="logout" class="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-emerald-500/10 hover:text-emerald-100">
+        <div class="shrink-0 border-t border-white/5 p-3">
+            <button wire:click="logout" class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white">
                 <x-icon name="logout" class="h-5 w-5 shrink-0" />
                 Logout
             </button>
         </div>
     </aside>
 
-    <!-- Mobile Drawer -->
+    {{-- Mobile Drawer --}}
     <div x-show="sidebarOpen" x-cloak class="fixed inset-0 z-50 lg:hidden">
-        <div class="fixed inset-0 bg-gray-900/50" @click="sidebarOpen = false"></div>
-        <aside class="fixed inset-y-0 left-0 flex w-64 flex-col bg-white shadow-xl">
-            <div class="flex items-center justify-between border-b border-gray-100 px-4 py-4">
+        <div class="fixed inset-0 bg-slate-900/50" @click="sidebarOpen = false"></div>
+        <aside class="fixed inset-y-0 left-0 flex w-[280px] flex-col bg-brand-950 shadow-2xl">
+            <div class="flex h-16 shrink-0 items-center justify-between border-b border-white/5 px-4">
                 <a href="{{ route('dashboard') }}" wire:navigate class="flex items-center gap-2.5">
-                    <x-application-logo class="h-8 w-auto fill-current text-emerald-700" />
-                    <span class="text-sm font-bold text-gray-900">{{ $companyName ?? 'myfinance' }}</span>
+                    <x-application-logo class="h-7 w-auto fill-current text-emerald-300" />
+                    <span class="text-sm font-bold text-white">ERGE <span class="font-medium text-emerald-300/80">MyFinance</span></span>
                 </a>
-                <button type="button" @click="sidebarOpen = false" class="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100">
+                <button type="button" @click="sidebarOpen = false" class="rounded-lg p-1.5 text-slate-300 hover:bg-white/5 hover:text-white">
                     <x-icon name="x-mark" class="h-5 w-5" />
                 </button>
             </div>
 
-            <x-sidebar-menu />
+            <div class="flex-1 overflow-y-auto px-3 py-4">
+                <x-sidebar-menu />
+            </div>
 
-            <div class="border-t border-gray-200 p-3">
-                <button wire:click="logout" class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900">
+            <div class="shrink-0 border-t border-white/5 p-3">
+                <button wire:click="logout" class="flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-slate-300 hover:bg-white/5 hover:text-white">
                     <x-icon name="logout" class="h-5 w-5 shrink-0" />
                     Logout
                 </button>
@@ -89,65 +93,68 @@ new class extends Component
         </aside>
     </div>
 
-    <!-- Topbar -->
-    <header class="sticky top-0 z-30 border-b border-slate-200/80 bg-white/85 shadow-sm shadow-slate-950/[0.02] backdrop-blur-xl">
+    {{-- Top Bar --}}
+    <header class="sticky top-0 z-30 border-b border-slate-200/70 bg-white/90 shadow-topbar backdrop-blur-xl">
         <div class="flex h-16 items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-            <div class="flex items-center gap-3">
-                <button type="button" @click="sidebarOpen = true" class="rounded-lg p-2 text-gray-500 hover:bg-gray-100 lg:hidden" aria-label="Open menu">
+            <div class="flex min-w-0 items-center gap-3">
+                <button type="button" @click="sidebarOpen = true" class="rounded-lg p-2 text-slate-500 hover:bg-slate-100 lg:hidden" aria-label="Open menu">
                     <x-icon name="menu" class="h-6 w-6" />
                 </button>
-                <span class="text-sm font-bold text-slate-900 lg:hidden">My Finance</span>
+                <div class="hidden min-w-0 md:block">
+                    <x-breadcrumb />
+                </div>
             </div>
 
-            <div class="flex items-center gap-2 sm:gap-4">
-                <span class="hidden text-sm font-semibold text-slate-700 md:block">{{ auth()->user()->name }}</span>
+            <div class="flex shrink-0 items-center gap-2 sm:gap-4">
+                <span class="hidden text-sm font-semibold text-slate-700 lg:block">{{ auth()->user()->name }}</span>
 
+                {{-- Notifications --}}
                 <div x-data="{ notifOpen: false }" @click.outside="notifOpen = false" class="relative">
-                    <button type="button" @click="notifOpen = ! notifOpen" class="relative rounded-lg p-2 text-gray-500 hover:bg-gray-100" title="Notification" aria-label="Notifications">
+                    <button type="button" @click="notifOpen = ! notifOpen" class="relative rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700" title="Notifications" aria-label="Notifications">
                         <x-icon name="bell" class="h-5 w-5" />
                         @if (count($this->unreadNotifications) > 0)
-                            <span class="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[10px] font-bold text-white">{{ count($this->unreadNotifications) }}</span>
+                            <span class="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-600 px-1 text-[10px] font-bold text-white ring-2 ring-white">{{ count($this->unreadNotifications) }}</span>
                         @endif
                     </button>
 
-                    <div x-show="notifOpen" x-cloak class="absolute right-0 mt-2 w-80 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-lg">
-                        <div class="flex items-center justify-between border-b border-gray-100 px-4 py-2">
-                            <p class="text-sm font-semibold text-gray-800">Notifications</p>
+                    <div x-show="notifOpen" x-cloak class="absolute right-0 mt-2 w-80 overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-card-hover">
+                        <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
+                            <p class="text-sm font-semibold text-slate-800">Notifications</p>
                             @if (count($this->unreadNotifications) > 0)
-                                <button wire:click="markAllNotificationsAsRead" class="text-xs font-medium text-blue-600 hover:text-blue-800">Mark all as read</button>
+                                <button wire:click="markAllNotificationsAsRead" class="text-xs font-medium text-brand-600 hover:text-brand-700">Mark all as read</button>
                             @endif
                         </div>
                         <div class="max-h-80 overflow-y-auto">
                             @forelse ($this->unreadNotifications as $notification)
-                                <a href="{{ $notification->data['url'] ?? '#' }}" wire:click.prevent="markNotificationAsRead('{{ $notification->id }}')" class="block border-b border-gray-50 px-4 py-3 hover:bg-gray-50">
-                                    <p class="text-sm font-medium text-gray-800">{{ $notification->data['title'] ?? 'Notification' }}</p>
-                                    <p class="mt-0.5 line-clamp-2 text-xs text-gray-500">{{ $notification->data['message'] ?? '' }}</p>
-                                    <p class="mt-1 text-[10px] text-gray-400">{{ $notification->created_at->diffForHumans() }}</p>
+                                <a href="{{ $notification->data['url'] ?? '#' }}" wire:click.prevent="markNotificationAsRead('{{ $notification->id }}')" class="block border-b border-slate-50 px-4 py-3 transition hover:bg-slate-50">
+                                    <p class="text-sm font-medium text-slate-800">{{ $notification->data['title'] ?? 'Notification' }}</p>
+                                    <p class="mt-0.5 line-clamp-2 text-xs text-slate-500">{{ $notification->data['message'] ?? '' }}</p>
+                                    <p class="mt-1 text-[10px] text-slate-400">{{ $notification->created_at->diffForHumans() }}</p>
                                 </a>
                             @empty
-                                <p class="px-4 py-6 text-center text-sm text-gray-500">No unread notifications.</p>
+                                <p class="px-4 py-8 text-center text-sm text-slate-500">No unread notifications.</p>
                             @endforelse
                         </div>
                     </div>
                 </div>
 
+                {{-- Profile --}}
                 <div x-data="{ profileOpen: false }" @click.outside="profileOpen = false" class="relative">
-                    <button type="button" @click="profileOpen = ! profileOpen" class="flex items-center gap-1.5 rounded-full p-1 transition hover:bg-slate-100" aria-label="Profile menu">
-                        <span class="flex h-8 w-8 items-center justify-center rounded-full bg-gradient-to-br from-blue-500 to-indigo-600 text-sm font-bold text-white shadow-sm">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</span>
-                        <x-icon name="chevron-down" class="h-4 w-4 text-gray-400" x-bind:class="profileOpen ? 'rotate-180' : ''" />
+                    <button type="button" @click="profileOpen = ! profileOpen" class="flex items-center gap-2 rounded-full p-1 transition hover:bg-slate-100" aria-label="Profile menu">
+                        <span class="flex h-8 w-8 items-center justify-center rounded-full bg-brand-600 text-sm font-bold text-white shadow-sm">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</span>
+                        <x-icon name="chevron-down" class="hidden h-4 w-4 text-slate-400 sm:block" x-bind:class="profileOpen ? 'rotate-180' : ''" />
                     </button>
 
-                    <div x-show="profileOpen" x-cloak class="absolute right-0 mt-2 w-48 overflow-hidden rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
-                        <div class="border-b border-gray-100 px-4 py-2">
-                            <p class="truncate text-sm font-semibold text-gray-800">{{ auth()->user()->name }}</p>
-                            <p class="truncate text-xs text-gray-500">{{ auth()->user()->email }}</p>
+                    <div x-show="profileOpen" x-cloak class="absolute right-0 mt-2 w-52 overflow-hidden rounded-xl border border-slate-200/80 bg-white py-1 shadow-card-hover">
+                        <div class="border-b border-slate-100 px-4 py-3">
+                            <p class="truncate text-sm font-semibold text-slate-800">{{ auth()->user()->name }}</p>
+                            <p class="truncate text-xs text-slate-500">{{ auth()->user()->email }}</p>
                         </div>
-                        <a href="{{ route('profile') }}" wire:navigate class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-50">Profile</a>
-                        <button wire:click="logout" class="block w-full px-4 py-2 text-start text-sm text-red-600 hover:bg-gray-50">Logout</button>
+                        <a href="{{ route('profile') }}" wire:navigate class="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-50">Profile</a>
+                        <button wire:click="logout" class="block w-full px-4 py-2 text-start text-sm text-red-600 hover:bg-slate-50">Logout</button>
                     </div>
                 </div>
             </div>
         </div>
     </header>
 </div>
-

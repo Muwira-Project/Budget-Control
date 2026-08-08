@@ -1,14 +1,12 @@
 <div class="py-12">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-                <h2 class="text-xl font-semibold text-gray-800 leading-tight">{{ __('Monitoring') }}</h2>
-                <p class="mt-1 text-sm text-slate-500">Period-based budget, actual, and variance.</p>
-            </div>
-            <a href="{{ route('monitoring.create') }}" wire:navigate class="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                + Add Monitoring Period
-            </a>
-        </div>
+        <x-page-header icon="scale" title="Monitoring" description="Period-based budget, actual, and variance.">
+            <x-slot:actions>
+                <a href="{{ route('monitoring.create') }}" wire:navigate class="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700">
+                    <x-icon name="plus" class="h-4 w-4" /> Add Monitoring Period
+                </a>
+            </x-slot:actions>
+        </x-page-header>
 
         @if (session('status'))
             <div class="mt-4 rounded-lg bg-blue-50 p-4 text-sm text-blue-700">

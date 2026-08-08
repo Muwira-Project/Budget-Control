@@ -10,7 +10,11 @@
         @click="open = ! open"
         aria-expanded="false"
         :aria-expanded="open ? 'true' : 'false'"
-        class="group flex w-full items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+        @class([
+            'group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition',
+            'font-semibold text-white' => $active,
+            'font-medium text-slate-300 hover:bg-white/5 hover:text-white' => ! $active,
+        ])
     >
         @if ($icon)
             <x-icon :name="$icon" class="h-5 w-5 shrink-0" />
@@ -19,7 +23,7 @@
         <x-icon name="chevron-down" class="h-4 w-4 shrink-0 transition-transform" x-bind:class="open ? 'rotate-180' : ''" />
     </button>
 
-    <div x-show="open" x-cloak class="mt-1 space-y-1 border-l border-gray-200 ps-3 ms-5">
+    <div x-show="open" x-cloak class="mt-1 space-y-0.5 border-l border-white/10 ps-3 ms-4">
         {{ $slot }}
     </div>
 </div>

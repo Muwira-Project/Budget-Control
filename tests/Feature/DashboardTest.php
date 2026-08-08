@@ -31,15 +31,17 @@ class DashboardTest extends TestCase
         $this->actingAs($user)
             ->get(route('dashboard'))
             ->assertOk()
-            ->assertSee('Total Projects')
             ->assertSee('Total Budget')
             ->assertSee('Total Actual')
             ->assertSee('Remaining Budget')
-            ->assertSee('Outstanding AR')
-            ->assertSee('Outstanding AP')
-            ->assertSee('Budget Usage')
-            ->assertSee('Budget vs Actual')
-            ->assertSee('Profit by Project');
+            ->assertSee('Variance')
+            ->assertSee('Budget Utilization')
+            ->assertSee('Cashflow Summary')
+            ->assertSee('Project Overview')
+            ->assertSee('Recent Activity')
+            ->assertSee('Payment Request')
+            ->assertSee('Outstanding Receivable')
+            ->assertSee('Outstanding Payable');
     }
 
     public function test_dashboard_shows_aggregated_statistics(): void

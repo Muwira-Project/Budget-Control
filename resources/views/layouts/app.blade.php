@@ -7,11 +7,11 @@
         <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests" />
 
         <link rel="icon" href="{{ $companyLogoUrl ?? asset('favicon.ico') }}">
-        <title>{{ $companyName ?? config('app.name', 'Laravel') }}</title>
+        <title>{{ isset($pageTitle) ? $pageTitle.' | ' : '' }}{{ $companyName ?? config('app.name', 'MyFinance') }}</title>
 
         <!-- Fonts -->
         <link rel="preconnect" href="https://fonts.bunny.net">
-        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600&display=swap" rel="stylesheet" />
+        <link href="https://fonts.bunny.net/css?family=figtree:400,500,600,700&display=swap" rel="stylesheet" />
 
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
@@ -20,16 +20,13 @@
         <div class="page-shell">
             <livewire:layout.navigation />
 
-            <div class="min-w-0 overflow-x-clip lg:pl-64">
-                <main>
+            <div class="min-w-0 lg:pl-[248px]">
+                <main class="mx-auto max-w-[1440px] px-4 pb-12 pt-6 sm:px-6 lg:px-8">
                     @if (isset($header))
-                        <div class="mx-auto max-w-7xl px-4 pt-6 sm:px-6 lg:px-8">
+                        <div class="mb-6">
                             {{ $header }}
                         </div>
                     @endif
-                    <div class="mx-auto max-w-7xl px-4 pb-3 pt-6 sm:px-6 lg:px-8">
-                        <x-breadcrumb />
-                    </div>
                     {{ $slot }}
                 </main>
             </div>

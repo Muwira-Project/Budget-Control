@@ -6,54 +6,62 @@
 
 @layer base {
     body {
-        @apply bg-slate-50 text-slate-700;
+        @apply bg-[#f6f7f9] text-slate-700 antialiased;
     }
 
     main input:not([type='checkbox']):not([type='radio']),
     main select,
     main textarea {
-        @apply rounded-xl border-slate-200 bg-white shadow-sm transition placeholder:text-slate-400 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10;
+        @apply rounded-lg border-slate-200 bg-white text-sm shadow-sm transition placeholder:text-slate-400 focus:border-brand-500 focus:ring-2 focus:ring-brand-500/10;
     }
 }
 
 @layer components {
+    /* Workspace shell */
     .page-shell {
-        @apply min-h-screen bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-blue-50/70 via-slate-50 to-slate-100;
+        @apply min-h-screen bg-[#f6f7f9];
     }
 
+    /* Cards */
     .app-card {
-        @apply rounded-2xl border border-slate-200/80 bg-white shadow-[0_8px_24px_rgb(15_23_42/0.04)];
+        @apply rounded-xl border border-slate-200/70 bg-white shadow-card;
     }
 
-    .app-card:hover {
-        @apply shadow-[0_12px_32px_rgb(15_23_42/0.07)];
+    .app-card-hover {
+        @apply transition-shadow duration-200 hover:shadow-card-hover;
     }
 
-    main .rounded-2xl.bg-white {
-        @apply border border-slate-200/80 shadow-[0_8px_24px_rgb(15_23_42/0.04)] transition-shadow duration-200;
+    /* Page header */
+    .page-title {
+        @apply text-xl font-bold tracking-tight text-slate-900 sm:text-2xl;
     }
 
-    main .rounded-2xl.bg-white:hover {
-        @apply shadow-[0_12px_32px_rgb(15_23_42/0.07)];
-    }
-}
-
-/* Prevent wide tables/cards from pushing the whole page sideways on phones. */
-html {
-    -webkit-text-size-adjust: 100%;
-}
-
-/* Compact tables on small screens so they need less horizontal scrolling. */
-@media (max-width: 640px) {
-    main table {
-        font-size: 0.8125rem;
+    .page-description {
+        @apply mt-1 text-sm text-slate-500;
     }
 
-    main table th,
-    main table td {
-        padding-top: 0.625rem !important;
-        padding-bottom: 0.625rem !important;
-        padding-left: 0.625rem !important;
-        padding-right: 0.625rem !important;
+    /* Tables */
+    .data-table {
+        @apply w-full text-sm;
+    }
+
+    .data-table thead th {
+        @apply border-b border-slate-200/70 bg-slate-50/70 px-5 py-3 text-left text-[11px] font-semibold uppercase tracking-wider text-slate-500;
+    }
+
+    .data-table tbody td {
+        @apply border-b border-slate-100 px-5 py-3.5 align-middle;
+    }
+
+    .data-table tbody tr:last-child td {
+        @apply border-b-0;
+    }
+
+    .data-table tbody tr {
+        @apply transition-colors hover:bg-slate-50/60;
+    }
+
+    .data-table tfoot td {
+        @apply border-t border-slate-200/70 bg-slate-50/50 px-5 py-3 font-semibold;
     }
 }

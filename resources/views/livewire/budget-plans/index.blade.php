@@ -1,11 +1,12 @@
-﻿<div class="py-12">
+<div class="py-12">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <h2 class="text-xl font-semibold text-gray-800 leading-tight">{{ __('Budget') }}</h2>
-            <a href="{{ route('budget-plans.create') }}" wire:navigate class="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                + Add Budget
-            </a>
-        </div>
+        <x-page-header icon="clipboard" title="Budget" description="Plan estimated income, costs, and target profit per period.">
+            <x-slot:actions>
+                <a href="{{ route('budget-plans.create') }}" wire:navigate class="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700">
+                    <x-icon name="plus" class="h-4 w-4" /> Add Budget
+                </a>
+            </x-slot:actions>
+        </x-page-header>
 
         @if (session('status'))
             <div class="mt-4 rounded-lg bg-blue-50 p-4 text-sm text-blue-700">

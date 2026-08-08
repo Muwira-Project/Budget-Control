@@ -9,12 +9,12 @@
 
 @php
 $classes = $active
-    ? 'group flex items-center gap-3 rounded-xl bg-blue-500/15 px-3 py-2.5 text-sm font-semibold text-blue-50 shadow-sm ring-1 ring-inset ring-blue-400/20'
-    : 'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-blue-500/10 hover:text-blue-100';
+    ? 'group flex items-center gap-3 rounded-lg bg-brand-500/15 px-3 py-2.5 text-sm font-semibold text-white ring-1 ring-inset ring-brand-400/25'
+    : 'group flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white';
 @endphp
 
 @if ($disabled)
-    <span class="flex cursor-not-allowed items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-500">
+    <span class="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-500">
         @if ($icon)
             <x-icon :name="$icon" class="h-5 w-5 shrink-0" />
         @endif

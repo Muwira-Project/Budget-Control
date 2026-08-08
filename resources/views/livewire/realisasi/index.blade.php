@@ -1,22 +1,18 @@
 <div class="py-12">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <div>
-                <h2 class="text-xl font-semibold leading-tight text-slate-800">{{ __('Actual') }}</h2>
-                <p class="mt-1 text-sm text-slate-500">Record and review actual project spending by account.</p>
-            </div>
-            <div class="flex flex-wrap items-center gap-2">
-                <a href="{{ route('imports.realisasi') }}" wire:navigate class="inline-flex items-center gap-2 rounded-lg border border-blue-600 bg-white px-3 py-1.5 text-xs font-semibold text-blue-600 shadow-sm hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+        <x-page-header icon="trending-up" title="Actual" description="Record and review actual project spending by account.">
+            <x-slot:actions>
+                <a href="{{ route('imports.realisasi') }}" wire:navigate class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900">
                     <x-icon name="upload" class="h-4 w-4" /> Import
                 </a>
-                <a href="{{ route('exports.page', 'realisasi') }}" wire:navigate class="inline-flex items-center gap-2 rounded-lg border border-blue-600 bg-white px-3 py-1.5 text-xs font-semibold text-blue-600 shadow-sm hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                <a href="{{ route('exports.page', 'realisasi') }}" wire:navigate class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900">
                     <x-icon name="download" class="h-4 w-4" /> Export
                 </a>
-                <a href="{{ route('realisasi.create') }}" wire:navigate class="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                    + Add Actual
+                <a href="{{ route('realisasi.create') }}" wire:navigate class="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700">
+                    <x-icon name="plus" class="h-4 w-4" /> Add Actual
                 </a>
-            </div>
-        </div>
+            </x-slot:actions>
+        </x-page-header>
 
         @if (session('status'))
             <div class="mt-4 rounded-lg bg-blue-50 p-4 text-sm text-blue-700">
