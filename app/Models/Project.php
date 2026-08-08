@@ -26,6 +26,9 @@ class Project extends Model
     {
         static::created(fn (Project $project) => $project->syncReceivable());
         static::updated(fn (Project $project) => $project->syncReceivable());
+        static::created(fn ($model) => \App\Services\DashboardService::clearCache());
+        static::updated(fn ($model) => \App\Services\DashboardService::clearCache());
+        static::deleted(fn ($model) => \App\Services\DashboardService::clearCache());
     }
 
     /**

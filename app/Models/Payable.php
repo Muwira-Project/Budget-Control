@@ -35,6 +35,9 @@ class Payable extends Model
                 throw new \InvalidArgumentException('A payable must reference exactly one party.');
             }
         });
+        static::created(fn ($model) => \App\Services\DashboardService::clearCache());
+        static::updated(fn ($model) => \App\Services\DashboardService::clearCache());
+        static::deleted(fn ($model) => \App\Services\DashboardService::clearCache());
     }
 
     /**

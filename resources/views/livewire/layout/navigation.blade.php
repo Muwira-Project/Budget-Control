@@ -47,7 +47,7 @@ new class extends Component
     <!-- Desktop Sidebar -->
     <aside class="fixed inset-y-0 left-0 z-40 hidden w-64 flex-col border-r border-emerald-400/10 bg-[#054316] lg:flex">
         <a href="{{ route('dashboard') }}" wire:navigate class="flex items-center gap-3 border-b border-emerald-400/10 px-5 py-5">
-            <span class="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-emerald-500 to-teal-500 p-1"><x-application-logo class="h-full w-full fill-current text-white" /></span>
+            <x-application-logo class="h-9 w-auto shrink-0 fill-current text-emerald-100" />
             <span class="leading-tight">
                 <span class="block text-sm font-bold text-white">{{ $companyName ?? 'myfinance' }}</span>
                 <span class="block text-[10px] font-semibold uppercase tracking-[0.16em] text-emerald-200/70">myfinance</span>
@@ -70,7 +70,7 @@ new class extends Component
         <aside class="fixed inset-y-0 left-0 flex w-64 flex-col bg-white shadow-xl">
             <div class="flex items-center justify-between border-b border-gray-100 px-4 py-4">
                 <a href="{{ route('dashboard') }}" wire:navigate class="flex items-center gap-2.5">
-                    <x-application-logo class="h-8 w-auto fill-current text-blue-600" />
+                    <x-application-logo class="h-8 w-auto fill-current text-emerald-700" />
                     <span class="text-sm font-bold text-gray-900">{{ $companyName ?? 'myfinance' }}</span>
                 </a>
                 <button type="button" @click="sidebarOpen = false" class="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100">

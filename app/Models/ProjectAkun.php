@@ -12,6 +12,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class ProjectAkun extends Model
 {
     /**
+     * Keep the dashboard cache in sync with transaction data.
+     */
+    protected static function booted(): void
+    {
+        static::created(fn ($model) => \App\Services\DashboardService::clearCache());
+        static::updated(fn ($model) => \App\Services\DashboardService::clearCache());
+        static::deleted(fn ($model) => \App\Services\DashboardService::clearCache());
+    }
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>

@@ -14,6 +14,15 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 #[Fillable(['tanggal', 'jenis', 'sumber', 'payment_request_id', 'payment_id', 'nominal', 'keterangan'])]
 class Cashflow extends Model
 {
+    /**
+     * Keep the dashboard cache in sync with transaction data.
+     */
+    protected static function booted(): void
+    {
+        static::created(fn ($model) => \App\Services\DashboardService::clearCache());
+        static::updated(fn ($model) => \App\Services\DashboardService::clearCache());
+        static::deleted(fn ($model) => \App\Services\DashboardService::clearCache());
+    }
     /** @use HasFactory<CashflowFactory> */
     use HasFactory, LogsActivity;
 

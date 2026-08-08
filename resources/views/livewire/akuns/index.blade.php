@@ -2,7 +2,7 @@
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <div>
-                <h2 class="text-xl font-semibold leading-tight text-slate-800">{{ __('Chart of Accounts (COA)') }}</h2>
+                <h2 class="text-xl font-semibold leading-tight text-slate-800">{{ __('Account') }}</h2>
                 <p class="mt-1 text-sm text-slate-500">Manage the account master used in budgeting and actual transactions.</p>
             </div>
             <div class="flex flex-wrap items-center gap-2">

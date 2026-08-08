@@ -1,4 +1,4 @@
-﻿<div class="py-8 lg:py-10" wire:poll.45s>
+<div class="py-8 lg:py-10" wire:poll.45s>
 @php
     $stats = $this->statistics;
     $invalid = $this->dateRangeInvalid;
@@ -23,11 +23,11 @@
         <div class="flex flex-wrap items-center gap-2 text-xs text-slate-500">
             <span class="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 ring-1 ring-slate-200">
                 <span class="h-2 w-2 rounded-full bg-emerald-500"></span>
-                {{ now()->translatedFormat('l, d F Y') }}
+                {{ now()->format('l, d F Y') }}
             </span>
             <span class="inline-flex items-center gap-1.5 rounded-full bg-white px-3 py-1.5 ring-1 ring-slate-200">
-                <x-icon name="history" class="h-3.5 w-3.5 text-slate-400" />
-                <span x-text="(new Date()).toLocaleTimeString('{{ app()->getLocale() === 'id' ? 'id-ID' : 'en-GB' }}', { hour: '2-digit', minute: '2-digit' })"></span>
+                <x-icon name="clock" class="h-4 w-4 text-slate-400" />
+                <span x-text="(new Date()).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })"></span>
             </span>
         </div>
     </header>
@@ -48,7 +48,7 @@
             @if ($this->startDate || $this->endDate)
                 <div class="flex items-center gap-2 text-sm text-emerald-700">
                     <x-icon name="check" class="h-4 w-4" />
-                    <span>{{ __('Filter active') }}: <strong>{{ $this->startDate ?? '...' }}</strong> → <strong>{{ $this->endDate ?? '...' }}</strong></span>
+                    <span>{{ __('Filter active') }}: <strong>{{ $this->startDate ?? '...' }}</strong> â†’ <strong>{{ $this->endDate ?? '...' }}</strong></span>
                 </div>
             @endif
         </div>
@@ -77,9 +77,10 @@
                 [
                     'label' => __('Total Projects'),
                     'value' => number_format($stats['total_projects']),
-                    'hint' => __('Goods') . ' ' . $stats['projects_barang'] . ' · ' . __('Services') . ' ' . $stats['projects_jasa'],
+                    'hint' => __('Goods') . ' ' . $stats['projects_barang'] . ' Â· ' . __('Services') . ' ' . $stats['projects_jasa'],
                     'icon' => 'folder',
                     'tone' => 'emerald',
+                    'href' => route('projects.index'),
                 ],
                 [
                     'label' => __('Total Budget'),
@@ -87,6 +88,7 @@
                     'hint' => __('Total approved budget'),
                     'icon' => 'banknotes',
                     'tone' => 'sky',
+                    'href' => route('budget-plans.index'),
                 ],
                 [
                     'label' => __('Total Actual'),
@@ -94,6 +96,7 @@
                     'hint' => __('Budget utilization') . ' ' . format_idr($stats['total_realisasi']),
                     'icon' => 'trending-up',
                     'tone' => 'amber',
+                    'href' => route('realisasi.index'),
                 ],
                 [
                     'label' => __('Remaining Budget'),
@@ -102,13 +105,15 @@
                     'icon' => 'wallet',
                     'tone' => $stats['total_sisa'] >= 0 ? 'emerald' : 'red',
                     'isOver' => $stats['total_sisa'] < 0,
+                    'href' => route('realisasi.index'),
                 ],
                 [
                     'label' => __('Cash Balance'),
                     'value' => format_idr($stats['saldo_kas']),
-                    'hint' => __('In') . ' ' . format_idr($stats['cash_in']) . ' · ' . __('Out') . ' ' . format_idr($stats['cash_out']),
+                    'hint' => __('In') . ' ' . format_idr($stats['cash_in']) . ' Â· ' . __('Out') . ' ' . format_idr($stats['cash_out']),
                     'icon' => 'credit-card',
                     'tone' => 'green',
+                    'href' => route('cashflows.index'),
                 ],
                 [
                     'label' => __('Outstanding AR'),
@@ -116,6 +121,7 @@
                     'hint' => __('Uncollected receivables'),
                     'icon' => 'banknotes',
                     'tone' => 'amber',
+                    'href' => route('receivables.index'),
                 ],
                 [
                     'label' => __('Outstanding AP'),
@@ -123,6 +129,7 @@
                     'hint' => __('Unpaid payables'),
                     'icon' => 'receipt',
                     'tone' => 'red',
+                    'href' => route('payables.index'),
                 ],
                 [
                     'label' => __('Profit'),
@@ -130,14 +137,16 @@
                     'hint' => __('Contract') . ' - ' . __('Actual'),
                     'icon' => 'scale',
                     'tone' => ($stats['total_profit'] ?? 0) >= 0 ? 'emerald' : 'red',
+                    'href' => route('monitoring.index'),
                 ],
             ];
         @endphp
 
         <section class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             @foreach ($kpis as $i => $kpi)
-                <article
-                    class="group relative overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_8px_24px_rgb(15_23_42/0.04)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgb(15_23_42/0.07)]"
+                <a
+                    href="{{ $kpi['href'] }}"
+                    class="group relative block overflow-hidden rounded-2xl border border-slate-200/80 bg-white p-5 shadow-[0_8px_24px_rgb(15_23_42/0.04)] transition-all duration-200 hover:-translate-y-0.5 hover:shadow-[0_12px_32px_rgb(15_23_42/0.07)]"
                     style="animation: fadeUp 0.5s ease-out {{ $i * 0.05 }}s both;"
                 >
                     <div class="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-{{ $kpi['tone'] }}-100/60 blur-2xl"></div>
@@ -153,22 +162,25 @@
                             <x-icon :name="$kpi['icon']" class="mt-1 h-8 w-8 text-{{ $kpi['tone'] }}-200" />
                         </div>
                     </div>
-                </article>
+                </a>
             @endforeach
         </section>
-
         {{-- Top Projects by Approved Budget --}}
-        @if (count($stats['chart_budget_realisasi']) > 0)
+        @if (count($stats['chart_budget_realisasi'] ?? []) > 0)
             <section class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_8px_24px_rgb(15_23_42/0.04)]">
                 <div class="border-b border-slate-100 p-5">
                     <h2 class="font-bold tracking-tight text-slate-900">{{ __('Top Projects by Budget') }}</h2>
-                    <p class="mt-0.5 text-xs text-slate-500">{{ __('Budget vs Actual comparison') }}</p>
+                    <p class="mt-0.5 text-xs text-slate-500">{{ __('Budget vs Actual comparison') }} â€” klik baris project untuk rincian.</p>
                 </div>
                 <div class="overflow-x-auto">
                     <div class="min-w-full p-5">
                         <div class="space-y-4">
                             @foreach ($stats['chart_budget_realisasi'] as $project)
-                                <div>
+                                <button
+                                    type="button"
+                                    wire:click="showProjectDetail({{ $project['project_id'] }})"
+                                    class="block w-full cursor-pointer rounded-xl p-3 text-left transition hover:bg-slate-50"
+                                >
                                     <div class="mb-1 flex items-center justify-between">
                                         <div class="flex-1 min-w-0">
                                             <p class="truncate font-medium text-slate-900">{{ $project['kode'] }} - {{ $project['nama'] }}</p>
@@ -183,7 +195,7 @@
                                         <div class="h-full bg-emerald-500" style="width: {{ min(100, ($project['budget'] > 0 ? ($project['budget'] / $chartMax) * 100 : 0)) }}%"></div>
                                         <div class="h-full bg-amber-500" style="width: {{ min(100, ($project['realisasi'] > 0 ? ($project['realisasi'] / $chartMax) * 100 : 0)) }}%"></div>
                                     </div>
-                                </div>
+                                </button>
                             @endforeach
                         </div>
                     </div>
@@ -192,11 +204,11 @@
         @endif
 
         {{-- Profit by Project --}}
-        @if (count($stats['profit_projects']) > 0)
+        @if (count($stats['profit_projects'] ?? []) > 0)
             <section class="overflow-hidden rounded-2xl border border-slate-200/80 bg-white shadow-[0_8px_24px_rgb(15_23_42/0.04)]">
                 <div class="border-b border-slate-100 p-5">
                     <h2 class="font-bold tracking-tight text-slate-900">{{ __('Profit by Project') }}</h2>
-                    <p class="mt-0.5 text-xs text-slate-500">{{ __('Contract value minus actual costs') }}</p>
+                    <p class="mt-0.5 text-xs text-slate-500">{{ __('Contract value minus actual costs') }} â€” klik row untuk rincian.</p>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="min-w-full text-sm">
@@ -215,7 +227,7 @@
                                     $margin = $project['nilai'] > 0 ? ($project['profit'] / $project['nilai']) * 100 : 0;
                                     $isPositive = $project['profit'] >= 0;
                                 @endphp
-                                <tr class="transition-colors hover:bg-slate-50/60">
+                                <tr class="cursor-pointer transition-colors hover:bg-slate-50/60" wire:click="showProjectDetail({{ $project['project_id'] }})">
                                     <td class="px-5 py-3 font-medium text-slate-900">{{ $project['kode'] }} - {{ $project['nama'] }}</td>
                                     <td class="px-5 py-3 text-right tabular-nums text-slate-700">{{ format_idr($project['nilai']) }}</td>
                                     <td class="px-5 py-3 text-right tabular-nums text-slate-700">{{ format_idr($project['realisasi']) }}</td>
@@ -244,7 +256,7 @@
             <div class="flex flex-col gap-1 border-b border-slate-100 p-5 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h2 class="font-bold tracking-tight text-slate-900">{{ __('Actual per Category') }}</h2>
-                    <p class="mt-0.5 text-xs text-slate-500">{{ __('6 budgeting categories per meeting notes') }}</p>
+                    <p class="mt-0.5 text-xs text-slate-500">{{ __('6 budgeting categories per meeting notes') }} â€” klik baris kategori untuk rincian.</p>
                 </div>
                 <span class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">{{ __('Total') }} {{ format_idr($totalRealisasi) }}</span>
             </div>
@@ -261,7 +273,7 @@
                     <tbody class="divide-y divide-slate-100">
                         @foreach ($stats['kategori_breakdown'] as $nama => $total)
                             @php $percent = $kategoriTotal > 0 ? ($total / $kategoriTotal) * 100 : 0; $hue = $categoryHues[$loop->index % count($categoryHues)]; @endphp
-                            <tr class="transition-colors hover:bg-slate-50/60">
+                            <tr class="cursor-pointer transition-colors hover:bg-slate-50/60" wire:click="showCategoryDetail('{{ addslashes($nama) }}')">
                                 <td class="px-5 py-3 font-medium text-slate-900">{{ $nama }}</td>
                                 <td class="px-5 py-3 text-right tabular-nums text-slate-700">{{ format_idr($total) }}</td>
                                 <td class="px-5 py-3 text-right tabular-nums font-medium text-slate-600">{{ number_format($percent, 1) }}%</td>
@@ -297,6 +309,166 @@
             </div>
         </section>
     @endunless
+    {{-- Project Detail Modal --}}
+    @if ($this->selectedProjectId && $this->selectedProject)
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="fixed inset-0 bg-gray-900/50" wire:click="closeDetails"></div>
+            <div class="relative z-10 w-full max-w-4xl overflow-hidden rounded-2xl bg-white shadow-xl">
+                <div class="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+                    <div>
+                        <p class="text-xs font-bold uppercase tracking-[0.16em] text-emerald-600">{{ __('Project Detail') }}</p>
+                        <h3 class="mt-0.5 font-semibold text-gray-900">{{ $this->selectedProject->kode }} â€” {{ $this->selectedProject->nama }}</h3>
+                        <p class="mt-1 text-xs text-slate-500">
+                            {{ __('Contract') }} {{ format_idr($this->selectedProject->nilai_total) }}
+                            @if($this->startDate || $this->endDate)
+                                Â· {{ __('Filter') }} {{ $this->startDate ?? '...' }} â†’ {{ $this->endDate ?? '...' }}
+                            @endif
+                        </p>
+                    </div>
+                    <button type="button" wire:click="closeDetails" class="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100">
+                        <x-icon name="x-mark" class="h-5 w-5" />
+                    </button>
+                </div>
+                <div class="grid grid-cols-1 gap-2 border-b border-gray-100 bg-slate-50/60 px-6 py-4 sm:grid-cols-3">
+                    <div>
+                        <p class="text-xs uppercase tracking-wider text-slate-500">{{ __('Total Budget') }}</p>
+                        <p class="mt-1 text-lg font-semibold text-slate-900">{{ format_idr($this->selectedProject->budget_total ?? 0) }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs uppercase tracking-wider text-slate-500">{{ __('Total Actual') }}</p>
+                        <p class="mt-1 text-lg font-semibold text-slate-900">{{ format_idr($this->projectRealisations->sum('nominal')) }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs uppercase tracking-wider text-slate-500">{{ __('Transactions') }}</p>
+                        <p class="mt-1 text-lg font-semibold text-slate-900">{{ $this->projectRealisations->count() }}</p>
+                    </div>
+                </div>
+                <div class="max-h-[60vh] overflow-y-auto">
+                    <table class="min-w-full divide-y divide-gray-100 text-sm">
+                        <thead class="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                            <tr>
+                                <th class="px-6 py-3">{{ __('Date') }}</th>
+                                <th class="px-6 py-3">{{ __('Account') }}</th>
+                                <th class="px-6 py-3">{{ __('Category') }}</th>
+                                <th class="px-6 py-3">{{ __('Party') }}</th>
+                                <th class="px-6 py-3">{{ __('Description') }}</th>
+                                <th class="px-6 py-3 text-right">{{ __('Amount') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 bg-white">
+                            @forelse ($this->projectRealisations as $realisasi)
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-6 py-3 whitespace-nowrap text-gray-700">{{ $realisasi->tanggal->format('d M Y') }}</td>
+                                    <td class="px-6 py-3 text-gray-700">{{ $realisasi->akun->kode_akun }} - {{ $realisasi->akun->nama_akun }}</td>
+                                    <td class="px-6 py-3">
+                                        @if ($realisasi->kategori)
+                                            <span class="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">{{ $realisasi->kategori->nama }}</span>
+                                        @else
+                                            <span class="text-gray-400">-</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-6 py-3 text-gray-700">
+                                        @if ($realisasi->pihakJenis === 'vendor' && $realisasi->vendor)
+                                            <span class="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">Vendor</span> {{ $realisasi->vendor->nama }}
+                                        @elseif ($realisasi->pihakJenis === 'supplier' && $realisasi->supplier)
+                                            <span class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">Supplier</span> {{ $realisasi->supplier->nama }}
+                                        @elseif ($realisasi->pihakJenis === 'mandor' && $realisasi->mandor)
+                                            <span class="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">Mandor</span> {{ $realisasi->mandor->nama }}
+                                        @elseif ($realisasi->pihakJenis === 'investor' && $realisasi->investor)
+                                            <span class="rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700">Investor</span> {{ $realisasi->investor->nama }}
+                                        @else
+                                            <span class="text-gray-400">-</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-6 py-3 text-gray-500">{{ $realisasi->keterangan }}</td>
+                                    <td class="px-6 py-3 text-right font-medium text-gray-900">{{ format_idr($realisasi->nominal) }}</td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="6" class="px-6 py-6 text-center text-sm text-gray-500">Tidak ada transaksi realisasi pada periode ini.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                        <tfoot class="bg-gray-50">
+                            <tr>
+                                <td colspan="5" class="px-6 py-3 font-semibold text-gray-900">{{ __('Total') }}</td>
+                                <td class="px-6 py-3 text-right font-semibold text-gray-900">{{ format_idr($this->projectRealisations->sum('nominal')) }}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    {{-- Category Detail Modal --}}
+    @if ($this->selectedCategoryName)
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div class="fixed inset-0 bg-gray-900/50" wire:click="closeDetails"></div>
+            <div class="relative z-10 w-full max-w-4xl overflow-hidden rounded-2xl bg-white shadow-xl">
+                <div class="flex items-center justify-between border-b border-gray-100 px-6 py-4">
+                    <div>
+                        <p class="text-xs font-bold uppercase tracking-[0.16em] text-emerald-600">{{ __('Category Detail') }}</p>
+                        <h3 class="mt-0.5 font-semibold text-gray-900">{{ $this->selectedCategoryName }}</h3>
+                        <p class="mt-1 text-xs text-slate-500">
+                            {{ __('Filter') }} {{ $this->startDate ?? '...' }} â†’ {{ $this->endDate ?? '...' }}
+                        </p>
+                    </div>
+                    <button type="button" wire:click="closeDetails" class="rounded-lg p-1.5 text-gray-500 hover:bg-gray-100">
+                        <x-icon name="x-mark" class="h-5 w-5" />
+                    </button>
+                </div>
+                <div class="max-h-[60vh] overflow-y-auto">
+                    <table class="min-w-full divide-y divide-gray-100 text-sm">
+                        <thead class="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
+                            <tr>
+                                <th class="px-6 py-3">{{ __('Date') }}</th>
+                                <th class="px-6 py-3">{{ __('Project') }}</th>
+                                <th class="px-6 py-3">{{ __('Account') }}</th>
+                                <th class="px-6 py-3">{{ __('Party') }}</th>
+                                <th class="px-6 py-3">{{ __('Description') }}</th>
+                                <th class="px-6 py-3 text-right">{{ __('Amount') }}</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-gray-100 bg-white">
+                            @forelse ($this->categoryRealisations as $realisasi)
+                                <tr class="hover:bg-gray-50">
+                                    <td class="px-6 py-3 whitespace-nowrap text-gray-700">{{ $realisasi->tanggal->format('d M Y') }}</td>
+                                    <td class="px-6 py-3 text-gray-700">{{ $realisasi->project->kode }} - {{ $realisasi->project->nama }}</td>
+                                    <td class="px-6 py-3 text-gray-700">{{ $realisasi->akun->kode_akun }} - {{ $realisasi->akun->nama_akun }}</td>
+                                    <td class="px-6 py-3 text-gray-700">
+                                        @if ($realisasi->pihakJenis === 'vendor' && $realisasi->vendor)
+                                            <span class="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">Vendor</span> {{ $realisasi->vendor->nama }}
+                                        @elseif ($realisasi->pihakJenis === 'supplier' && $realisasi->supplier)
+                                            <span class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">Supplier</span> {{ $realisasi->supplier->nama }}
+                                        @elseif ($realisasi->pihakJenis === 'mandor' && $realisasi->mandor)
+                                            <span class="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">Mandor</span> {{ $realisasi->mandor->nama }}
+                                        @elseif ($realisasi->pihakJenis === 'investor' && $realisasi->investor)
+                                            <span class="rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700">Investor</span> {{ $realisasi->investor->nama }}
+                                        @else
+                                            <span class="text-gray-400">-</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-6 py-3 text-gray-500">{{ $realisasi->keterangan }}</td>
+                                    <td class="px-6 py-3 text-right font-medium text-gray-900">{{ format_idr($realisasi->nominal) }}</td>
+                                </tr>
+                            @empty
+                                <tr>
+                                    <td colspan="6" class="px-6 py-6 text-center text-sm text-gray-500">Tidak ada transaksi pada kategori ini.</td>
+                                </tr>
+                            @endforelse
+                        </tbody>
+                        <tfoot class="bg-gray-50">
+                            <tr>
+                                <td colspan="5" class="px-6 py-3 font-semibold text-gray-900">{{ __('Total') }}</td>
+                                <td class="px-6 py-3 text-right font-semibold text-gray-900">{{ format_idr($this->categoryRealisations->sum('nominal')) }}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+        </div>
+    @endif
 </div>
 
 <style>
@@ -305,4 +477,3 @@
         to   { opacity: 1; transform: translateY(0); }
     }
 </style>
-</div>

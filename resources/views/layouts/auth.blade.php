@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 
 <head>
@@ -39,11 +39,10 @@
         <div class="flex w-full items-center justify-center px-6 py-12 lg:w-[46%] lg:px-10">
             <div class="w-full max-w-md">
                 <div class="mb-8 text-center">
-                    <!-- Single logo above Welcome back -->
-                    <div class="mx-auto mb-5 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-600">
-                        <x-application-logo class="h-9 w-auto fill-current text-white" />
+                    <!-- Flat logo (green) beside the brand name, merged with the white background -->
+                    <div class="mb-6 flex items-center justify-center">
+                        <x-application-logo class="h-10 w-auto fill-current text-emerald-600" />
                     </div>
-                    <p class="mb-2 text-xs font-bold uppercase tracking-[0.16em] text-emerald-600">myfinance</p>
                     <h2 class="text-3xl font-bold tracking-tight text-slate-900">{{ __('Welcome back') }}</h2>
                     <p class="mt-2 text-sm text-slate-500">{{ __('Sign in to continue to') }} <span class="font-semibold text-slate-700">{{ $companyName ?? 'myfinance' }}</span></p>
                 </div>

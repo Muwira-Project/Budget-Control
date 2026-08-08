@@ -10,6 +10,15 @@ use Illuminate\Support\Facades\Storage;
 class CompanySetting extends Model
 {
     /**
+     * Keep the dashboard cache in sync with transaction data.
+     */
+    protected static function booted(): void
+    {
+        static::created(fn ($model) => \App\Services\DashboardService::clearCache());
+        static::updated(fn ($model) => \App\Services\DashboardService::clearCache());
+        static::deleted(fn ($model) => \App\Services\DashboardService::clearCache());
+    }
+    /**
      * Public URL of the uploaded company logo, if any.
      *
      * Uses a request-relative asset URL instead of Storage::url() so the

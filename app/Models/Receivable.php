@@ -14,6 +14,15 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 #[Fillable(['project_id', 'tanggal', 'jatuh_tempo', 'nominal', 'nominal_dibayar', 'keterangan'])]
 class Receivable extends Model
 {
+    /**
+     * Keep the dashboard cache in sync with transaction data.
+     */
+    protected static function booted(): void
+    {
+        static::created(fn ($model) => \App\Services\DashboardService::clearCache());
+        static::updated(fn ($model) => \App\Services\DashboardService::clearCache());
+        static::deleted(fn ($model) => \App\Services\DashboardService::clearCache());
+    }
     /** @use HasFactory<ReceivableFactory> */
     use HasFactory, LogsActivity;
 

@@ -27,7 +27,6 @@ class DashboardService
      */
     public function statistics(?string $startDate = null, ?string $endDate = null): array
     {
-        // Generate cache key based on date range
         $cacheKey = $this->getCacheKey($startDate, $endDate);
 
         return Cache::remember($cacheKey, self::CACHE_TTL, function () use ($startDate, $endDate) {
@@ -66,6 +65,7 @@ class DashboardService
         $profitProjects = $projects->map(fn (Project $project) => [
             'kode' => $project->kode,
             'nama' => $project->nama,
+            'project_id' => $project->id,
             'nilai' => $project->nilai_total,
             'realisasi' => $project->realisasi_total ?? 0,
             'profit' => $project->nilai_total - (float) ($project->realisasi_total ?? 0),
@@ -78,6 +78,7 @@ class DashboardService
             ->map(fn (Project $project) => [
                 'kode' => $project->kode,
                 'nama' => $project->nama,
+                'project_id' => $project->id,
                 'budget' => (float) ($project->approved_total ?? 0),
                 'realisasi' => (float) ($project->realisasi_total ?? 0),
             ])
@@ -107,52 +108,36 @@ class DashboardService
     }
 
     /**
-     * Generate cache key based on date range.
+     * Generate cache key based on date range and the current data version.
+     *
+     * The version is bumped by clearCache() so every cache key is invalidated
+     * the moment any underlying transaction data changes, regardless of the
+     * selected date range.
      */
     private function getCacheKey(?string $startDate = null, ?string $endDate = null): string
     {
-        $base = 'dashboard_stats';
-        
+        $version = (int) Cache::get('dashboard_stats_version', 0);
+
         if ($startDate === null && $endDate === null) {
-            return $base . ':all';
+            return "dashboard_stats:v{$version}:all";
         }
 
         $start = $startDate ?? 'null';
         $end = $endDate ?? 'null';
 
-        return "{$base}:{$start}:{$end}";
+        return "dashboard_stats:v{$version}:{$start}:{$end}";
     }
 
     /**
-     * Clear dashboard cache (call after creating/updating realisasi, projects, etc).
+     * Invalidate the dashboard cache.
+     *
+     * Call after creating, updating, or deleting any transaction data that
+     * appears on the dashboard (realisasi, cashflow, receivable, payable,
+     * project, project account, kategori, company settings).
      */
     public static function clearCache(): void
     {
-        // Clear all dashboard cache keys
-        Cache::forget('dashboard_stats:all');
-        
-        // Clear date range caches by pattern (if using Redis/Memcached)
-        // For database cache, we'll clear specific known keys
-        $dates = self::getRecentDateRanges();
-        foreach ($dates as $start => $end) {
-            Cache::forget("dashboard_stats:{$start}:{$end}");
-        }
-    }
-
-    /**
-     * Get common date ranges for cache invalidation.
-     */
-    private static function getRecentDateRanges(): array
-    {
-        $today = now();
-        
-        return [
-            'null:null' => true, // all time
-            $today->toDateString() => $today->toDateString(), // today
-            $today->subDay()->toDateString() => $today->toDateString(), // last 2 days
-            $today->subDays(7)->toDateString() => $today->toDateString(), // last week
-            $today->subDays(30)->toDateString() => $today->toDateString(), // last month
-        ];
+        Cache::forever('dashboard_stats_version', ((int) Cache::get('dashboard_stats_version', 0)) + 1);
     }
 
     /**
@@ -167,7 +152,6 @@ class DashboardService
     /**
      * Total realisasi grouped by the six budgeting categories.
      *
-     * @param  Builder  $realisasiQuery
      * @return array<string, float>
      */
     protected function kategoriBreakdown($realisasiQuery): array
@@ -187,4 +171,3 @@ class DashboardService
         return $totals;
     }
 }
-
