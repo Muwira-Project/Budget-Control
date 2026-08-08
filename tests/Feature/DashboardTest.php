@@ -39,7 +39,7 @@ class DashboardTest extends TestCase
             ->assertSee('Outstanding AP')
             ->assertSee('Budget Usage')
             ->assertSee('Budget vs Actual')
-            ->assertSee('Profit per Project');
+            ->assertSee('Profit by Project');
     }
 
     public function test_dashboard_shows_aggregated_statistics(): void
@@ -107,7 +107,7 @@ class DashboardTest extends TestCase
             ->test(Dashboard::class)
             ->set('startDate', '2026-05-10')
             ->set('endDate', '2026-04-10')
-            ->assertSee('Rentang tanggal tidak valid');
+            ->assertSee('Invalid date range');
     }
 
     public function test_dashboard_service_returns_expected_shape(): void
