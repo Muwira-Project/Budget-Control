@@ -33,7 +33,7 @@ class ExportTest extends TestCase
 
         $this->actingAs($user)->get(route('exports.page', 'akuns'))->assertOk()->assertSee('Export Account');
         $this->actingAs($user)->get(route('exports.page', 'realisasi'))->assertOk()->assertSee('Export Actual');
-        $this->actingAs($user)->get(route('exports.page', 'vs'))->assertOk()->assertSee('Export Account vs Actual');
+        $this->actingAs($user)->get(route('exports.page', 'vs'))->assertOk()->assertSee('Export Account Detail');
     }
 
     public function test_akun_excel_download(): void
