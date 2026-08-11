@@ -40,7 +40,7 @@ class PaymentTest extends TestCase
         $user = User::factory()->create();
         $receivable = Receivable::factory()->create(['nominal' => 100000000, 'nominal_dibayar' => 0]);
 
-        app(PaymentService::class)->createForReceivable($receivable, [
+        $payment = app(PaymentService::class)->createForReceivable($receivable, [
             'tanggal' => '2026-07-20',
             'nominal' => 40000000,
             'keterangan' => 'Pelunasan sebagian',
@@ -57,7 +57,7 @@ class PaymentTest extends TestCase
         $user = User::factory()->create();
         $payable = Payable::factory()->create(['nominal' => 50000000, 'nominal_dibayar' => 0]);
 
-        app(PaymentService::class)->createForPayable($payable, [
+        $payment = app(PaymentService::class)->createForPayable($payable, [
             'tanggal' => '2026-07-22',
             'nominal' => 50000000,
             'keterangan' => 'Pelunasan penuh',
@@ -67,6 +67,7 @@ class PaymentTest extends TestCase
         $this->assertSame('lunas', $payable->fresh()->status->value);
         $this->assertDatabaseHas('payments', ['payable_id' => $payable->id, 'jenis' => 'keluar', 'nominal' => 50000000]);
         $this->assertDatabaseHas('cashflows', ['jenis' => 'keluar', 'sumber' => 'pelunasan_ap', 'nominal' => 50000000]);
+        $this->assertDatabaseHas('realisasi', ['sumber' => 'pelunasan_ap', 'sumber_id' => $payment->id]);
     }
 
     public function test_payment_delete_reverses_amount_and_cashflow(): void

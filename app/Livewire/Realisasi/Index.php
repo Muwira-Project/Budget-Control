@@ -2,7 +2,6 @@
 
 namespace App\Livewire\Realisasi;
 
-use App\Livewire\Concerns\BulkSelection;
 use App\Livewire\Concerns\PerPagePagination;
 use App\Models\Akun;
 use App\Models\Project;
@@ -17,7 +16,7 @@ use Livewire\WithPagination;
 #[Layout('layouts.app')]
 class Index extends Component
 {
-    use BulkSelection, PerPagePagination, WithPagination;
+    use PerPagePagination, WithPagination;
 
     public ?int $projectId = null;
 
@@ -28,17 +27,7 @@ class Index extends Component
     public ?string $endDate = null;
 
     /**
-     * Delete a realisasi.
-     */
-    public function delete(RealisasiModel $realisasi, RealisasiService $service): void
-    {
-        $service->delete($realisasi);
-
-        session()->flash('status', 'Actual deleted successfully.');
-    }
-
-    /**
-     * The paginated list of realisasi.
+     * The paginated ledger of actual transactions (read-only).
      */
     #[Computed]
     public function realisasi(): LengthAwarePaginator
@@ -115,26 +104,8 @@ class Index extends Component
     }
 
     /**
-     * Render the realisasi index page.
+     * Render the actual ledger page.
      */
-    protected function bulkCollectionProperty(): string
-    {
-        return 'realisasi';
-    }
-
-    public function deleteSelected(RealisasiService $service): void
-    {
-        $count = 0;
-        foreach ($this->selectedIds as $id) {
-            if ($realisasi = RealisasiModel::find($id)) {
-                $service->delete($realisasi);
-                $count++;
-            }
-        }
-        $this->selectedIds = [];
-        session()->flash('status', $count.' actual record(s) deleted.');
-    }
-
     public function render()
     {
         return view('livewire.realisasi.index');

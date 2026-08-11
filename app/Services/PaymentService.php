@@ -83,6 +83,8 @@ class PaymentService
                 'keterangan' => 'Pelunasan AP '.($partyName ?: '#'.$payable->id),
             ]);
 
+            app(ActualService::class)->recordFromPayablePayment($payment);
+
             return $payment->refresh();
         });
     }
@@ -102,6 +104,8 @@ class PaymentService
             }
 
             Cashflow::where('payment_id', $payment->id)->delete();
+
+            app(ActualService::class)->removeForPayment($payment);
 
             $payment->delete();
         });

@@ -9,6 +9,7 @@ use App\Models\Akun;
 use App\Models\BudgetPlan;
 use App\Models\BudgetPlanItem;
 use App\Models\MonitoringPeriod;
+use App\Models\NonProjectExpense;
 use App\Models\Project;
 use App\Models\ProjectAkun;
 use App\Models\Realisasi;
@@ -41,7 +42,7 @@ class MonitoringTest extends TestCase
 
     public function test_period_can_be_created(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->admin()->create();
         $project = Project::factory()->create();
 
         Livewire::actingAs($user)
@@ -62,7 +63,7 @@ class MonitoringTest extends TestCase
 
     public function test_end_date_before_start_date_is_rejected(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->admin()->create();
 
         Livewire::actingAs($user)
             ->test(CreateMonitoring::class)
@@ -74,7 +75,7 @@ class MonitoringTest extends TestCase
 
     public function test_period_can_be_updated(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->admin()->create();
         $period = MonitoringPeriod::factory()->create();
 
         Livewire::actingAs($user)
@@ -91,7 +92,7 @@ class MonitoringTest extends TestCase
 
     public function test_period_can_be_deleted(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->admin()->create();
         $period = MonitoringPeriod::factory()->create();
 
         Livewire::actingAs($user)
@@ -99,6 +100,83 @@ class MonitoringTest extends TestCase
             ->call('delete', $period->id);
 
         $this->assertDatabaseMissing('monitoring_periods', ['id' => $period->id]);
+    }
+
+    public function test_period_number_generation_skips_existing_numbers(): void
+    {
+        $user = User::factory()->admin()->create();
+        MonitoringPeriod::factory()->create([
+            'nomor' => 'MON-2026-001',
+            'project_id' => null,
+            'tanggal_mulai' => '2026-03-01',
+            'tanggal_selesai' => '2026-03-14',
+        ]);
+
+        Livewire::actingAs($user)
+            ->test(CreateMonitoring::class)
+            ->set('projectId', null)
+            ->set('tanggalMulai', '2026-04-01')
+            ->set('tanggalSelesai', '2026-04-14')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('monitoring_periods', ['nomor' => 'MON-2026-002']);
+    }
+
+    public function test_global_period_actual_out_includes_non_project_expense(): void
+    {
+        $akun = Akun::factory()->create();
+
+        $period = MonitoringPeriod::factory()->create([
+            'project_id' => null,
+            'tanggal_mulai' => '2026-03-01',
+            'tanggal_selesai' => '2026-03-31',
+        ]);
+
+        NonProjectExpense::factory()->create([
+            'akun_id' => $akun->id,
+            'tanggal' => '2026-03-10',
+            'nominal' => 7500000,
+        ]);
+
+        $service = app(MonitoringPeriodService::class);
+
+        $this->assertSame(7500000.0, $service->actualTotal($period));
+
+        $totals = $service->totalsForPeriods(collect([$period]));
+        $this->assertSame(7500000.0, $totals[$period->id]['actual']);
+        $this->assertSame(-7500000.0, $totals[$period->id]['variance']);
+    }
+
+    public function test_project_period_actual_out_excludes_non_project_expense(): void
+    {
+        $project = Project::factory()->create();
+        $akun = Akun::factory()->create();
+
+        $period = MonitoringPeriod::factory()->create([
+            'project_id' => $project->id,
+            'tanggal_mulai' => '2026-03-01',
+            'tanggal_selesai' => '2026-03-31',
+        ]);
+
+        NonProjectExpense::factory()->create([
+            'akun_id' => $akun->id,
+            'tanggal' => '2026-03-10',
+            'nominal' => 7500000,
+        ]);
+
+        $service = app(MonitoringPeriodService::class);
+
+        $this->assertSame(0.0, $service->actualTotal($period));
+    }
+
+    public function test_staff_cannot_create_monitoring_period(): void
+    {
+        $staff = User::factory()->create();
+
+        Livewire::actingAs($staff)
+            ->test(CreateMonitoring::class)
+            ->assertStatus(403);
     }
 
     public function test_resume_page_shows_budget_actual_and_variance(): void

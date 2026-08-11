@@ -5,6 +5,7 @@
         <x-sidebar-link href="{{ route('akuns.index') }}" label="Account" icon="banknotes" :active="request()->routeIs('akuns.*')" />
         <x-sidebar-link href="{{ route('budget-plans.index') }}" label="Budget" icon="clipboard" :active="request()->routeIs('budget-plans.*')" />
     @endif
+    <x-sidebar-link href="{{ route('allokasis.index') }}" label="Budget Allocation" icon="document" :active="request()->routeIs('allokasis.*')" />
     <x-sidebar-link href="{{ route('monitoring.index') }}" label="Monitoring" icon="scale" :active="request()->routeIs('monitoring.*')" />
 
     @if (config('app.show_finance_modules') && auth()->user()->isAdmin())
@@ -20,7 +21,8 @@
 
     @if (auth()->user()->isAdmin())
         <x-sidebar-link href="{{ route('realisasi.index') }}" label="Actual" icon="trending-up" :active="request()->routeIs('realisasi.*')" />
-        <x-sidebar-link href="{{ route('exports.page', 'vs') }}" label="Account Detail" icon="download" :active="request()->routeIs('exports.page') && request()->route('type') === 'vs'" />
+        <x-sidebar-link href="{{ route('non-project-expenses.index') }}" label="Non-Project Expense" icon="coins" :active="request()->routeIs('non-project-expenses.*')" />
+        <x-sidebar-link href="{{ route('backup.index') }}" label="Backup" icon="arrow-path" :active="request()->routeIs('backup.index')" />
         <x-sidebar-link href="{{ route('audit-log.index') }}" label="Audit Log" icon="history" :active="request()->routeIs('audit-log.index')" />
 
         <x-sidebar-dropdown label="Master" icon="settings" :active="request()->routeIs('kategoris.*') || request()->routeIs('vendors.*') || request()->routeIs('suppliers.*') || request()->routeIs('mandors.*') || request()->routeIs('investors.*') || request()->routeIs('users.*')">

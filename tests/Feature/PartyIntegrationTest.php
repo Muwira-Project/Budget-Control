@@ -2,77 +2,122 @@
 
 namespace Tests\Feature;
 
-use App\Livewire\Realisasi\Create as CreateRealisasi;
 use App\Models\Akun;
 use App\Models\Investor;
 use App\Models\Mandor;
+use App\Models\Payable;
+use App\Models\PaymentRequest;
 use App\Models\Project;
 use App\Models\ProjectAkun;
-use App\Models\User;
+use App\Models\Realisasi;
+use App\Services\ActualService;
+use App\Services\PaymentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Livewire\Livewire;
 use Tests\TestCase;
 
 class PartyIntegrationTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_realisasi_can_be_created_with_mandor_party(): void
+    public function test_auto_actual_from_payment_request_keeps_mandor_party(): void
     {
-        $user = User::factory()->create();
-        [$project, $akun] = $this->allocatedProjectAkun();
+        $project = Project::factory()->create();
+        $akun = $this->allocatedAkun($project);
         $mandor = Mandor::factory()->create();
 
-        Livewire::actingAs($user)
-            ->test(CreateRealisasi::class)
-            ->set('projectId', $project->id)
-            ->set('akunId', $akun->id)
-            ->set('pihakJenis', 'mandor')
-            ->set('mandorId', $mandor->id)
-            ->set('tanggal', '2026-08-01')
-            ->set('nominal', '50000000')
-            ->call('save')
-            ->assertHasNoErrors()
-            ->assertRedirect(route('realisasi.index'));
-
-        $this->assertDatabaseHas('realisasi', [
+        $pr = PaymentRequest::factory()->create([
             'project_id' => $project->id,
             'akun_id' => $akun->id,
+            'vendor_id' => null,
+            'supplier_id' => null,
             'mandor_id' => $mandor->id,
-            'nominal' => 50000000,
+            'investor_id' => null,
+        ]);
+
+        $actual = app(ActualService::class)->recordFromPaymentRequest($pr);
+
+        $this->assertSame('mandor', $actual->pihakJenis);
+        $this->assertDatabaseHas('realisasi', [
+            'id' => $actual->id,
+            'sumber' => Realisasi::SUMBER_PAYMENT_REQUEST,
+            'mandor_id' => $mandor->id,
         ]);
     }
 
-    public function test_realisasi_with_investor_generates_payable(): void
+    public function test_auto_actual_from_ap_payment_keeps_investor_party(): void
     {
-        $user = User::factory()->create();
-        [$project, $akun] = $this->allocatedProjectAkun();
+        $project = Project::factory()->create();
+        $akun = $this->allocatedAkun($project);
         $investor = Investor::factory()->create();
 
-        Livewire::actingAs($user)
-            ->test(CreateRealisasi::class)
-            ->set('projectId', $project->id)
-            ->set('akunId', $akun->id)
-            ->set('pihakJenis', 'investor')
-            ->set('investorId', $investor->id)
-            ->set('tanggal', '2026-08-01')
-            ->set('nominal', '75000000')
-            ->call('save')
-            ->assertHasNoErrors();
-
-        $this->assertDatabaseHas('payables', [
+        $payable = Payable::create([
             'project_id' => $project->id,
             'akun_id' => $akun->id,
             'investor_id' => $investor->id,
+            'tanggal' => '2026-08-01',
+            'nominal' => 75000000,
+            'pajak_include' => true,
+        ]);
+
+        $payment = app(PaymentService::class)->createForPayable($payable, [
+            'tanggal' => '2026-08-01',
+            'nominal' => 75000000,
+            'keterangan' => 'Lunas',
+        ]);
+
+        $this->assertDatabaseHas('realisasi', [
+            'sumber' => Realisasi::SUMBER_AP_PAYMENT,
+            'sumber_id' => $payment->id,
+            'investor_id' => $investor->id,
+            'nominal' => 75000000,
         ]);
     }
 
-    private function allocatedProjectAkun(): array
+    public function test_auto_actual_skips_payable_from_payment_request(): void
     {
         $project = Project::factory()->create();
-        $akun = Akun::factory()->create();
-        ProjectAkun::create(['project_id' => $project->id, 'akun_id' => $akun->id, 'budget' => 100000000, 'allocation' => 100000000, 'status' => 'approved']);
+        $akun = $this->allocatedAkun($project);
+        $mandor = Mandor::factory()->create();
 
-        return [$project, $akun];
+        $pr = PaymentRequest::factory()->create([
+            'project_id' => $project->id,
+            'akun_id' => $akun->id,
+            'vendor_id' => null,
+            'supplier_id' => null,
+            'mandor_id' => $mandor->id,
+            'investor_id' => null,
+        ]);
+
+        $payable = Payable::create([
+            'project_id' => $project->id,
+            'akun_id' => $akun->id,
+            'payment_request_id' => $pr->id,
+            'mandor_id' => $mandor->id,
+            'tanggal' => '2026-08-01',
+            'nominal' => 75000000,
+            'pajak_include' => true,
+        ]);
+
+        $payment = app(PaymentService::class)->createForPayable($payable, [
+            'tanggal' => '2026-08-01',
+            'nominal' => 75000000,
+            'keterangan' => 'Lunas',
+        ]);
+
+        $this->assertDatabaseMissing('realisasi', ['sumber_id' => $payment->id]);
+    }
+
+    private function allocatedAkun(Project $project): Akun
+    {
+        $akun = Akun::factory()->create();
+
+        ProjectAkun::create([
+            'project_id' => $project->id,
+            'akun_id' => $akun->id,
+            'budget' => 100000000,
+            'allocation' => 100000000,
+        ]);
+
+        return $akun;
     }
 }

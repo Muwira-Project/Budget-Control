@@ -25,6 +25,7 @@ class ExportTest extends TestCase
         $this->get(route('exports.akuns'))->assertRedirect(route('login'));
         $this->get(route('exports.realisasi'))->assertRedirect(route('login'));
         $this->get(route('exports.vs'))->assertRedirect(route('login'));
+        $this->get(route('exports.monitoring-summary'))->assertRedirect(route('login'));
     }
 
     public function test_export_pages_render_for_authenticated_user(): void
@@ -45,6 +46,38 @@ class ExportTest extends TestCase
         $response->assertOk();
         $this->assertStringContainsString('Account_'.now()->format('Ymd').'.xlsx', $response->headers->get('content-disposition'));
         $this->assertStringContainsString('spreadsheetml', $response->headers->get('content-type'));
+    }
+
+    public function test_monitoring_summary_excel_download(): void
+    {
+        $user = User::factory()->admin()->create();
+
+        $response = $this->actingAs($user)->get(route('exports.monitoring-summary', ['format' => 'xlsx']));
+
+        $response->assertOk();
+        $this->assertStringContainsString('Monitoring_Summary_'.now()->format('Ymd').'.xlsx', $response->headers->get('content-disposition'));
+        $this->assertStringContainsString('spreadsheetml', $response->headers->get('content-type'));
+    }
+
+    public function test_monitoring_summary_csv_download(): void
+    {
+        $user = User::factory()->admin()->create();
+
+        $response = $this->actingAs($user)->get(route('exports.monitoring-summary', ['format' => 'csv']));
+
+        $response->assertOk();
+        $this->assertStringContainsString('Monitoring_Summary_'.now()->format('Ymd').'.csv', $response->headers->get('content-disposition'));
+    }
+
+    public function test_monitoring_summary_pdf_download(): void
+    {
+        $user = User::factory()->admin()->create();
+
+        $response = $this->actingAs($user)->get(route('exports.monitoring-summary', ['format' => 'pdf']));
+
+        $response->assertOk();
+        $this->assertStringContainsString('Monitoring_Summary_'.now()->format('Ymd').'.pdf', $response->headers->get('content-disposition'));
+        $this->assertStringContainsString('application/pdf', $response->headers->get('content-type'));
     }
 
     public function test_akun_pdf_download(): void

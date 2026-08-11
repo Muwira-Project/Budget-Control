@@ -35,8 +35,8 @@ class Edit extends Component
         $this->budgetPlan = $budgetPlan->load('items');
         $this->projectId = $budgetPlan->project_id;
         $this->periode = $budgetPlan->periode;
-        $this->estimasiPendapatan = $budgetPlan->estimasi_pendapatan;
-        $this->targetLaba = $budgetPlan->target_laba;
+        $this->estimasiPendapatan = $budgetPlan->estimasi_pendapatan ?? '';
+        $this->targetLaba = $budgetPlan->target_laba ?? '';
         $this->items = $budgetPlan->items->map(fn ($item) => [
             'akun_id' => (string) $item->akun_id,
             'nominal' => (string) $item->nominal,

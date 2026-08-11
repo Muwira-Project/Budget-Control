@@ -2,14 +2,17 @@
 
 namespace App\Services;
 
+use App\Enums\PaymentJenis;
 use App\Models\Akun;
 use App\Models\BudgetPlanItem;
 use App\Models\MonitoringPeriod;
+use App\Models\NonProjectExpense;
 use App\Models\NumberSequence;
+use App\Models\Payment;
 use App\Models\Realisasi;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 
 class MonitoringPeriodService
 {
@@ -75,6 +78,13 @@ class MonitoringPeriodService
     {
         $budgets = $this->budgetPerAccount($period);
         $actuals = $this->actualPerAccount($period);
+        $nonProject = $this->nonProjectPerAccount($period);
+
+        if ($nonProject->isNotEmpty()) {
+            $actuals = collect($actuals->keys()->merge($nonProject->keys())->unique()->mapWithKeys(
+                fn (int $id): array => [$id => (float) ($actuals[$id] ?? 0) + (float) ($nonProject[$id] ?? 0)],
+            ));
+        }
 
         $akunIds = $budgets->keys()->merge($actuals->keys())->unique()->values();
 
@@ -109,7 +119,7 @@ class MonitoringPeriodService
      */
     public function actualTotal(MonitoringPeriod $period): float
     {
-        return (float) $this->actualPerAccount($period)->sum();
+        return (float) $this->actualPerAccount($period)->sum() + $this->nonProjectTotal($period);
     }
 
     /**
@@ -133,6 +143,8 @@ class MonitoringPeriodService
 
         $budgetRows = $this->bulkBudgetTotals($periods, $firstIds);
         $actualRows = $this->bulkActualTotals($periods);
+        $inRows = $this->bulkActualInTotals($periods);
+        $nonProjectRows = $this->bulkNonProjectTotals($periods);
 
         $result = [];
 
@@ -141,8 +153,9 @@ class MonitoringPeriodService
             $actual = (float) ($actualRows[$period->id] ?? 0);
             $result[$period->id] = [
                 'budget' => $budget,
-                'actual' => $actual,
-                'variance' => $budget - $actual,
+                'actual_in' => (float) ($inRows[$period->id] ?? 0),
+                'actual' => $actual + (float) ($nonProjectRows[$period->id] ?? 0),
+                'variance' => $budget - ($actual + (float) ($nonProjectRows[$period->id] ?? 0)),
             ];
         }
 
@@ -186,7 +199,7 @@ class MonitoringPeriodService
                 continue;
             }
 
-            $earliest = \Illuminate\Support\Carbon::parse($earliestStart);
+            $earliest = Carbon::parse($earliestStart);
 
             foreach ($group as $period) {
                 if ($period->tanggal_mulai->format('Y-m-d') === $earliest->format('Y-m-d')) {
@@ -196,6 +209,113 @@ class MonitoringPeriodService
         }
 
         return $firstIds;
+    }
+
+    /**
+     * Total non-project expenses inside the period (global periods only).
+     */
+    public function nonProjectTotal(MonitoringPeriod $period): float
+    {
+        if ($period->project_id !== null) {
+            return 0.0;
+        }
+
+        return (float) NonProjectExpense::query()
+            ->whereDate('tanggal', '>=', $period->tanggal_mulai->format('Y-m-d'))
+            ->whereDate('tanggal', '<=', $period->tanggal_selesai->format('Y-m-d'))
+            ->sum('nominal');
+    }
+
+    /**
+     * Non-project expense totals per account (global periods only).
+     *
+     * @return Collection<int, float>
+     */
+    protected function nonProjectPerAccount(MonitoringPeriod $period): Collection
+    {
+        if ($period->project_id !== null) {
+            return collect();
+        }
+
+        return collect(NonProjectExpense::query()
+            ->whereDate('tanggal', '>=', $period->tanggal_mulai->format('Y-m-d'))
+            ->whereDate('tanggal', '<=', $period->tanggal_selesai->format('Y-m-d'))
+            ->selectRaw('akun_id, SUM(nominal) AS total')
+            ->groupBy('akun_id')
+            ->pluck('total', 'akun_id')
+            ->all());
+    }
+
+    /**
+     * Sum non-project expenses across many periods with one query.
+     *
+     * Only periods without a project scope (global) receive these totals.
+     *
+     * @param  Collection<int, MonitoringPeriod>  $periods
+     * @return array<int, float>
+     */
+    protected function bulkNonProjectTotals(Collection $periods): array
+    {
+        $rows = NonProjectExpense::query()
+            ->join('monitoring_periods as mp', function ($join) {
+                $join->on(function ($query) {
+                    $query->whereColumn('non_project_expenses.tanggal', '>=', 'mp.tanggal_mulai')
+                        ->whereColumn('non_project_expenses.tanggal', '<=', 'mp.tanggal_selesai')
+                        ->whereNull('mp.project_id');
+                });
+            })
+            ->whereIn('mp.id', $periods->pluck('id')->all())
+            ->selectRaw('mp.id AS period_id, COALESCE(SUM(non_project_expenses.nominal), 0) AS total')
+            ->groupBy('mp.id')
+            ->pluck('total', 'period_id')
+            ->mapWithKeys(fn ($total, $periodId) => [(int) $periodId => (float) $total])
+            ->all();
+
+        return $rows;
+    }
+
+    /**
+     * Total actual (in) for the period: receivable settlements (cash in).
+     */
+    public function actualInTotal(MonitoringPeriod $period): float
+    {
+        return (float) Payment::query()
+            ->where('jenis', PaymentJenis::Masuk)
+            ->whereDate('tanggal', '>=', $period->tanggal_mulai->format('Y-m-d'))
+            ->whereDate('tanggal', '<=', $period->tanggal_selesai->format('Y-m-d'))
+            ->when($period->project_id, fn ($query) => $query->whereHas('receivable', fn ($q) => $q->where('project_id', $period->project_id)))
+            ->sum('nominal');
+    }
+
+    /**
+     * Sum receivable settlements (cash in) across many periods with one query.
+     *
+     * @param  Collection<int, MonitoringPeriod>  $periods
+     * @return array<int, float>
+     */
+    protected function bulkActualInTotals(Collection $periods): array
+    {
+        $rows = Payment::query()
+            ->join('receivables as r', 'r.id', '=', 'payments.receivable_id')
+            ->join('monitoring_periods as mp', function ($join) {
+                $join->on(function ($query) {
+                    $query->whereColumn('payments.tanggal', '>=', 'mp.tanggal_mulai')
+                        ->whereColumn('payments.tanggal', '<=', 'mp.tanggal_selesai')
+                        ->where(function ($scope) {
+                            $scope->whereNull('mp.project_id')
+                                ->orWhereColumn('r.project_id', '=', 'mp.project_id');
+                        });
+                });
+            })
+            ->where('payments.jenis', PaymentJenis::Masuk)
+            ->whereIn('mp.id', $periods->pluck('id')->all())
+            ->selectRaw('mp.id AS period_id, COALESCE(SUM(payments.nominal), 0) AS total')
+            ->groupBy('mp.id')
+            ->pluck('total', 'period_id')
+            ->mapWithKeys(fn ($total, $periodId) => [(int) $periodId => (float) $total])
+            ->all();
+
+        return $rows;
     }
 
     /**
@@ -334,10 +454,41 @@ class MonitoringPeriodService
     /**
      * Generate the next monitoring period number for the current year.
      */
+    /**
+     * Summary rows for the export (per period), filtered by project and search.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function summaryRows(?int $projectId = null, string $search = ''): array
+    {
+        $periods = MonitoringPeriod::query()
+            ->with('project')
+            ->when($projectId, fn ($query) => $query->where('project_id', $projectId))
+            ->when($search !== '', fn ($query) => $query->where('nomor', 'like', '%'.$search.'%'))
+            ->orderByDesc('tanggal_mulai')
+            ->get();
+
+        $totals = $this->totalsForPeriods($periods);
+
+        return $periods->map(fn (MonitoringPeriod $period) => [
+            'nomor' => $period->nomor,
+            'periode' => $period->periode_label,
+            'week' => $period->week,
+            'month' => $period->month,
+            'budget' => (float) ($totals[$period->id]['budget'] ?? 0),
+            'actual_in' => (float) ($totals[$period->id]['actual_in'] ?? 0),
+            'actual_out' => (float) ($totals[$period->id]['actual'] ?? 0),
+            'variance' => (float) ($totals[$period->id]['variance'] ?? 0),
+        ])->all();
+    }
+
     protected function nextNomor(): string
     {
-        $next = NumberSequence::next('monitoring_period');
+        do {
+            $next = NumberSequence::next('monitoring_period');
+            $nomor = 'MON-'.now()->format('Y').'-'.str_pad((string) $next, 3, '0', STR_PAD_LEFT);
+        } while (MonitoringPeriod::where('nomor', $nomor)->exists());
 
-        return 'MON-'.now()->format('Y').'-'.str_pad((string) $next, 3, '0', STR_PAD_LEFT);
+        return $nomor;
     }
 }

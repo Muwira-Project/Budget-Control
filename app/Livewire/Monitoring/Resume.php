@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Monitoring;
 
+use App\Models\Akun;
 use App\Models\MonitoringPeriod;
 use App\Models\Realisasi;
 use App\Services\MonitoringPeriodService;
@@ -42,11 +43,15 @@ class Resume extends Component
     public function totals(): array
     {
         $service = app(MonitoringPeriodService::class);
+        $budget = $service->budgetTotal($this->monitoringPeriod);
+        $actual = $service->actualTotal($this->monitoringPeriod);
+        $actualIn = $service->actualInTotal($this->monitoringPeriod);
 
         return [
-            'budget' => $service->budgetTotal($this->monitoringPeriod),
-            'actual' => $service->actualTotal($this->monitoringPeriod),
-            'variance' => $service->budgetTotal($this->monitoringPeriod) - $service->actualTotal($this->monitoringPeriod),
+            'budget' => $budget,
+            'actual_in' => $actualIn,
+            'actual' => $actual,
+            'variance' => $budget - $actual,
         ];
     }
 
@@ -77,7 +82,7 @@ class Resume extends Component
             return null;
         }
 
-        return \App\Models\Akun::find($this->selectedAkunId);
+        return Akun::find($this->selectedAkunId);
     }
 
     public function render()

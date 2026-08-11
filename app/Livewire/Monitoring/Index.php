@@ -24,6 +24,8 @@ class Index extends Component
 
     public function delete(MonitoringPeriod $period, MonitoringPeriodService $service): void
     {
+        abort_unless(auth()->user()->isAdmin(), 403, 'Only admins can manage monitoring periods.');
+
         $service->delete($period);
 
         session()->flash('status', 'Monitoring period deleted successfully.');
@@ -51,7 +53,7 @@ class Index extends Component
         return Project::orderBy('nama')->get();
     }
 
-        /**
+    /**
      * Budget, actual, and variance totals keyed by period id.
      *
      * Batched into a small number of queries for fast page loads.
@@ -71,6 +73,8 @@ class Index extends Component
 
     public function deleteSelected(MonitoringPeriodService $service): void
     {
+        abort_unless(auth()->user()->isAdmin(), 403, 'Only admins can manage monitoring periods.');
+
         $count = 0;
         foreach ($this->selectedIds as $id) {
             if ($period = MonitoringPeriod::find($id)) {

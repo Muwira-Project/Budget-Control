@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\ProjectJenis;
 use App\Enums\ProjectStatus;
 use App\Models\Concerns\LogsActivity;
+use App\Services\DashboardService;
 use App\Services\ReceivableService;
 use Database\Factories\ProjectFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -26,9 +27,9 @@ class Project extends Model
     {
         static::created(fn (Project $project) => $project->syncReceivable());
         static::updated(fn (Project $project) => $project->syncReceivable());
-        static::created(fn ($model) => \App\Services\DashboardService::clearCache());
-        static::updated(fn ($model) => \App\Services\DashboardService::clearCache());
-        static::deleted(fn ($model) => \App\Services\DashboardService::clearCache());
+        static::created(fn ($model) => DashboardService::clearCache());
+        static::updated(fn ($model) => DashboardService::clearCache());
+        static::deleted(fn ($model) => DashboardService::clearCache());
     }
 
     /**

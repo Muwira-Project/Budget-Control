@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<title>Panduan Penggunaan Aplikasi myfinance</title>
+<style>
+    @page { margin: 2cm 1.8cm; }
+    body { font-family: "DejaVu Sans", sans-serif; font-size: 10.5pt; color: #1e293b; line-height: 1.55; }
+    h1 { font-size: 22pt; color: #1d4ed8; margin: 0 0 4pt 0; }
+    h2 { font-size: 14pt; color: #1d4ed8; border-bottom: 2px solid #bfdbfe; padding-bottom: 4pt; margin: 22pt 0 8pt 0; page-break-after: avoid; }
+    h3 { font-size: 11.5pt; color: #0f172a; margin: 14pt 0 4pt 0; page-break-after: avoid; }
+    p { margin: 4pt 0; text-align: justify; }
+    ul, ol { margin: 4pt 0 8pt 0; padding-left: 18pt; }
+    li { margin: 2pt 0; }
+    table { width: 100%; border-collapse: collapse; margin: 8pt 0; font-size: 9.5pt; }
+    th { background: #1d4ed8; color: #ffffff; text-align: left; padding: 5pt 6pt; }
+    td { border: 1px solid #cbd5e1; padding: 4pt 6pt; vertical-align: top; }
+    tr:nth-child(even) td { background: #f1f5f9; }
+    .cover { text-align: center; padding-top: 120pt; }
+    .cover .logo { font-size: 30pt; font-weight: bold; color: #1d4ed8; }
+    .cover .sub { font-size: 12pt; color: #475569; margin-top: 8pt; }
+    .cover .meta { margin-top: 60pt; font-size: 10pt; color: #64748b; }
+    .note { background: #eff6ff; border-left: 4px solid #2563eb; padding: 6pt 10pt; margin: 8pt 0; }
+    .warn { background: #fef2f2; border-left: 4px solid #dc2626; padding: 6pt 10pt; margin: 8pt 0; }
+    .menu { font-family: "DejaVu Sans", sans-serif; font-weight: bold; color: #1d4ed8; }
+    .pagebreak { page-break-before: always; }
+    .small { font-size: 8.5pt; color: #64748b; }
+</style>
+</head>
+<body>
+
+<div class="cover">
+    <div class="logo">myfinance</div>
+    <div style="font-size:16pt; color:#0f172a; margin-top:6pt;">Panduan Penggunaan Aplikasi</div>
+    <div class="sub">Rincian Fitur, Pengenalan Menu, Cara Pakai, dan Alur Penggunaan</div>
+    <div class="meta">Sistem Budget Control - Muwira<br>Dokumen untuk pengguna aplikasi (admin &amp; staff)</div>
+</div>
+
+<div class="pagebreak"></div>
+
+<h2>1. Tentang Aplikasi</h2>
+<p><span class="menu">myfinance</span> adalah aplikasi web untuk mengelola keuangan perusahaan berbasis <b>budget (alokasi dana)</b> per project. Aplikasi ini mencatat <b>budget</b> (rencana dana), <b>actual</b> (realisasi/penggunaan dana), dan <b>variance</b> (selisih) di setiap project, serta dilengkapi modul keuangan: Payment Request, Cashflow, Receivable (piutang), Payable (hutang), dan Monitoring periode.</p>
+<p>Aplikasi ini dipakai oleh dua jenis pengguna:</p>
+<ul>
+    <li><b>Admin</b> - mengelola seluruh data: project, budget, actual, monitoring, keuangan, master data, user, dan backup.</li>
+    <li><b>Staff</b> - melihat dashboard dan monitoring, serta membuat draft Budget Allocation dan Payment Request miliknya.</li>
+</ul>
+
+<h2>2. Cara Masuk (Login)</h2>
+<ol>
+    <li>Buka alamat aplikasi (contoh: <span class="menu">https://namaserver/</span>).</li>
+    <li>Masukkan <b>email</b> dan <b>password</b> yang sudah didaftarkan admin.</li>
+    <li>Klik tombol <b>Sign in</b> / <b>Masuk</b>.</li>
+    <li>Jika lupa kata sandi, hubungi admin untuk mengatur ulang akun.</li>
+</ol>
+<div class="warn">Catatan: pendaftaran akun sendiri (register) dinonaktifkan. Akun hanya dibuat oleh admin melalui menu <span class="menu">Master &gt; User</span>.</div>
+
+<h2>3. Pengenalan Menu</h2>
+<p>Setelah login, menu utama terlihat di panel kiri (sidebar). Berikut daftar menu beserta fungsinya:</p>
+<table>
+    <tr><th>Menu</th><th>Fungsi</th><th>Akses</th></tr>
+    <tr><td>Dashboard</td><td>Ringkasan: project, budget, allocation, actual, variance, nilai kontrak, pajak, saldo kas, outstanding AR/AP, profit per project, dan grafik Budget vs Actual.</td><td>Admin &amp; Staff</td></tr>
+    <tr><td>Project</td><td>Data project: jenis (barang/jasa), qty, satuan, harga satuan, pajak, tanggal mulai, target selesai, dan status.</td><td>Admin</td></tr>
+    <tr><td>Account</td><td>Master chart of accounts (COA): akun pendapatan &amp; pengeluaran + kategori, dengan kolom actual realtime sesuai periode terpilih.</td><td>Admin</td></tr>
+    <tr><td>Budget</td><td>Perencanaan budget per project per periode: estimasi pendapatan, estimasi biaya otomatis, target laba, dan rincian per akun.</td><td>Admin</td></tr>
+    <tr><td>Budget Allocation</td><td>Alokasi budget per akun ke project dengan alur persetujuan (draft, ajukan, setujui/tolak). Staff membuat draft miliknya; admin yang menyetujui.</td><td>Admin &amp; Staff</td></tr>
+    <tr><td>Monitoring</td><td>Pantauan Budget vs Actual In vs Actual Out vs Variance per periode (per project dan global), dengan Week/Month otomatis, halaman resume periode, dan export summary CSV/XLS/PDF.</td><td>Admin &amp; Staff</td></tr>
+    <tr><td>Payment Request</td><td>Permintaan pembayaran dengan workflow Draft, Waiting, Approved, Paid/Closed (atau Rejected/Cancelled) dan prioritas pembayaran.</td><td>Admin</td></tr>
+    <tr><td>Cashflow</td><td>Ledger kas: Cash In (pendapatan + pelunasan piutang) dan Cash Out (pembayaran + pelunasan hutang), lengkap dengan saldo.</td><td>Admin</td></tr>
+    <tr><td>Receivable &amp; Payable</td><td>Account Receivable (piutang ke klien), Account Payable (hutang ke vendor/supplier), dan Payment (riwayat pembayaran).</td><td>Admin</td></tr>
+    <tr><td>Actual</td><td>Ledger actual otomatis (tanpa input manual): Actual Out dari Payment Request yang dibayar &amp; pelunasan AP, Actual In dari pelunasan piutang.</td><td>Admin</td></tr>
+    <tr><td>Non-Project Expense</td><td>Pengeluaran di luar project, terikat ke akun (COA); ikut Actual Out global di Monitoring dan tidak membebani budget project.</td><td>Admin</td></tr>
+    <tr><td>Backup</td><td>Membuat cadangan database, mengunduh, menghapus, dan membersihkan backup lama.</td><td>Admin</td></tr>
+    <tr><td>Audit Log</td><td>Jejak otomatis semua perubahan data (create, update, delete) lengkap dengan pengguna dan waktu.</td><td>Admin</td></tr>
+    <tr><td>Master</td><td>Category (klasifikasi), Vendor (jasa), Supplier (barang), Mandor, Investor, dan User (foto profil, departemen, tanggal masuk, lokasi).</td><td>Admin</td></tr>
+    <tr><td>Profile</td><td>Melihat dan mengubah profil akun sendiri.</td><td>Admin &amp; Staff</td></tr>
+</table>
+
+<h2>4. Rincian Fitur dan Cara Pakai per Modul</h2>
+
+<h3>4.1 Dashboard</h3>
+<p>Halaman pertama setelah login. Menampilkan kartu ringkasan dan grafik agar kondisi keuangan terlihat sekilas.</p>
+<ul>
+    <li>Kartu: Project, Budget, Allocation, Actual, Variance, Nilai Kontrak, Pajak, Saldo Kas, Outstanding AR/AP, Profit per Project.</li>
+    <li>Grafik: Budget vs Actual (top 10) dan Actual per kategori.</li>
+    <li>Gunakan <b>filter rentang tanggal</b> (Dari/Sampai) untuk melihat angka sesuai periode yang diinginkan.</li>
+</ul>
+<div class="note">Variance negatif berarti penggunaan dana melebihi budget (over budget). Angka ini menjadi bahan evaluasi, bukan pemblokir input.</div>
+
+<h3>4.2 Project</h3>
+<p>Project adalah induk dari semua pencatatan. Cara memakai:</p>
+<ol>
+    <li>Buka menu <span class="menu">Project</span>, klik <b>Create</b> / <b>Tambah Project</b>.</li>
+    <li>Isi kode, nama, lokasi, jenis (barang/jasa), qty, satuan, harga satuan, pajak, tanggal mulai, dan target selesai.</li>
+    <li>Simpan. Data project bisa diedit (Edit) atau dihapus (Delete).</li>
+</ol>
+
+<h3>4.3 Account (COA)</h3>
+<p>Daftar master akun yang dipakai di seluruh project (contoh: Pendapatan, Upah, Material, Sewa).</p>
+<ul>
+    <li>Filter berdasarkan jenis akun (Pendapatan/Pengeluaran) dan kategori.</li>
+    <li>Fitur <b>sort</b> untuk mengurutkan kolom.</li>
+    <li>Pilih <b>periode tanggal</b>; kolom actual muncul otomatis sesuai periode tersebut.</li>
+    <li>Klik detail pada sebuah akun untuk melihat transaksi yang memakainya.</li>
+</ul>
+
+<h3>4.4 Budget</h3>
+<p>Merencanakan budget per project per periode bulanan (YYYY-MM).</p>
+<ol>
+    <li>Buka menu <span class="menu">Budget</span>, klik <b>Create</b>.</li>
+    <li>Pilih project dan periode, lalu isi estimasi pendapatan dan rincian budget per akun (estimasi biaya dihitung otomatis dari rincian; target laba = pendapatan - biaya).</li>
+    <li>Setiap rincian akun bisa diberi rentang tanggal mulai-selesai.</li>
+    <li>Simpan. Satu project hanya boleh punya satu plan per periode.</li>
+</ol>
+
+<h3>4.5 Monitoring</h3>
+<p>Pengganti menu alokasi lama. Menampilkan perbandingan Budget vs Actual In vs Actual Out vs Variance per periode.</p>
+<ul>
+    <li>Kolom: Nomor, Periode (rentang tanggal), Week (otomatis 1/2/3), Month (otomatis), Budget (ditarik dari Budget Plan sesuai tanggal), Actual, Variance.</li>
+    <li>Berlaku <b>per project</b> dan <b>global</b> (tanpa filter project).</li>
+    <li>List periode bisa diedit atau dihapus; klik sebuah periode untuk melihat <b>resume periode</b>: seluruh akun + budget + actual.</li>
+</ul>
+
+<h3>4.6 Payment Request</h3>
+<p>Permintaan pembayaran yang mengikuti alur persetujuan.</p>
+<ol>
+    <li>Buat <b>Draft</b> dengan memilih project, akun, pihak (vendor/supplier/mandor/investor), tanggal, jatuh tempo, nominal, dan prioritas (High/Medium/Low).</li>
+    <li>Ajukan menjadi <b>Waiting</b> (menunggu persetujuan admin).</li>
+    <li>Admin <b>Approve</b> atau <b>Reject</b>. Permintaan yang disetujui otomatis menjadi Payable (AP) dan memengaruhi Cashflow.</li>
+    <li>Setelah dibayar, tandai <b>Paid</b> lalu <b>Closed</b> (atau Cancelled).</li>
+</ol>
+<div class="note">Payment Request yang disetujui otomatis menjadi hutang (Payable) - tidak perlu dicatat dua kali.</div>
+
+<h3>4.7 Cashflow</h3>
+<ul>
+    <li><b>Cash In</b>: pendapatan manual + pelunasan piutang (AR).</li>
+    <li><b>Cash Out</b>: payment request yang dibayar + pelunasan hutang (AP).</li>
+    <li>Halaman menampilkan total masuk, total keluar, dan saldo; lengkap dengan filter.</li>
+</ul>
+
+<h3>4.8 Receivable &amp; Payable</h3>
+<ul>
+    <li><b>Account Receivable (AR)</b>: piutang ke klien. Terbentuk otomatis saat project selesai, sebesar nilai kontrak. Status: Belum Dibayar / Sebagian / Lunas.</li>
+    <li><b>Account Payable (AP)</b>: hutang ke vendor/supplier. Terbentuk otomatis dari Actual dan dari Payment Request yang disetujui.</li>
+    <li><b>Payment</b>: riwayat pelunasan. Membayar AR menambah saldo kas (masuk); membayar AP mengurangi saldo kas (keluar).</li>
+</ul>
+
+<h3>4.9 Actual</h3>
+<p>Ledger otomatis penggunaan dana (tanpa input manual). Data Actual dibuat otomatis oleh sistem dari transaksi di modul lain:</p>
+<ul>
+    <li><b>Actual Out</b>: Payment Request yang dibayar dan pelunasan hutang (AP) yang tidak berasal dari Payment Request.</li>
+    <li><b>Actual In</b>: penerimaan dari pelunasan piutang (AR).</li>
+</ul>
+<p>Halaman ini hanya menampilkan riwayat (read-only) lengkap dengan sumber transaksinya, bisa difilter per project, akun, dan rentang tanggal, serta diekspor ke Excel/PDF.</p>
+<div class="note">Karena Actual otomatis, tidak ada lagi tombol tambah/edit/hapus atau import di menu ini. Semua angka terkait (Monitoring, Dashboard, laporan) mengikuti transaksi di modul pembayaran.</div>
+<p>Pengeluaran di luar project (mis. listrik kantor) dicatat di menu <b>Non-Project Expense</b>; pengeluaran ini ikut Actual Out global di Monitoring tetapi tidak membebani budget project mana pun.</p>
+
+<h3>4.10 Backup</h3>
+<p>Menu khusus admin untuk menjaga keamanan data.</p>
+<ol>
+    <li>Buka menu <span class="menu">Backup</span>.</li>
+    <li>Klik <b>Buat Backup</b> untuk membuat cadangan database (proses beberapa detik).</li>
+    <li>File backup muncul di daftar; klik ikon <b>unduh</b> untuk menyimpan ke komputer.</li>
+    <li>Untuk membersihkan backup lama sesuai aturan penyimpanan, klik <b>Bersihkan Backup Lama</b>.</li>
+    <li>File yang tidak diperlukan bisa dihapus lewat ikon <b>hapus</b>.</li>
+</ol>
+<div class="note">Lakukan backup secara rutin, terutama sebelum perubahan besar atau setelah input data penting.</div>
+
+<h3>4.11 Audit Log</h3>
+<p>Semua perubahan data tercatat otomatis: siapa, kapan, dan apa yang diubah (create/update/delete). Cukup dibaca untuk keperluan audit.</p>
+
+<h3>4.12 Master Data</h3>
+<ul>
+    <li><b>Category</b>: klasifikasi akun (misal: Biaya Umum, Vendor/Jasa, Supplier, Investor, Material, Pajak).</li>
+    <li><b>Vendor</b>: pihak penyedia jasa (kode, nama, telepon, alamat).</li>
+    <li><b>Supplier</b>: pihak penyedia barang (kode, nama, telepon, alamat).</li>
+    <li><b>Mandor</b> &amp; <b>Investor</b>: master terpisah seperti Vendor/Supplier.</li>
+    <li><b>User</b>: akun pengguna dengan foto profil, nama, departemen, tanggal masuk, lokasi, dan peran (admin/staff). Bisa diedit atau dihapus.</li>
+</ul>
+
+<h3>4.13 Fitur Pendukung</h3>
+<ul>
+    <li><b>Notifikasi</b>: lonceng di atas halaman untuk over budget, user baru, dan Payment Request yang menunggu persetujuan.</li>
+    <li><b>Pagination</b>: pilih jumlah baris per halaman (25/50/dst) dan lompat ke halaman tertentu.</li>
+    <li><b>Hapus massal (checklist)</b>: pilih beberapa baris lalu hapus sekaligus, ala Accurate.</li>
+    <li><b>Import/Export per modul</b>: import Account &amp; Actual dari template Excel; export ke Excel/PDF.</li>
+    <li><b>Filter rentang tanggal</b> di halaman yang membutuhkan.</li>
+</ul>
+
+<div class="pagebreak"></div>
+
+<h2>5. Alur Penggunaan (End-to-End)</h2>
+<p>Berikut urutan kerja yang disarankan agar data tersusun rapi dan laporan akurat:</p>
+<table>
+    <tr><th>Urutan</th><th>Langkah</th><th>Menu</th></tr>
+    <tr><td>1</td><td>Lengkapi master data: category, vendor, supplier, mandor, investor, dan user.</td><td>Master</td></tr>
+    <tr><td>2</td><td>Buat project baru (jenis, qty, harga, pajak, tanggal).</td><td>Project</td></tr>
+    <tr><td>3</td><td>Susun Budget Plan per project per periode (rincian per akun).</td><td>Budget</td></tr>
+    <tr><td>4</td><td>Alokasikan budget ke akun dan ajukan persetujuan (draft lalu approve).</td><td>Allocation (di dalam Monitoring)</td></tr>
+    <tr><td>5</td><td>Catat penggunaan dana: input Actual, atau buat Payment Request lalu dibayar.</td><td>Actual / Payment Request</td></tr>
+    <tr><td>6</td><td>Pantau Budget vs Actual vs Variance di Monitoring (per project &amp; global).</td><td>Monitoring</td></tr>
+    <tr><td>7</td><td>Saat project selesai, piutang (AR) terbentuk otomatis; pantau pelunasan di Receivable &amp; Payment.</td><td>Receivable &amp; Payable</td></tr>
+    <tr><td>8</td><td>Periksa saldo kas dan profit di Dashboard; lakukan backup rutin.</td><td>Dashboard / Backup</td></tr>
+</table>
+
+<h3>Alur singkat pencatatan transaksi</h3>
+<ol>
+    <li>Penerimaan pendapatan dicatat di <b>Cashflow</b> (Cash In).</li>
+    <li>Pengeluaran lewat <b>Payment Request</b>: draft, waiting, approved, paid, closed.</li>
+    <li>PR yang disetujui otomatis menjadi <b>Payable (AP)</b>; pelunasannya mengurangi kas (Cash Out).</li>
+    <li>Project selesai otomatis menjadi <b>Receivable (AR)</b>; pembayaran klien menambah kas (Cash In).</li>
+    <li>Semua angka terlihat di <b>Dashboard</b> dan <b>Monitoring</b>.</li>
+</ol>
+
+<h2>6. Tips dan Hal yang Perlu Diperhatikan</h2>
+<ul>
+    <li>Selalu isi <b>master data</b> sebelum membuat project agar pilihan pihak dan akun tersedia.</li>
+    <li>Actual hanya bisa diinput ke akun yang sudah <b>dialokasikan</b> ke project (dan alokasi disetujui).</li>
+    <li>Variance negatif = <b>over budget</b>; segera cek penyebabnya di Monitoring.</li>
+    <li>Gunakan <b>prioritas</b> pada Payment Request (High/Medium/Low) agar urutan pembayaran jelas.</li>
+    <li>Ekspor data secara berkala (Excel/PDF) sebagai arsip tambahan selain backup.</li>
+    <li>Hapus akun atau data penting hanya jika yakin; semua perubahan tetap tercatat di Audit Log.</li>
+</ul>
+
+<h2>7. Lampiran: Rencana Pengembangan</h2>
+<p class="small">Berikut catatan rencana dari notulensi terbaru yang belum seluruhnya tersedia di versi ini. Fitur ini sedang dibahas/dikerjakan bertahap.</p>
+<ul class="small">
+    <li>Estimasi dan target income pada Budget dihapus (ditahan, menunggu perkembangan).</li>
+    <li>Pengeluaran non-project dicatat terpisah dari project dengan logika actual — selesai 2026-08-10 (menu Non-Project Expense).</li>
+    <li>Monitoring: filter periode project dan export summary CSV/XLS/PDF per periode — selesai 2026-08-10.</li>
+    <li>Actual otomatis menarik data dari modul (tanpa input manual) — selesai 2026-08-10: Actual Out dari pembayaran, Actual In dari pelunasan piutang.</li>
+    <li>Project selesai = piutang; piutang dibayar = actual penerimaan (ditahan, menunggu perkembangan).</li>
+</ul>
+
+<p class="small" style="margin-top:24pt;">Dokumen ini disusun untuk memudahkan pengguna memahami aplikasi myfinance. Jika ada pertanyaan, hubungi administrator sistem.</p>
+
+</body>
+</html>

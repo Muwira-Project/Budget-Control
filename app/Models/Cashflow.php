@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\CashflowJenis;
 use App\Enums\CashflowSumber;
 use App\Models\Concerns\LogsActivity;
+use App\Services\DashboardService;
 use Database\Factories\CashflowFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -19,10 +20,11 @@ class Cashflow extends Model
      */
     protected static function booted(): void
     {
-        static::created(fn ($model) => \App\Services\DashboardService::clearCache());
-        static::updated(fn ($model) => \App\Services\DashboardService::clearCache());
-        static::deleted(fn ($model) => \App\Services\DashboardService::clearCache());
+        static::created(fn ($model) => DashboardService::clearCache());
+        static::updated(fn ($model) => DashboardService::clearCache());
+        static::deleted(fn ($model) => DashboardService::clearCache());
     }
+
     /** @use HasFactory<CashflowFactory> */
     use HasFactory, LogsActivity;
 

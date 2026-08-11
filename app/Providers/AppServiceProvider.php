@@ -3,10 +3,12 @@
 namespace App\Providers;
 
 use App\Services\CompanySettingService;
+use App\Support\SqliteFileDumper;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
+use Spatie\Backup\Tasks\Backup\DbDumperFactory;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -24,6 +26,8 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Model::preventLazyLoading(! $this->app->isProduction());
+
+        DbDumperFactory::extend('sqlite', fn () => new SqliteFileDumper);
         Model::preventSilentlyDiscardingAttributes(! $this->app->isProduction());
 
         if (Schema::hasTable('company_settings')) {

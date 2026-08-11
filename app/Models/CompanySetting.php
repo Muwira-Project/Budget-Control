@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Services\DashboardService;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
@@ -14,10 +15,11 @@ class CompanySetting extends Model
      */
     protected static function booted(): void
     {
-        static::created(fn ($model) => \App\Services\DashboardService::clearCache());
-        static::updated(fn ($model) => \App\Services\DashboardService::clearCache());
-        static::deleted(fn ($model) => \App\Services\DashboardService::clearCache());
+        static::created(fn ($model) => DashboardService::clearCache());
+        static::updated(fn ($model) => DashboardService::clearCache());
+        static::deleted(fn ($model) => DashboardService::clearCache());
     }
+
     /**
      * Public URL of the uploaded company logo, if any.
      *

@@ -9,6 +9,7 @@ use App\Livewire\Allokasis\Create as CreateAllokasi;
 use App\Livewire\Allokasis\Edit as EditAllokasi;
 use App\Livewire\Allokasis\Index as IndexAllokasi;
 use App\Livewire\AuditLog\Index as AuditLogIndex;
+use App\Livewire\Backups\Index as IndexBackup;
 use App\Livewire\BudgetPlans\Create as CreateBudgetPlan;
 use App\Livewire\BudgetPlans\Edit as EditBudgetPlan;
 use App\Livewire\BudgetPlans\Index as IndexBudgetPlan;
@@ -17,7 +18,6 @@ use App\Livewire\Cashflows\Index as IndexCashflow;
 use App\Livewire\Dashboard;
 use App\Livewire\Exports\Index as ExportIndex;
 use App\Livewire\Imports\ImportAkuns;
-use App\Livewire\Imports\ImportRealisasi;
 use App\Livewire\Investors\Create as CreateInvestor;
 use App\Livewire\Investors\Edit as EditInvestor;
 use App\Livewire\Investors\Index as IndexInvestor;
@@ -31,6 +31,9 @@ use App\Livewire\Monitoring\Create as CreateMonitoring;
 use App\Livewire\Monitoring\Edit as EditMonitoring;
 use App\Livewire\Monitoring\Index as IndexMonitoring;
 use App\Livewire\Monitoring\Resume as ResumeMonitoring;
+use App\Livewire\NonProjectExpenses\Create as CreateNonProjectExpense;
+use App\Livewire\NonProjectExpenses\Edit as EditNonProjectExpense;
+use App\Livewire\NonProjectExpenses\Index as IndexNonProjectExpense;
 use App\Livewire\Payables\Create as CreatePayable;
 use App\Livewire\Payables\Edit as EditPayable;
 use App\Livewire\Payables\Index as IndexPayable;
@@ -42,8 +45,6 @@ use App\Livewire\Payments\Index as IndexPayment;
 use App\Livewire\Projects\Create as CreateProject;
 use App\Livewire\Projects\Edit as EditProject;
 use App\Livewire\Projects\Index as IndexProject;
-use App\Livewire\Realisasi\Create as CreateRealisasi;
-use App\Livewire\Realisasi\Edit as EditRealisasi;
 use App\Livewire\Realisasi\Index as IndexRealisasi;
 use App\Livewire\Realisasi\Show as ShowRealisasi;
 use App\Livewire\Receivables\Create as CreateReceivable;
@@ -109,9 +110,7 @@ Route::middleware(['auth', 'verified', 'draft-staff'])->group(function () {
     Route::get('/payments', IndexPayment::class)->name('payments.index');
 
     Route::get('/realisasi', IndexRealisasi::class)->name('realisasi.index');
-    Route::get('/realisasi/create', CreateRealisasi::class)->name('realisasi.create');
     Route::get('/realisasi/{realisasi}', ShowRealisasi::class)->name('realisasi.show');
-    Route::get('/realisasi/{realisasi}/edit', EditRealisasi::class)->name('realisasi.edit');
 
     Route::get('/vendors', IndexVendor::class)->name('vendors.index');
     Route::get('/vendors/create', CreateVendor::class)->name('vendors.create');
@@ -137,12 +136,16 @@ Route::middleware(['auth', 'verified', 'draft-staff'])->group(function () {
     Route::get('/users/create', CreateUser::class)->name('users.create');
     Route::get('/users/{user}/edit', EditUser::class)->name('users.edit');
 
+    Route::get('/non-project-expenses', IndexNonProjectExpense::class)->name('non-project-expenses.index');
+    Route::get('/non-project-expenses/create', CreateNonProjectExpense::class)->name('non-project-expenses.create');
+    Route::get('/non-project-expenses/{expense}/edit', EditNonProjectExpense::class)->name('non-project-expenses.edit');
+
     Route::get('/audit-log', AuditLogIndex::class)->name('audit-log.index');
 
+    Route::get('/backup', IndexBackup::class)->name('backup.index');
+
     Route::get('/import/akuns', ImportAkuns::class)->name('imports.akuns');
-    Route::get('/import/realisasi', ImportRealisasi::class)->name('imports.realisasi');
     Route::get('/import/akuns/template', [ImportTemplateController::class, 'akun'])->name('imports.akuns.template');
-    Route::get('/import/realisasi/template', [ImportTemplateController::class, 'realisasi'])->name('imports.realisasi.template');
 
     Route::get('/export/{type}', ExportIndex::class)
         ->whereIn('type', ['akuns', 'realisasi', 'vs'])
@@ -150,6 +153,7 @@ Route::middleware(['auth', 'verified', 'draft-staff'])->group(function () {
     Route::get('/export/akuns/file', [ExportController::class, 'akuns'])->name('exports.akuns');
     Route::get('/export/realisasi/file', [ExportController::class, 'realisasi'])->name('exports.realisasi');
     Route::get('/export/akun-vs-realisasi/file', [ExportController::class, 'akunVsRealisasi'])->name('exports.vs');
+    Route::get('/export/monitoring-summary/file', [ExportController::class, 'monitoringSummary'])->name('exports.monitoring-summary');
 
     Route::view('profile', 'profile')->name('profile');
 });

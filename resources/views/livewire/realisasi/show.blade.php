@@ -6,7 +6,6 @@
                 <p class="mt-1 text-sm text-slate-500">Detail transaksi realisasi / rincian akun.</p>
             </div>
             <div class="flex items-center gap-3">
-                <a href="{{ route('realisasi.edit', $realisasi) }}" wire:navigate class="rounded-lg border border-blue-600 bg-white px-4 py-2 text-sm font-semibold text-blue-600 hover:bg-blue-50">Edit</a>
                 <a href="{{ route('realisasi.index') }}" wire:navigate class="text-sm text-gray-600 hover:text-gray-900">Back to Actual</a>
             </div>
         </div>

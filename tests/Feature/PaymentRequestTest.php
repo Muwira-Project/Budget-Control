@@ -203,6 +203,12 @@ class PaymentRequestTest extends TestCase
         $fresh = $pr->fresh();
         $this->assertSame('paid', $fresh->status->value);
         $this->assertNotNull($fresh->paid_at);
+
+        $this->assertDatabaseHas('realisasi', [
+            'sumber' => 'payment_request',
+            'sumber_id' => $pr->id,
+            'nominal' => $pr->nominal,
+        ]);
     }
 
     public function test_approved_can_be_closed(): void
@@ -220,13 +226,26 @@ class PaymentRequestTest extends TestCase
     public function test_draft_can_be_cancelled(): void
     {
         $user = User::factory()->create();
-        $pr = $this->makePaymentRequest(['status' => 'draft']);
+        $pr = $this->makePaymentRequest(['status' => 'draft', 'created_by' => $user->id]);
 
         Livewire::actingAs($user)
             ->test(IndexPaymentRequest::class)
             ->call('cancel', $pr->id);
 
         $this->assertSame('cancelled', $pr->fresh()->status->value);
+    }
+
+    public function test_staff_cannot_cancel_another_users_draft(): void
+    {
+        $owner = User::factory()->create();
+        $staff = User::factory()->create();
+        $pr = $this->makePaymentRequest(['status' => 'draft', 'created_by' => $owner->id]);
+
+        Livewire::actingAs($staff)
+            ->test(IndexPaymentRequest::class)
+            ->call('cancel', $pr->id);
+
+        $this->assertSame('draft', $pr->fresh()->status->value);
     }
 
     public function test_approved_payment_request_cannot_be_deleted(): void
@@ -239,6 +258,58 @@ class PaymentRequestTest extends TestCase
             ->call('delete', $pr->id);
 
         $this->assertDatabaseHas('payment_requests', ['id' => $pr->id]);
+    }
+
+    public function test_number_generation_skips_existing_numbers(): void
+    {
+        $user = User::factory()->create();
+        [$project, $akun] = $this->allocatedProjectAkun();
+        $vendor = Vendor::factory()->create();
+
+        PaymentRequest::factory()->create([
+            'nomor' => 'PR-2026-001',
+            'project_id' => $project->id,
+            'akun_id' => $akun->id,
+            'vendor_id' => $vendor->id,
+            'supplier_id' => null,
+        ]);
+
+        Livewire::actingAs($user)
+            ->test(CreatePaymentRequest::class)
+            ->set('projectId', $project->id)
+            ->set('akunId', $akun->id)
+            ->set('vendorId', $vendor->id)
+            ->set('tanggal', '2026-07-10')
+            ->set('nominal', '60000000')
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $this->assertDatabaseHas('payment_requests', ['nomor' => 'PR-2026-002']);
+    }
+
+    public function test_account_item_list_only_shows_approved_allocations(): void
+    {
+        $user = User::factory()->create();
+        $project = Project::factory()->create();
+        $akun = Akun::factory()->create();
+        ProjectAkun::create(['project_id' => $project->id, 'akun_id' => $akun->id, 'budget' => 100000000, 'allocation' => 100000000, 'status' => 'draft']);
+
+        Livewire::actingAs($user)
+            ->test(CreatePaymentRequest::class)
+            ->set('projectId', $project->id)
+            ->assertSee('No approved account allocation for this project yet')
+            ->assertDontSee($akun->kode_akun);
+    }
+
+    public function test_account_item_appears_for_approved_allocation(): void
+    {
+        $user = User::factory()->create();
+        [$project, $akun] = $this->allocatedProjectAkun();
+
+        Livewire::actingAs($user)
+            ->test(CreatePaymentRequest::class)
+            ->set('projectId', $project->id)
+            ->assertSee($akun->kode_akun);
     }
 
     /**

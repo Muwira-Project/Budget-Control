@@ -24,6 +24,8 @@ class Edit extends Component
 
     public function mount(MonitoringPeriod $monitoringPeriod): void
     {
+        abort_unless(auth()->user()->isAdmin(), 403);
+
         $this->monitoringPeriod = $monitoringPeriod;
         $this->projectId = $monitoringPeriod->project_id;
         $this->tanggalMulai = $monitoringPeriod->tanggal_mulai->format('Y-m-d');

@@ -95,13 +95,13 @@
                                             @elseif ($allocation->status->value === 'waiting' && auth()->user()->isAdmin())
                                                 <div class="flex items-center justify-end gap-1.5">
                                                     <button type="button" wire:click="approve({{ $allocation->id }})" title="Approve"
-                                                        class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-green-300 hover:bg-green-50 hover:text-green-600">
-                                                        <x-icon name="check" class="h-4 w-4" />
-                                                    </button>
+                                                            class="inline-flex items-center gap-1.5 rounded-lg border border-green-200 bg-green-50 px-3 py-1.5 text-xs font-semibold text-green-700 transition hover:bg-green-100">
+                                                            <x-icon name="check" class="h-4 w-4" /> Approve
+                                                        </button>
                                                     <button type="button" wire:click="reject({{ $allocation->id }})" title="Reject"
-                                                        class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-red-300 hover:bg-red-50 hover:text-red-600">
-                                                        <x-icon name="x-mark" class="h-4 w-4" />
-                                                    </button>
+                                                            class="inline-flex items-center gap-1.5 rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-semibold text-red-700 transition hover:bg-red-100">
+                                                            <x-icon name="x-mark" class="h-4 w-4" /> Reject
+                                                        </button>
                                                 </div>
                                             @elseif ($allocation->status->value === 'rejected')
                                                 <x-action-buttons :edit-href="route('allokasis.edit', $allocation)" :delete-id="$allocation->id" />

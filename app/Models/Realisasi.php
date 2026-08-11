@@ -12,9 +12,15 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['project_id', 'akun_id', 'vendor_id', 'supplier_id', 'mandor_id', 'investor_id', 'kategori_id', 'tanggal', 'nominal', 'keterangan'])]
+#[Fillable(['project_id', 'akun_id', 'vendor_id', 'supplier_id', 'mandor_id', 'investor_id', 'kategori_id', 'tanggal', 'nominal', 'keterangan', 'sumber', 'sumber_id'])]
 class Realisasi extends Model
 {
+    public const SUMBER_MANUAL = 'manual';
+
+    public const SUMBER_PAYMENT_REQUEST = 'payment_request';
+
+    public const SUMBER_AP_PAYMENT = 'pelunasan_ap';
+
     /** @use HasFactory<RealisasiFactory> */
     use HasFactory, LogsActivity;
 
@@ -36,8 +42,12 @@ class Realisasi extends Model
             }
         });
 
-        static::created(fn (Realisasi $realisasi) => app(PayableService::class)->syncFromRealisasi($realisasi));
-        static::updated(fn (Realisasi $realisasi) => app(PayableService::class)->syncFromRealisasi($realisasi));
+        static::created(fn (Realisasi $realisasi) => $realisasi->sumber === null
+            ? app(PayableService::class)->syncFromRealisasi($realisasi)
+            : null);
+        static::updated(fn (Realisasi $realisasi) => $realisasi->sumber === null
+            ? app(PayableService::class)->syncFromRealisasi($realisasi)
+            : null);
 
         static::created(function (Realisasi $realisasi): void {
             app(NotificationService::class)->notifyIfOverBudget($realisasi);
@@ -156,9 +166,23 @@ class Realisasi extends Model
     /**
      * Short label used in the activity log.
      */
+    /**
+     * Short label used in the activity log.
+     */
     protected function activityLabel(): string
     {
         return 'Actual #'.$this->id;
     }
-}
 
+    /**
+     * Display label of the actual source (auto-generated vs manual).
+     */
+    public function getSumberLabelAttribute(): string
+    {
+        return match ($this->sumber) {
+            self::SUMBER_PAYMENT_REQUEST => 'Payment Request',
+            self::SUMBER_AP_PAYMENT => 'AP Payment',
+            default => 'Manual',
+        };
+    }
+}

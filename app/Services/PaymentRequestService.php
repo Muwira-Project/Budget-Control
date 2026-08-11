@@ -156,6 +156,8 @@ class PaymentRequestService
 
             app(CashflowService::class)->registerPaymentRequestPaid($paymentRequest);
 
+            app(ActualService::class)->recordFromPaymentRequest($paymentRequest);
+
             return $paymentRequest->refresh();
         });
     }
@@ -177,6 +179,11 @@ class PaymentRequestService
      */
     public function cancel(PaymentRequest $paymentRequest): PaymentRequest
     {
+        if ($paymentRequest->status !== PaymentRequestStatus::Draft
+            && $paymentRequest->status !== PaymentRequestStatus::Rejected) {
+            throw new LogicException('Only draft or rejected payment requests can be cancelled.');
+        }
+
         app(PayableService::class)->removeForPaymentRequest($paymentRequest);
 
         $paymentRequest->update(['status' => PaymentRequestStatus::Cancelled]);
@@ -211,8 +218,11 @@ class PaymentRequestService
      */
     protected function nextNomor(): string
     {
-        $next = NumberSequence::next('payment_request');
+        do {
+            $next = NumberSequence::next('payment_request');
+            $nomor = 'PR-'.now()->format('Y').'-'.str_pad((string) $next, 3, '0', STR_PAD_LEFT);
+        } while (PaymentRequest::where('nomor', $nomor)->exists());
 
-        return 'PR-'.now()->format('Y').'-'.str_pad((string) $next, 3, '0', STR_PAD_LEFT);
+        return $nomor;
     }
 }

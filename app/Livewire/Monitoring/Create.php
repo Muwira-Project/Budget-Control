@@ -21,6 +21,8 @@ class Create extends Component
 
     public function mount(): void
     {
+        abort_unless(auth()->user()->isAdmin(), 403);
+
         $this->tanggalMulai = now()->startOfMonth()->format('Y-m-d');
         $this->tanggalSelesai = now()->startOfMonth()->addDays(13)->format('Y-m-d');
     }

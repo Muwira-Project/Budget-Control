@@ -47,8 +47,8 @@ class Edit extends Component
         $this->allocation = $allocation;
         $this->projectId = $allocation->project_id;
         $this->akunId = $allocation->akun_id;
-        $this->budget = $allocation->budget;
-        $this->allocationNominal = $allocation->allocation;
+        $this->budget = $allocation->budget ?? '';
+        $this->allocationNominal = $allocation->allocation ?? '';
     }
 
     /**

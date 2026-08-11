@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use App\Exports\AkunExport;
 use App\Exports\AkunVsRealisasiExport;
+use App\Exports\MonitoringSummaryExport;
 use App\Exports\RealisasiExport;
+use App\Services\MonitoringPeriodService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Maatwebsite\Excel\Excel;
@@ -41,6 +43,28 @@ class ExportController extends Controller
      *
      * @return array{project_id: int|null, start_date: string|null, end_date: string|null, status: string|null}
      */
+    /**
+     * Download the monitoring summary report.
+     */
+    public function monitoringSummary(Request $request): BinaryFileResponse
+    {
+        $format = in_array($request->query('format'), ['csv', 'pdf'], true) ? $request->query('format') : 'xlsx';
+        $projectId = $request->integer('project_id') ?: null;
+        $search = (string) $request->query('search', '');
+
+        $export = new MonitoringSummaryExport(
+            app(MonitoringPeriodService::class)->summaryRows($projectId, $search),
+        );
+
+        $filename = 'Monitoring_Summary_'.now()->format('Ymd').'.'.$format;
+
+        return match ($format) {
+            'csv' => app(Excel::class)->download($export, $filename, Excel::CSV),
+            'pdf' => app(Excel::class)->download($export, $filename, Excel::DOMPDF),
+            default => app(Excel::class)->download($export, $filename),
+        };
+    }
+
     private function filters(Request $request): array
     {
         return [

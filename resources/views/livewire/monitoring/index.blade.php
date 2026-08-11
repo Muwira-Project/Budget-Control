@@ -2,9 +2,22 @@
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <x-page-header icon="scale" title="Monitoring" description="Period-based budget, actual, and variance.">
             <x-slot:actions>
+                @if (auth()->user()->isAdmin())
                 <a href="{{ route('monitoring.create') }}" wire:navigate class="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700">
                     <x-icon name="plus" class="h-4 w-4" /> Add Monitoring Period
                 </a>
+                <div class="flex items-center gap-2">
+                    <a href="{{ route('exports.monitoring-summary', ['format' => 'xlsx', 'project_id' => $this->projectFilter, 'search' => $this->search]) }}" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50">
+                        <x-icon name="download" class="h-4 w-4" /> XLSX
+                    </a>
+                    <a href="{{ route('exports.monitoring-summary', ['format' => 'csv', 'project_id' => $this->projectFilter, 'search' => $this->search]) }}" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50">
+                        <x-icon name="download" class="h-4 w-4" /> CSV
+                    </a>
+                    <a href="{{ route('exports.monitoring-summary', ['format' => 'pdf', 'project_id' => $this->projectFilter, 'search' => $this->search]) }}" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50">
+                        <x-icon name="download" class="h-4 w-4" /> PDF
+                    </a>
+                </div>
+                @endif
             </x-slot:actions>
         </x-page-header>
 
@@ -15,7 +28,9 @@
         @endif
 
         <x-confirm-modal message="Are you sure you want to delete this monitoring period?">
+            @if (auth()->user()->isAdmin())
             <x-bulk-actions :paginator="$this->periods" :selected-ids="$this->selectedIds" />
+            @endif
             <div class="mt-6 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-200">
                 <div class="border-b border-gray-100 p-6">
                     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
@@ -50,7 +65,8 @@
                                     <th class="px-6 py-3">Week</th>
                                     <th class="px-6 py-3">Month</th>
                                     <th class="px-6 py-3 text-right">Budget</th>
-                                    <th class="px-6 py-3 text-right">Actual</th>
+                                    <th class="px-6 py-3 text-right">Actual In</th>
+                                    <th class="px-6 py-3 text-right">Actual Out</th>
                                     <th class="px-6 py-3 text-right">Variance</th>
                                     <th class="px-6 py-3 text-right">Actions</th>
                                 </tr>
@@ -68,11 +84,14 @@
                                         <td class="px-6 py-4 text-gray-700">{{ $period->week }}</td>
                                         <td class="px-6 py-4 text-gray-700">{{ $period->month }}</td>
                                         <td class="px-6 py-4 text-right text-gray-900">{{ format_idr($totals['budget']) }}</td>
+                                        <td class="px-6 py-4 text-right text-emerald-600">{{ format_idr($totals['actual_in']) }}</td>
                                         <td class="px-6 py-4 text-right text-gray-900">{{ format_idr($totals['actual']) }}</td>
                                         <td class="px-6 py-4 text-right font-medium {{ $totals['variance'] >= 0 ? 'text-green-600' : 'text-red-600' }}">{{ format_idr($totals['variance']) }}</td>
                                         <td class="px-6 py-4 text-right whitespace-nowrap">
                                             <a href="{{ route('monitoring.show', $period) }}" wire:navigate class="text-blue-600 hover:text-blue-800">Resume</a>
+                                            @if (auth()->user()->isAdmin())
                                             <x-action-buttons :edit-href="route('monitoring.edit', $period)" :delete-id="$period->id" />
+                                            @endif
                                         </td>
                                     </tr>
                                 @endforeach

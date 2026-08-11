@@ -2,17 +2,15 @@
 
 namespace Tests\Feature;
 
-use App\Livewire\Realisasi\Create as CreateRealisasi;
-use App\Livewire\Realisasi\Edit as EditRealisasi;
 use App\Livewire\Realisasi\Index as IndexRealisasi;
 use App\Models\Akun;
-use App\Models\Kategori;
+use App\Models\PaymentRequest;
 use App\Models\Project;
 use App\Models\ProjectAkun;
 use App\Models\Realisasi;
-use App\Models\Supplier;
 use App\Models\User;
 use App\Models\Vendor;
+use App\Services\ActualService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
@@ -25,15 +23,15 @@ class RealisasiTest extends TestCase
     /**
      * Create a master akun allocated to the given project.
      */
-    private function allocatedAkun(Project $project, int $budget = 100000000): Akun
+    private function allocatedAkun(Project $project): Akun
     {
         $akun = Akun::factory()->create();
 
         ProjectAkun::create([
             'project_id' => $project->id,
             'akun_id' => $akun->id,
-            'budget' => $budget,
-            'allocation' => $budget,
+            'budget' => 100000000,
+            'allocation' => 100000000,
         ]);
 
         return $akun;
@@ -53,136 +51,79 @@ class RealisasiTest extends TestCase
 
         $this->actingAs($user)
             ->get(route('realisasi.index'))
-            ->assertOk();
+            ->assertOk()
+            ->assertDontSee('Add Actual');
     }
 
-    public function test_realisasi_can_be_created(): void
+    public function test_manual_create_page_is_not_available(): void
     {
-        $user = User::factory()->create();
+        $user = User::factory()->admin()->create();
+
+        $this->actingAs($user)
+            ->get('/realisasi/create')
+            ->assertNotFound();
+    }
+
+    public function test_source_label_is_displayed(): void
+    {
+        $user = User::factory()->admin()->create();
         $project = Project::factory()->create();
         $akun = $this->allocatedAkun($project);
         $vendor = Vendor::factory()->create();
-        $kategori = Kategori::factory()->create(['nama' => 'Material']);
-
-        Livewire::actingAs($user)
-            ->test(CreateRealisasi::class)
-            ->set('projectId', $project->id)
-            ->set('akunId', $akun->id)
-            ->set('vendorId', $vendor->id)
-            ->set('kategoriId', $kategori->id)
-            ->set('tanggal', '2026-07-01')
-            ->set('nominal', '25000000')
-            ->set('keterangan', 'Pembayaran material tahap 1')
-            ->call('save')
-            ->assertHasNoErrors()
-            ->assertRedirect(route('realisasi.index'));
-
-        $this->assertDatabaseHas('realisasi', [
+        $pr = PaymentRequest::factory()->create([
             'project_id' => $project->id,
             'akun_id' => $akun->id,
             'vendor_id' => $vendor->id,
-            'kategori_id' => $kategori->id,
+            'supplier_id' => null,
         ]);
+
+        app(ActualService::class)->recordFromPaymentRequest($pr);
+
+        $this->actingAs($user)
+            ->get(route('realisasi.index'))
+            ->assertOk()
+            ->assertSee('Payment Request');
     }
 
-    public function test_realisasi_requires_a_vendor_or_supplier(): void
+    public function test_auto_actual_does_not_generate_payable(): void
     {
-        $user = User::factory()->create();
-        $project = Project::factory()->create();
-        $akun = $this->allocatedAkun($project);
-
-        Livewire::actingAs($user)
-            ->test(CreateRealisasi::class)
-            ->set('projectId', $project->id)
-            ->set('akunId', $akun->id)
-            ->set('tanggal', '2026-07-01')
-            ->set('nominal', '25000000')
-            ->call('save')
-            ->assertHasErrors(['vendor_id']);
-    }
-
-    public function test_realisasi_can_be_created_with_supplier(): void
-    {
-        $user = User::factory()->create();
-        $project = Project::factory()->create();
-        $akun = $this->allocatedAkun($project);
-        $supplier = Supplier::factory()->create();
-        $kategori = Kategori::factory()->create(['nama' => 'Material']);
-
-        Livewire::actingAs($user)
-            ->test(CreateRealisasi::class)
-            ->set('projectId', $project->id)
-            ->set('akunId', $akun->id)
-            ->set('pihakJenis', 'supplier')
-            ->set('supplierId', $supplier->id)
-            ->set('kategoriId', $kategori->id)
-            ->set('tanggal', '2026-07-01')
-            ->set('nominal', '25000000')
-            ->call('save')
-            ->assertHasNoErrors()
-            ->assertRedirect(route('realisasi.index'));
-
-        $this->assertDatabaseHas('realisasi', [
-            'project_id' => $project->id,
-            'akun_id' => $akun->id,
-            'vendor_id' => null,
-            'supplier_id' => $supplier->id,
-            'kategori_id' => $kategori->id,
-        ]);
-    }
-
-    public function test_realisasi_akun_must_be_allocated_to_selected_project(): void
-    {
-        $user = User::factory()->create();
-        $projectA = Project::factory()->create();
-        $projectB = Project::factory()->create();
-        $akunA = $this->allocatedAkun($projectA);
-
-        Livewire::actingAs($user)
-            ->test(CreateRealisasi::class)
-            ->set('projectId', $projectB->id)
-            ->set('akunId', $akunA->id)
-            ->set('tanggal', '2026-07-01')
-            ->set('nominal', '10000')
-            ->call('save')
-            ->assertHasErrors(['akun_id']);
-    }
-
-    public function test_realisasi_can_be_updated(): void
-    {
-        $user = User::factory()->create();
         $project = Project::factory()->create();
         $akun = $this->allocatedAkun($project);
         $vendor = Vendor::factory()->create();
-        $kategori = Kategori::factory()->create(['nama' => 'Jasa']);
-        $realisasi = Realisasi::factory()->create(['project_id' => $project->id, 'akun_id' => $akun->id]);
+        $pr = PaymentRequest::factory()->create([
+            'project_id' => $project->id,
+            'akun_id' => $akun->id,
+            'vendor_id' => $vendor->id,
+            'supplier_id' => null,
+        ]);
 
-        Livewire::actingAs($user)
-            ->test(EditRealisasi::class, ['realisasi' => $realisasi])
-            ->set('vendorId', $vendor->id)
-            ->set('kategoriId', $kategori->id)
-            ->call('save')
-            ->assertHasNoErrors()
-            ->assertRedirect(route('realisasi.index'));
+        $actual = app(ActualService::class)->recordFromPaymentRequest($pr);
 
-        $this->assertDatabaseHas('realisasi', ['id' => $realisasi->id, 'vendor_id' => $vendor->id, 'kategori_id' => $kategori->id]);
+        $this->assertDatabaseMissing('payables', ['realisasi_id' => $actual->id]);
     }
 
-    public function test_realisasi_can_be_deleted(): void
+    public function test_auto_actual_is_idempotent(): void
     {
-        $user = User::factory()->create();
         $project = Project::factory()->create();
         $akun = $this->allocatedAkun($project);
-        $realisasi = Realisasi::factory()->create(['project_id' => $project->id, 'akun_id' => $akun->id]);
+        $vendor = Vendor::factory()->create();
+        $pr = PaymentRequest::factory()->create([
+            'project_id' => $project->id,
+            'akun_id' => $akun->id,
+            'vendor_id' => $vendor->id,
+            'supplier_id' => null,
+        ]);
 
-        Livewire::actingAs($user)
-            ->test(IndexRealisasi::class)
-            ->call('delete', $realisasi->id);
+        app(ActualService::class)->recordFromPaymentRequest($pr);
+        app(ActualService::class)->recordFromPaymentRequest($pr);
 
-        $this->assertDatabaseMissing('realisasi', ['id' => $realisasi->id]);
+        $this->assertSame(1, Realisasi::query()
+            ->where('sumber', Realisasi::SUMBER_PAYMENT_REQUEST)
+            ->where('sumber_id', $pr->id)
+            ->count());
     }
 
-    public function test_realisasi_index_uses_eager_loading(): void
+    public function test_index_uses_eager_loading(): void
     {
         $user = User::factory()->admin()->create();
         $project = Project::factory()->create();
@@ -206,7 +147,7 @@ class RealisasiTest extends TestCase
         $this->assertLessThanOrEqual(10, $queryCount);
     }
 
-    public function test_realisasi_index_filters_by_date_range(): void
+    public function test_index_filters_by_date_range(): void
     {
         $user = User::factory()->create();
         $project = Project::factory()->create();
@@ -222,22 +163,7 @@ class RealisasiTest extends TestCase
             ->assertDontSee('Pembayaran Maret');
     }
 
-    public function test_realisasi_index_filters_by_start_date_only(): void
-    {
-        $user = User::factory()->create();
-        $project = Project::factory()->create();
-        $akun = $this->allocatedAkun($project);
-        Realisasi::factory()->create(['project_id' => $project->id, 'akun_id' => $akun->id, 'tanggal' => '2026-01-10', 'keterangan' => 'Pembayaran Januari']);
-        Realisasi::factory()->create(['project_id' => $project->id, 'akun_id' => $akun->id, 'tanggal' => '2026-03-10', 'keterangan' => 'Pembayaran Maret']);
-
-        Livewire::actingAs($user)
-            ->test(IndexRealisasi::class)
-            ->set('startDate', '2026-03-01')
-            ->assertSee('Pembayaran Maret')
-            ->assertDontSee('Pembayaran Januari');
-    }
-
-    public function test_realisasi_invalid_date_range_is_handled(): void
+    public function test_index_invalid_date_range_is_handled(): void
     {
         $user = User::factory()->create();
         $project = Project::factory()->create();

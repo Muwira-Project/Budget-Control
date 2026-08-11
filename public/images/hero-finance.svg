@@ -22,7 +22,6 @@
     </radialGradient>
   </defs>
 
-  <rect width="800" height="600" rx="40" fill="url(#bgGrad)"/>
   <circle cx="160" cy="120" r="220" fill="url(#halo)"/>
   <circle cx="640" cy="520" r="180" fill="url(#halo)"/>
 

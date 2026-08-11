@@ -6,21 +6,22 @@ Aplikasi web untuk mengelola **budget (alokasi dana)**, **actual (realisasi)**, 
 
 ## Fitur Utama
 
-- **Dashboard** — ringkasan project, budget, allocation, actual, variance, nilai kontrak, pajak, saldo kas, outstanding AR/AP, profit per project, grafik Budget vs Actual, actual per kategori (filter rentang tanggal).
-- **Project** — data project: jenis (barang/jasa), qty, satuan, harga satuan, pajak (11% barang / 2% jasa), tanggal mulai, target selesai, status.
-- **Account (COA)** — master chart of accounts (Pendapatan/Pengeluaran + kategori), filter jenis, dan kolom Actual realtime per periode tanggal.
-- **Budget Plan** — perencanaan per project per periode (YYYY-MM): estimasi pendapatan, estimasi biaya, target laba, dan rincian per akun lengkap dengan rentang tanggal mulai–selesai.
-- **Monitoring** — pengganti menu "Budget Allocation": periode (rentang tanggal), Week & Month otomatis, Budget (dari Budget Plan), Actual, Variance — berlaku per project dan global; ada halaman resume periode (seluruh akun).
-- **Budget Allocation** — workflow persetujuan (draft → waiting → approved/rejected) tetap tersedia sebagai sumber alokasi.
-- **Payment Request** — workflow Draft → Waiting → Approved → Paid/Closed (atau Rejected/Cancelled); **otomatis menjadi Payable (AP) saat disetujui** (sinkron, tidak dobel).
-- **Cashflow** — ledger kas: Cash In (pendapatan manual + pelunasan AR), Cash Out (Payment Request dibayar + pelunasan AP).
-- **AR/AP & Payments** — AR otomatis saat project selesai; AP otomatis dari Actual dan dari Payment Request; pembayaran mencatat pelunasan + memengaruhi saldo kas.
-- **Actual (Realisasi)** — transaksi penggunaan dana per akun dengan tipe pihak: Vendor (Services), Supplier (Goods), Mandor, atau Investor.
-- **Master** — Vendor, Supplier, Mandor, Investor, Category, User (foto profil, departemen, tanggal masuk, lokasi).
-- **Import/Export** — import Actual & Account (template xlsx, validasi per baris + laporan), export Account/Actual/Account-vs-Actual (xlsx/PDF).
-- **Notifikasi** — lonceng di topbar: over budget, user baru, dan Payment Request menunggu persetujuan; status baca/belum.
-- **Audit Log** — jejak otomatis semua perubahan (create/update/delete).
-- **Lainnya** — pagination (10/25/50/100 + jump to page), bulk delete checklist, filter rentang tanggal, company branding.
+- **Dashboard** Ã¢â‚¬â€ ringkasan project, budget, allocation, actual, variance, nilai kontrak, pajak, saldo kas, outstanding AR/AP, profit per project, grafik Budget vs Actual, actual per kategori (filter rentang tanggal).
+- **Project** Ã¢â‚¬â€ data project: jenis (barang/jasa), qty, satuan, harga satuan, pajak (11% barang / 2% jasa), tanggal mulai, target selesai, status.
+- **Account (COA)** Ã¢â‚¬â€ master chart of accounts (Pendapatan/Pengeluaran + kategori), filter jenis, dan kolom Actual realtime per periode tanggal.
+- **Budget Plan** Ã¢â‚¬â€ perencanaan per project per periode (YYYY-MM): estimasi pendapatan, estimasi biaya, target laba, dan rincian per akun lengkap dengan rentang tanggal mulaiÃ¢â‚¬â€œselesai.
+- **Monitoring** Ã¢â‚¬â€ pengganti menu "Budget Allocation": periode (rentang tanggal), Week & Month otomatis, Budget (dari Budget Plan), Actual In, Actual Out, Variance Ã¢â‚¬â€ berlaku per project dan global; ada halaman resume periode (seluruh akun); export summary CSV/XLS/PDF per periode.
+- **Budget Allocation** Ã¢â‚¬â€ workflow persetujuan (draft Ã¢â€ â€™ waiting Ã¢â€ â€™ approved/rejected) tetap tersedia sebagai sumber alokasi.
+- **Payment Request** Ã¢â‚¬â€ workflow Draft Ã¢â€ â€™ Waiting Ã¢â€ â€™ Approved Ã¢â€ â€™ Paid/Closed (atau Rejected/Cancelled); **otomatis menjadi Payable (AP) saat disetujui** (sinkron, tidak dobel).
+- **Cashflow** Ã¢â‚¬â€ ledger kas: Cash In (pendapatan manual + pelunasan AR), Cash Out (Payment Request dibayar + pelunasan AP).
+- **AR/AP & Payments** Ã¢â‚¬â€ AR otomatis saat project selesai; AP otomatis dari Actual dan dari Payment Request; pembayaran mencatat pelunasan + memengaruhi saldo kas.
+- **Actual** — ledger otomatis tanpa input manual: Actual Out dari Payment Request dibayar & pelunasan AP, Actual In dari pelunasan piutang.
+- **Non-Project Expense** — pengeluaran di luar project, terikat ke akun/COA, ikut Actual Out global di Monitoring (tidak membebani budget project).
+- **Master** Ã¢â‚¬â€ Vendor, Supplier, Mandor, Investor, Category, User (foto profil, departemen, tanggal masuk, lokasi).
+- **Import/Export** Ã¢â‚¬â€ import Account (template xlsx, validasi per baris + laporan), export Account/Actual/Account-vs-Actual (xlsx/PDF).
+- **Notifikasi** Ã¢â‚¬â€ lonceng di topbar: over budget, user baru, dan Payment Request menunggu persetujuan; status baca/belum.
+- **Audit Log** Ã¢â‚¬â€ jejak otomatis semua perubahan (create/update/delete).
+- **Lainnya** Ã¢â‚¬â€ pagination (10/25/50/100 + jump to page), bulk delete checklist, filter rentang tanggal, company branding.
 
 ## Teknologi
 
@@ -32,18 +33,18 @@ Aplikasi web untuk mengelola **budget (alokasi dana)**, **actual (realisasi)**, 
 
 ## Struktur Utama
 
-- `app/Services` — business logic (layering Service)
-- `app/Livewire` — komponen halaman (Index/Create/Edit/Pay)
-- `app/Http/Requests` — validasi per modul
-- `app/Models` — entity + relasi + guard domain
-- `app/Notifications` — notifikasi admin
-- `routes/web.php` — seluruh route aplikasi (auth + verified + draft-staff)
-- `resources/views/livewire` — view per modul
+- `app/Services` Ã¢â‚¬â€ business logic (layering Service)
+- `app/Livewire` Ã¢â‚¬â€ komponen halaman (Index/Create/Edit/Pay)
+- `app/Http/Requests` Ã¢â‚¬â€ validasi per modul
+- `app/Models` Ã¢â‚¬â€ entity + relasi + guard domain
+- `app/Notifications` Ã¢â‚¬â€ notifikasi admin
+- `routes/web.php` Ã¢â‚¬â€ seluruh route aplikasi (auth + verified + draft-staff)
+- `resources/views/livewire` Ã¢â‚¬â€ view per modul
 
 ## Role & Akses
 
-- `admin` — akses semua modul.
-- `staff` — dashboard, profile, Budget Allocation (draft), dan Payment Request (draft miliknya).
+- `admin` Ã¢â‚¬â€ akses semua modul.
+- `staff` Ã¢â‚¬â€ dashboard, monitoring (lihat), profile, Budget Allocation (draft miliknya), dan Payment Request (draft miliknya).
 - Middleware `draft-staff` di `app/Http/Middleware/EnsureDraftStaffAccess.php`.
 
 ## Menjalankan

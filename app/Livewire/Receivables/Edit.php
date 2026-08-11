@@ -35,7 +35,7 @@ class Edit extends Component
         $this->projectId = $receivable->project_id;
         $this->tanggal = $receivable->tanggal->format('Y-m-d');
         $this->jatuhTempo = $receivable->jatuh_tempo?->format('Y-m-d') ?? '';
-        $this->nominal = $receivable->nominal;
+        $this->nominal = $receivable->nominal ?? '';
         $this->keterangan = $receivable->keterangan;
     }
 

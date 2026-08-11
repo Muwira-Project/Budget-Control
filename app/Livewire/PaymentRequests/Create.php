@@ -109,6 +109,14 @@ class Create extends Component
     }
 
     /**
+     * Reset the selected account when the project changes.
+     */
+    public function updatedProjectId(): void
+    {
+        $this->akunId = null;
+    }
+
+    /**
      * Reset the party selection when the party type changes.
      */
     public function updatedPihakJenis(): void

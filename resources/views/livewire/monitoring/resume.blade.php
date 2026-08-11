@@ -16,13 +16,17 @@
             <a href="{{ route('monitoring.index') }}" wire:navigate class="text-sm text-blue-600 hover:text-blue-800">Back to Monitoring</a>
         </div>
 
-        <div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+        <div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
                 <p class="text-sm font-medium text-gray-500">Budget</p>
                 <p class="mt-2 text-2xl font-bold text-gray-900">{{ format_idr($this->totals['budget']) }}</p>
             </div>
             <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-                <p class="text-sm font-medium text-gray-500">Actual</p>
+                <p class="text-sm font-medium text-gray-500">Actual In</p>
+                <p class="mt-2 text-2xl font-bold text-emerald-600">{{ format_idr($this->totals['actual_in']) }}</p>
+            </div>
+            <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
+                <p class="text-sm font-medium text-gray-500">Actual Out</p>
                 <p class="mt-2 text-2xl font-bold text-gray-900">{{ format_idr($this->totals['actual']) }}</p>
             </div>
             <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">

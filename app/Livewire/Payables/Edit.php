@@ -69,7 +69,7 @@ class Edit extends Component
         };
         $this->tanggal = $payable->tanggal->format('Y-m-d');
         $this->jatuhTempo = $payable->jatuh_tempo?->format('Y-m-d') ?? '';
-        $this->nominal = $payable->nominal;
+        $this->nominal = $payable->nominal ?? '';
         $this->jenisPajak = $payable->jenis_pajak?->value ?? '';
         $this->pajakInclude = $payable->pajak_include;
         $this->keterangan = $payable->keterangan;

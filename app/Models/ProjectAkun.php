@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\AllocationStatus;
+use App\Services\DashboardService;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -16,10 +17,11 @@ class ProjectAkun extends Model
      */
     protected static function booted(): void
     {
-        static::created(fn ($model) => \App\Services\DashboardService::clearCache());
-        static::updated(fn ($model) => \App\Services\DashboardService::clearCache());
-        static::deleted(fn ($model) => \App\Services\DashboardService::clearCache());
+        static::created(fn ($model) => DashboardService::clearCache());
+        static::updated(fn ($model) => DashboardService::clearCache());
+        static::deleted(fn ($model) => DashboardService::clearCache());
     }
+
     /**
      * Get the attributes that should be cast.
      *

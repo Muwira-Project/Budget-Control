@@ -5,6 +5,7 @@ namespace App\Models;
 use App\Enums\PajakJenis;
 use App\Enums\PayableStatus;
 use App\Models\Concerns\LogsActivity;
+use App\Services\DashboardService;
 use Database\Factories\PayableFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -35,9 +36,9 @@ class Payable extends Model
                 throw new \InvalidArgumentException('A payable must reference exactly one party.');
             }
         });
-        static::created(fn ($model) => \App\Services\DashboardService::clearCache());
-        static::updated(fn ($model) => \App\Services\DashboardService::clearCache());
-        static::deleted(fn ($model) => \App\Services\DashboardService::clearCache());
+        static::created(fn ($model) => DashboardService::clearCache());
+        static::updated(fn ($model) => DashboardService::clearCache());
+        static::deleted(fn ($model) => DashboardService::clearCache());
     }
 
     /**

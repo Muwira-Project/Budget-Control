@@ -83,7 +83,7 @@ class Edit extends Component
         };
         $this->tanggal = $paymentRequest->tanggal->format('Y-m-d');
         $this->jatuhTempo = $paymentRequest->jatuh_tempo?->format('Y-m-d') ?? '';
-        $this->nominal = $paymentRequest->nominal;
+        $this->nominal = $paymentRequest->nominal ?? '';
         $this->prioritas = $paymentRequest->prioritas->value;
         $this->keterangan = $paymentRequest->keterangan;
     }
@@ -145,6 +145,14 @@ class Edit extends Component
         session()->flash('status', 'Payment request updated successfully.');
 
         $this->redirectRoute('payment-requests.index', navigate: true);
+    }
+
+    /**
+     * Reset the selected account when the project changes.
+     */
+    public function updatedProjectId(): void
+    {
+        $this->akunId = null;
     }
 
     /**

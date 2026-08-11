@@ -163,10 +163,19 @@ class Index extends Component
     /**
      * Cancel a non-final payment request.
      */
+    /**
+     * Cancel a draft or rejected payment request.
+     */
     public function cancel(PaymentRequest $paymentRequest, PaymentRequestService $service): void
     {
-        if (in_array($paymentRequest->status->value, ['paid', 'closed', 'cancelled'], true)) {
-            session()->flash('error', 'Payment request with status '.$paymentRequest->status->label().' cannot be cancelled.');
+        if (! $this->canManageDraft($paymentRequest)) {
+            session()->flash('error', 'Staff can only cancel their own draft payment requests.');
+
+            return;
+        }
+
+        if (! in_array($paymentRequest->status->value, ['draft', 'rejected'], true)) {
+            session()->flash('error', 'Only draft or rejected payment requests can be cancelled.');
 
             return;
         }

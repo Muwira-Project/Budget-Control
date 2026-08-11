@@ -20,6 +20,9 @@
                 @endforeach
             </select>
             <x-input-error :messages="$errors->get('akun_id')" class="mt-2" />
+            @if ($this->projectId && $this->akuns->isEmpty())
+                <p class="mt-2 text-xs text-amber-600">No approved account allocation for this project yet. Approve the allocation (Monitoring &rarr; approve) before creating a payment request.</p>
+            @endif
         </div>
     </div>
 

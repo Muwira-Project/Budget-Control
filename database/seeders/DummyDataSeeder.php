@@ -12,6 +12,8 @@ use App\Models\Investor;
 use App\Models\Kategori;
 use App\Models\Mandor;
 use App\Models\MonitoringPeriod;
+use App\Models\NonProjectExpense;
+use App\Models\NumberSequence;
 use App\Models\Payable;
 use App\Models\Payment;
 use App\Models\PaymentRequest;
@@ -22,6 +24,7 @@ use App\Models\Receivable;
 use App\Models\Supplier;
 use App\Models\User;
 use App\Models\Vendor;
+use App\Services\ActualService;
 use App\Services\PayableService;
 use App\Services\PaymentService;
 use App\Services\ReceivableService;
@@ -56,8 +59,28 @@ class DummyDataSeeder extends Seeder
         $this->seedBudgetPlans();
         $this->seedPaymentRequests();
         $this->seedMonitoringPeriods();
+
+        $this->syncSequenceFromMax('payment_request', (string) PaymentRequest::max('nomor'));
+        $this->syncSequenceFromMax('monitoring_period', (string) MonitoringPeriod::max('nomor'));
         $this->seedCashflows();
+        $this->seedNonProjectExpenses();
         $this->seedArAp();
+    }
+
+    /**
+     * Sync the number sequence so the next generated number continues
+     * after the highest number already present in the table.
+     */
+    protected function syncSequenceFromMax(string $type, string $maxNomor): void
+    {
+        if (! preg_match('/-(?<year>\d{4})-(?<number>\d+)$/', $maxNomor, $matches)) {
+            return;
+        }
+
+        NumberSequence::updateOrCreate(
+            ['type' => $type, 'year' => $matches['year']],
+            ['last_number' => (int) $matches['number']],
+        );
     }
 
     /**
@@ -569,6 +592,9 @@ class DummyDataSeeder extends Seeder
             ]);
         }
 
+        if ($paidPr && Realisasi::where('sumber', Realisasi::SUMBER_PAYMENT_REQUEST)->where('sumber_id', $paidPr->id)->doesntExist()) {
+            app(ActualService::class)->recordFromPaymentRequest($paidPr);
+        }
         $pendapatan = [
             ['tanggal' => '2026-07-05', 'nominal' => 250000000, 'keterangan' => 'Pendapatan termin 1 Pembangunan Gedung Kantor'],
             ['tanggal' => '2026-06-28', 'nominal' => 100000000, 'keterangan' => 'Pendapatan Renovasi Ruang Rapat'],
@@ -591,13 +617,39 @@ class DummyDataSeeder extends Seeder
     /**
      * Seed receivables for completed projects, payables from realisasi, and sample payments.
      */
+
+    /**
+     * Seed demo non-project expenses (outside projects).
+     */
+    protected function seedNonProjectExpenses(): void
+    {
+        $akun = Akun::where('nama_akun', 'like', '%Operasional%')->orWhere('nama_akun', 'like', '%Umum%')->first()
+            ?? Akun::where('jenis_akun', 'pengeluaran')->first();
+
+        if ($akun === null) {
+            return;
+        }
+
+        $samples = [
+            ['tanggal' => now()->startOfMonth()->toDateString(), 'nominal' => 3500000, 'keterangan' => 'Listrik kantor bulan berjalan'],
+            ['tanggal' => now()->startOfMonth()->subDays(20)->toDateString(), 'nominal' => 1500000, 'keterangan' => 'ATK kantor'],
+        ];
+
+        foreach ($samples as $sample) {
+            NonProjectExpense::firstOrCreate(
+                ['tanggal' => $sample['tanggal'], 'akun_id' => $akun->id, 'nominal' => $sample['nominal'], 'keterangan' => $sample['keterangan']],
+                ['created_by' => null],
+            );
+        }
+    }
+
     protected function seedArAp(): void
     {
         foreach (Project::where('status', 'completed')->get() as $project) {
             app(ReceivableService::class)->createForProject($project);
         }
 
-        foreach (Realisasi::all() as $realisasi) {
+        foreach (Realisasi::whereNull('sumber')->get() as $realisasi) {
             app(PayableService::class)->syncFromRealisasi($realisasi);
         }
 

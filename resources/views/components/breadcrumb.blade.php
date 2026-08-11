@@ -11,11 +11,8 @@
         'akuns.create' => ['Dashboard', 'Account', 'Add Account'],
         'akuns.edit' => ['Dashboard', 'Account', 'Edit Account'],
         'realisasi.index' => ['Dashboard', 'Actual'],
-        'realisasi.create' => ['Dashboard', 'Actual', 'Add Actual'],
-        'realisasi.edit' => ['Dashboard', 'Actual', 'Edit Actual'],
-        'imports.akuns' => ['Dashboard', 'Import', 'Import Account'],
-        'imports.realisasi' => ['Dashboard', 'Import', 'Import Actual'],
-        'exports.page' => ['Dashboard', 'Export', match ($type) {
+                'imports.akuns' => ['Dashboard', 'Import', 'Import Account'],
+            'exports.page' => ['Dashboard', 'Export', match ($type) {
             'akuns' => 'Export Account',
             'realisasi' => 'Export Actual',
             'vs' => 'Export Account Detail',
@@ -30,6 +27,9 @@
         'users.index' => ['Dashboard', 'Master', 'User'],
         'users.create' => ['Dashboard', 'Master', 'User', 'Add User'],
         'users.edit' => ['Dashboard', 'Master', 'User', 'Edit User'],
+        'non-project-expenses.index' => ['Dashboard', 'Non-Project Expense'],
+        'non-project-expenses.create' => ['Dashboard', 'Non-Project Expense', 'Add Expense'],
+        'non-project-expenses.edit' => ['Dashboard', 'Non-Project Expense', 'Edit Expense'],
         'audit-log.index' => ['Dashboard', 'Audit Log'],
         'profile' => ['Dashboard', 'Profile'],
         default => ['Dashboard'],

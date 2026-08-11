@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Livewire\Allokasis\Create as CreateAllokasi;
+use App\Livewire\Allokasis\Edit as EditAllokasi;
 use App\Livewire\Allokasis\Index as IndexAllokasi;
 use App\Models\Akun;
 use App\Models\BudgetPlan;
@@ -34,6 +35,27 @@ class AllocationTest extends TestCase
         $this->actingAs($user)
             ->get(route('allokasis.index'))
             ->assertOk();
+    }
+
+    public function test_draft_allocation_edit_page_renders(): void
+    {
+        $user = User::factory()->admin()->create();
+        $project = Project::factory()->create();
+        $akun = Akun::factory()->create();
+        $allocation = ProjectAkun::create([
+            'project_id' => $project->id,
+            'akun_id' => $akun->id,
+            'budget' => 100000000,
+            'allocation' => 80000000,
+            'status' => 'draft',
+        ]);
+
+        Livewire::actingAs($user)
+            ->test(EditAllokasi::class, ['allocation' => $allocation])
+            ->assertOk()
+            ->assertSee('Edit Budget Allocation')
+            ->assertSet('budget', '100000000.00')
+            ->assertSet('allocationNominal', '80000000.00');
     }
 
     public function test_staff_can_create_draft_allocation(): void

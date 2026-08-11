@@ -15,7 +15,7 @@ class EnsureDraftStaffAccess
     {
         $user = $request->user();
 
-        if ($user?->isAdmin() || $request->routeIs('dashboard', 'profile', 'allokasis.*', 'payment-requests.*')) {
+        if ($user?->isAdmin() || $request->routeIs('dashboard', 'profile', 'monitoring.index', 'monitoring.show', 'allokasis.*', 'payment-requests.*')) {
             return $next($request);
         }
 

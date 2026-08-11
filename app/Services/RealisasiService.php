@@ -10,37 +10,7 @@ use Illuminate\Pagination\LengthAwarePaginator;
 class RealisasiService
 {
     /**
-     * Create a new realisasi.
-     *
-     * @param  array<string, mixed>  $data
-     */
-    public function create(array $data): Realisasi
-    {
-        return Realisasi::create($data);
-    }
-
-    /**
-     * Update an existing realisasi.
-     *
-     * @param  array<string, mixed>  $data
-     */
-    public function update(Realisasi $realisasi, array $data): Realisasi
-    {
-        $realisasi->update($data);
-
-        return $realisasi->refresh();
-    }
-
-    /**
-     * Delete a realisasi.
-     */
-    public function delete(Realisasi $realisasi): void
-    {
-        $realisasi->delete();
-    }
-
-    /**
-     * List realisasi, optionally filtered by project, akun, and date range.
+     * List the actual ledger, optionally filtered by project, akun, and date range.
      */
     public function paginate(?Project $project = null, ?Akun $akun = null, ?string $startDate = null, ?string $endDate = null, int $perPage = 10): LengthAwarePaginator
     {
