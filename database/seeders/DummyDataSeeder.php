@@ -262,7 +262,7 @@ class DummyDataSeeder extends Seeder
                 'kode' => 'PRJ-2025-001',
                 'nama' => 'Pembangunan Gedung Kantor Muwira',
                 'lokasi' => 'Jakarta Selatan',
-                'status' => ProjectStatus::Active,
+                'status' => ProjectStatus::InProgress,
                 'jenis' => ProjectJenis::Jasa,
                 'qty' => 1,
                 'satuan' => 'paket',
@@ -295,7 +295,7 @@ class DummyDataSeeder extends Seeder
                 'kode' => 'PRJ-2025-002',
                 'nama' => 'Renovasi Ruang Rapat Lantai 3',
                 'lokasi' => 'Jakarta Pusat',
-                'status' => ProjectStatus::Completed,
+                'status' => ProjectStatus::Done,
                 'jenis' => ProjectJenis::Jasa,
                 'qty' => 1,
                 'satuan' => 'paket',
@@ -645,7 +645,7 @@ class DummyDataSeeder extends Seeder
 
     protected function seedArAp(): void
     {
-        foreach (Project::where('status', 'completed')->get() as $project) {
+        foreach (Project::where('status', 'done')->get() as $project) {
             app(ReceivableService::class)->createForProject($project);
         }
 

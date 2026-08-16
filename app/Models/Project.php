@@ -11,10 +11,11 @@ use Database\Factories\ProjectFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
-#[Fillable(['kode', 'nama', 'lokasi', 'jenis', 'qty', 'satuan', 'harga_satuan', 'pajak', 'tanggal_mulai', 'target_selesai', 'status'])]
+#[Fillable(['kode', 'nama', 'lokasi', 'pic', 'project_category_id', 'sub_work', 'periode', 'jenis', 'qty', 'satuan', 'harga_satuan', 'pajak', 'tanggal_mulai', 'target_selesai', 'status'])]
 class Project extends Model
 {
     /** @use HasFactory<ProjectFactory> */
@@ -75,6 +76,13 @@ class Project extends Model
     }
 
     /**
+     * Get the project category (dynamic master item).
+     */
+    public function projectCategory(): BelongsTo
+    {
+        return $this->belongsTo(MasterItem::class, 'project_category_id');
+    }
+    /**
      * Get the per-akun allocations for the project.
      */
     public function projectAkuns(): HasMany
@@ -111,7 +119,7 @@ class Project extends Model
      */
     public function syncReceivable(): void
     {
-        if ($this->status === ProjectStatus::Completed) {
+        if ($this->status->isDone()) {
             app(ReceivableService::class)->createForProject($this);
         }
     }

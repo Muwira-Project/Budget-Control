@@ -11,10 +11,35 @@
         <x-input-error :messages="$errors->get('nama')" class="mt-2" />
     </div>
 
-    <div>
-        <x-input-label for="lokasi" :value="__('Location (optional)')" />
-        <x-text-input id="lokasi" class="mt-1 block w-full" type="text" wire:model="lokasi" placeholder="e.g. Jakarta Selatan" />
-        <x-input-error :messages="$errors->get('lokasi')" class="mt-2" />
+    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+        <div>
+            <x-input-label for="pic" :value="__('PIC (optional)')" />
+            <x-text-input id="pic" class="mt-1 block w-full" type="text" wire:model="pic" placeholder="e.g. Budi Santoso" />
+            <x-input-error :messages="$errors->get('pic')" class="mt-2" />
+        </div>
+
+        <div>
+            <x-input-label for="periode" :value="__('Period (optional)')" />
+            <x-text-input id="periode" class="mt-1 block w-full" type="text" wire:model="periode" placeholder="e.g. 2026" />
+            <x-input-error :messages="$errors->get('periode')" class="mt-2" />
+        </div>
+
+        <div>
+            <x-input-label for="project_category_id" :value="__('Project Category (optional)')" />
+            <select id="project_category_id" wire:model="projectCategoryId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                <option value="">Select Category...</option>
+                @foreach ($this->projectCategories() as $category)
+                    <option value="{{ $category->id }}">{{ $category->nama }}</option>
+                @endforeach
+            </select>
+            <x-input-error :messages="$errors->get('project_category_id')" class="mt-2" />
+        </div>
+
+        <div>
+            <x-input-label for="sub_work" :value="__('Sub Work (optional)')" />
+            <x-text-input id="sub_work" class="mt-1 block w-full" type="text" wire:model="subWork" placeholder="e.g. Pekerjaan pondasi" />
+            <x-input-error :messages="$errors->get('sub_work')" class="mt-2" />
+        </div>
     </div>
 
     <div>
@@ -69,8 +94,9 @@
     <div>
         <x-input-label for="status" :value="__('Status')" />
         <select id="status" wire:model="status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-            <option value="active">Active</option>
-            <option value="completed">Completed</option>
+            <option value="progress">In Progress</option>
+            <option value="done">Done</option>
+            <option value="cancel">Cancelled</option>
         </select>
         <x-input-error :messages="$errors->get('status')" class="mt-2" />
     </div>

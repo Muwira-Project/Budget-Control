@@ -3,6 +3,7 @@
 namespace App\Livewire\Projects;
 
 use App\Enums\ProjectJenis;
+use App\Models\MasterItem;
 use App\Http\Requests\Project\UpdateProjectRequest;
 use App\Models\Project;
 use App\Services\ProjectService;
@@ -21,6 +22,14 @@ class Edit extends Component
 
     public ?string $lokasi = null;
 
+    public ?string $pic = null;
+
+    public ?int $projectCategoryId = null;
+
+    public ?string $subWork = null;
+
+    public ?string $periode = null;
+
     public string $jenis = 'barang';
 
     public ?string $qty = null;
@@ -35,7 +44,7 @@ class Edit extends Component
 
     public ?string $targetSelesai = null;
 
-    public string $status = 'active';
+    public string $status = 'progress';
 
     /**
      * Keep the tax rate in sync with the project type (11% PPN for goods, 2% for services).
@@ -54,6 +63,10 @@ class Edit extends Component
         $this->kode = $project->kode;
         $this->nama = $project->nama;
         $this->lokasi = $project->lokasi;
+        $this->pic = $project->pic;
+        $this->projectCategoryId = $project->project_category_id;
+        $this->subWork = $project->sub_work;
+        $this->periode = $project->periode;
         $this->jenis = $project->jenis->value;
         $this->qty = $project->qty !== null ? (string) (float) $project->qty : null;
         $this->satuan = $project->satuan;
@@ -74,6 +87,10 @@ class Edit extends Component
                 'kode' => $this->kode,
                 'nama' => $this->nama,
                 'lokasi' => $this->lokasi,
+                'pic' => $this->pic,
+                'project_category_id' => $this->projectCategoryId,
+                'sub_work' => $this->subWork,
+                'periode' => $this->periode,
                 'jenis' => $this->jenis,
                 'qty' => $this->qty !== null && $this->qty !== '' ? $this->qty : null,
                 'satuan' => $this->satuan,
@@ -91,6 +108,18 @@ class Edit extends Component
         session()->flash('status', 'Project updated successfully.');
 
         $this->redirectRoute('projects.index', navigate: true);
+    }
+
+    /**
+     * The project categories available for the form (dynamic master).
+     */
+    public function projectCategories()
+    {
+        return MasterItem::query()
+            ->whereHas('masterType', fn ($query) => $query->where('kode', 'PROJECT_CATEGORY')->where('aktif', true))
+            ->where('aktif', true)
+            ->orderBy('nama')
+            ->get();
     }
 
     /**

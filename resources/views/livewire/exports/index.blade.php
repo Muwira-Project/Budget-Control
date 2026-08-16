@@ -38,8 +38,8 @@
                         <x-input-label for="status" :value="__('Project Status')" />
                         <select id="status" wire:model.live="status" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                             <option value="">All Statuses</option>
-                            <option value="active">Active</option>
-                            <option value="completed">Completed</option>
+                            <option value="progress">In Progress</option>
+                            <option value="done">Done</option><option value="cancel">Cancelled</option>
                         </select>
                     </div>
 

@@ -253,7 +253,7 @@ class CashModuleTest extends TestCase
     public function test_receivable_correction_updates_project_contract(): void
     {
         $project = Project::factory()->create([
-            'status' => 'active',
+            'status' => 'progress',
             'qty' => 2,
             'harga_satuan' => 1000000,
             'pajak' => 10,

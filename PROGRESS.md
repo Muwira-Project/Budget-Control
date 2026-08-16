@@ -396,3 +396,14 @@ php artisan serve
 ### Pengujian
 - Test baru `tests/Feature/CashModuleTest.php` (12 test: voucher, NPE sync, saldo rekening, transfer, void workflow, hold PR/receivable, sync 2 arah, master CRUD, render halaman baru).
 - Status: seluruh suite **296 passed / 773 assertions** (bertambah 12 test baru dari modul kas + master dinamis).
+## Tambahan Field Project (2026-08-16)
+
+- **PIC** (`pic`, string) - nama penanggung jawab project.
+- **Project Category** (`project_category_id`, FK ke `master_items`) - pilihan dari master dinamis **Project Category** (kode `PROJECT_CATEGORY`, di-seed otomatis). Kategori dikelola lewat Dynamic Master.
+- **Sub Work** (`sub_work`, string max 500) - rincian sub pekerjaan.
+- **Period** (`periode`, string max 100) - label periode (contoh `2026`).
+- **Status** `done` / `progress` / `cancel` (English: Done / In Progress / Cancelled).
+  - Nilai lama dimigrasi: `active` -> `progress`, `completed` -> `done`; default baru `progress`.
+  - Receivable otomatis dibuat saat status **Done** (sebelumnya `completed`).
+- Form (create/edit), daftar project (badge 3 warna + kolom PIC) dan modal detail (PIC/Category/Sub Work/Period) diupdate.
+- Filter status Export & template Excel Project (draft) ikut disesuaikan.

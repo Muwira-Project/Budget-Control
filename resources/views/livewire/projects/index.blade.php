@@ -41,6 +41,7 @@
                                     <th class="px-6 py-3">Name</th>
                                     <th class="px-6 py-3">Type</th>
                                     <th class="px-6 py-3">Location</th>
+                                    <th class="px-6 py-3">PIC</th>
                                     <th class="px-6 py-3 text-right">Value (incl. tax)</th>
                                     <th class="px-6 py-3">Status</th>
                                     <th class="px-6 py-3 text-right">Actions</th>
@@ -59,6 +60,7 @@
                                             </span>
                                         </td>
                                         <td class="px-6 py-4 text-gray-500">{{ $project->lokasi }}</td>
+                                        <td class="px-6 py-4 text-gray-700">{{ $project->pic ?? '-' }}</td>
                                         <td class="px-6 py-4 text-right text-gray-900">
                                             @if ($project->nilai_total > 0)
                                                 {{ format_idr($project->nilai_total) }}
@@ -67,7 +69,11 @@
                                             @endif
                                         </td>
                                         <td class="px-6 py-4">
-                                            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $project->status === \App\Enums\ProjectStatus::Completed ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700' }}">
+                                            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ match ($project->status->value) {
+                                                'done' => 'bg-green-100 text-green-700',
+                                                'cancel' => 'bg-red-100 text-red-700',
+                                                default => 'bg-blue-100 text-blue-700',
+                                            } }}">
                                                 {{ $project->status->label() }}
                                             </span>
                                         </td>
@@ -115,6 +121,24 @@
                     <div>
                         <p class="text-xs uppercase tracking-wider text-slate-500">Transactions</p>
                         <p class="mt-1 text-lg font-semibold text-slate-900">{{ $this->projectRealisations->count() }}</p>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-2 border-b border-gray-100 px-6 py-3 sm:grid-cols-4">
+                    <div>
+                        <p class="text-xs uppercase tracking-wider text-slate-500">PIC</p>
+                        <p class="mt-0.5 text-sm font-medium text-slate-800">{{ $this->selectedProject->pic ?? '-' }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs uppercase tracking-wider text-slate-500">Category</p>
+                        <p class="mt-0.5 text-sm font-medium text-slate-800">{{ $this->selectedProject->projectCategory?->nama ?? '-' }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs uppercase tracking-wider text-slate-500">Sub Work</p>
+                        <p class="mt-0.5 text-sm font-medium text-slate-800">{{ $this->selectedProject->sub_work ?? '-' }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs uppercase tracking-wider text-slate-500">Period</p>
+                        <p class="mt-0.5 text-sm font-medium text-slate-800">{{ $this->selectedProject->periode ?? '-' }}</p>
                     </div>
                 </div>
                 <div class="max-h-[60vh] overflow-y-auto">

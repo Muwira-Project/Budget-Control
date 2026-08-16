@@ -94,7 +94,7 @@ class DashboardTest extends TestCase
     public function test_dashboard_shows_outstanding_ar_and_ap(): void
     {
         $user = User::factory()->create();
-        $project = Project::factory()->create(['status' => 'completed', 'qty' => 1, 'harga_satuan' => 100000000]);
+        $project = Project::factory()->create(['status' => 'done', 'qty' => 1, 'harga_satuan' => 100000000]);
 
         $this->actingAs($user)
             ->get(route('dashboard'))

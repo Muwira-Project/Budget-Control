@@ -27,6 +27,10 @@ class UpdateProjectRequest extends FormRequest
             'kode' => ['required', 'string', 'max:50', Rule::unique('projects', 'kode')->ignore($ignoreId)],
             'nama' => ['required', 'string', 'max:255'],
             'lokasi' => ['nullable', 'string', 'max:255'],
+            'pic' => ['nullable', 'string', 'max:255'],
+            'project_category_id' => ['nullable', 'integer', 'exists:master_items,id'],
+            'sub_work' => ['nullable', 'string', 'max:500'],
+            'periode' => ['nullable', 'string', 'max:100'],
             'jenis' => ['required', Rule::in(['barang', 'jasa'])],
             'qty' => ['nullable', 'numeric', 'min:0'],
             'satuan' => ['nullable', 'string', 'max:50'],
@@ -34,7 +38,7 @@ class UpdateProjectRequest extends FormRequest
             'pajak' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'tanggal_mulai' => ['nullable', 'date'],
             'target_selesai' => ['nullable', 'date', 'after_or_equal:tanggal_mulai'],
-            'status' => ['required', Rule::in(['active', 'completed'])],
+            'status' => ['required', Rule::in(['progress', 'done', 'cancel'])],
         ];
     }
 }

@@ -71,7 +71,7 @@ class ExportController extends Controller
             'project_id' => $request->integer('project_id') ?: null,
             'start_date' => $this->validDate($request->query('start_date')),
             'end_date' => $this->validDate($request->query('end_date')),
-            'status' => in_array($request->query('status'), ['active', 'completed'], true) ? $request->query('status') : null,
+            'status' => in_array($request->query('status'), ['progress', 'done', 'cancel'], true) ? $request->query('status') : null,
         ];
     }
 

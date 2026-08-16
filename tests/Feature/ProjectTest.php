@@ -40,7 +40,7 @@ class ProjectTest extends TestCase
             ->set('nama', 'Gedung Kantor')
             ->set('lokasi', 'Jakarta')
             ->set('jenis', 'barang')
-            ->set('status', 'active')
+            ->set('status', 'progress')
             ->call('save')
             ->assertHasNoErrors()
             ->assertRedirect(route('projects.index'));
@@ -62,7 +62,7 @@ class ProjectTest extends TestCase
             ->set('pajak', '')
             ->set('tanggalMulai', '')
             ->set('targetSelesai', '')
-            ->set('status', 'active')
+            ->set('status', 'progress')
             ->call('save')
             ->assertHasNoErrors()
             ->assertRedirect(route('projects.index'));
@@ -153,7 +153,7 @@ class ProjectTest extends TestCase
             ->set('pajak', '2')
             ->set('tanggalMulai', '2026-09-01')
             ->set('targetSelesai', '2027-03-31')
-            ->set('status', 'active')
+            ->set('status', 'progress')
             ->call('save')
             ->assertHasNoErrors()
             ->assertRedirect(route('projects.index'));

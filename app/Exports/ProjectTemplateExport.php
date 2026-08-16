@@ -22,11 +22,11 @@ class ProjectTemplateExport implements FromArray
     public function array(): array
     {
         return [
-            ['Code', 'Name', 'Location', 'Type', 'Qty', 'Unit', 'Unit Price', 'Tax %', 'Start Date', 'Target Finish', 'Status'],
-            ['PRJ-001', 'Gedung Serbaguna', 'Jakarta', 'jasa', 1, 'paket', 500000000, 11, '2026-08-01', '2026-12-31', 'active'],
+            ['Code', 'Name', 'Location', 'PIC', 'Project Category', 'Sub Work', 'Period', 'Type', 'Qty', 'Unit', 'Unit Price', 'Tax %', 'Start Date', 'Target Finish', 'Status'],
+            ['PRJ-001', 'Gedung Serbaguna', 'Jakarta', 'Budi Santoso', 'Konstruksi', 'Pekerjaan pondasi', '2026', 'jasa', 1, 'paket', 500000000, 11, '2026-08-01', '2026-12-31', 'progress'],
             [],
             ['NOTE: DRAFT template — akan disesuaikan dengan Excel final klien.'],
-            ['Type: "barang" (goods) atau "jasa" (services). Status: "active" / "completed". Tanggal format: YYYY-MM-DD. Tax dalam persen (0-100).'],
+            ['Type: "barang" (goods) atau "jasa" (services). Status: "progress" / "done" / "cancel". Tanggal format: YYYY-MM-DD. Tax dalam persen (0-100).'],
         ];
     }
 }

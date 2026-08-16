@@ -4,8 +4,9 @@ namespace App\Enums;
 
 enum ProjectStatus: string
 {
-    case Active = 'active';
-    case Completed = 'completed';
+    case InProgress = 'progress';
+    case Done = 'done';
+    case Cancelled = 'cancel';
 
     /**
      * Human-readable label for the status.
@@ -13,8 +14,17 @@ enum ProjectStatus: string
     public function label(): string
     {
         return match ($this) {
-            self::Active => 'Active',
-            self::Completed => 'Completed',
+            self::InProgress => 'In Progress',
+            self::Done => 'Done',
+            self::Cancelled => 'Cancelled',
         };
+    }
+
+    /**
+     * Whether the project is finished (receivable auto-generated).
+     */
+    public function isDone(): bool
+    {
+        return $this === self::Done;
     }
 }

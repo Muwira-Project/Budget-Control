@@ -34,7 +34,7 @@ class ReceivableTest extends TestCase
     {
         $user = User::factory()->create();
         $project = Project::factory()->create([
-            'status' => 'completed',
+            'status' => 'done',
             'qty' => 1,
             'harga_satuan' => 500000000,
             'pajak' => 2,
@@ -49,7 +49,7 @@ class ReceivableTest extends TestCase
     public function test_receivable_is_not_created_for_active_project(): void
     {
         $user = User::factory()->create();
-        $project = Project::factory()->create(['status' => 'active']);
+        $project = Project::factory()->create(['status' => 'progress']);
 
         $this->assertDatabaseMissing('receivables', ['project_id' => $project->id]);
     }
@@ -57,7 +57,7 @@ class ReceivableTest extends TestCase
     public function test_receivable_can_be_created_manually(): void
     {
         $user = User::factory()->create();
-        $project = Project::factory()->create(['status' => 'active']);
+        $project = Project::factory()->create(['status' => 'progress']);
 
         Livewire::actingAs($user)
             ->test(CreateReceivable::class)
@@ -74,7 +74,7 @@ class ReceivableTest extends TestCase
     public function test_receivable_cannot_duplicate_project(): void
     {
         $user = User::factory()->create();
-        $project = Project::factory()->create(['status' => 'active']);
+        $project = Project::factory()->create(['status' => 'progress']);
         Receivable::factory()->create(['project_id' => $project->id]);
 
         Livewire::actingAs($user)
