@@ -39,6 +39,18 @@ class Payable extends Model
         static::created(fn ($model) => DashboardService::clearCache());
         static::updated(fn ($model) => DashboardService::clearCache());
         static::deleted(fn ($model) => DashboardService::clearCache());
+
+        static::updated(function (Payable $payable): void {
+            if (! $payable->wasChanged('nominal') || $payable->realisasi_id === null) {
+                return;
+            }
+
+            $realisasi = $payable->realisasi;
+
+            if ($realisasi !== null && (float) $realisasi->nominal !== (float) $payable->nominal) {
+                $realisasi->update(['nominal' => $payable->nominal]);
+            }
+        });
     }
 
     /**

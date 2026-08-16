@@ -1,4 +1,4 @@
-﻿# Catatan Progres - Muwira Budget Control (MBC)
+# Catatan Progres - Muwira Budget Control (MBC)
 
 Tanggal catatan: 2026-08-03
 Status: aktif dikembangkan, belum diserahkan ke klien.
@@ -354,3 +354,45 @@ php artisan serve
 - Profile slow queries and add targeted indexes
 - Implement query result pagination for large datasets
 - Consider materialized views for complex aggregations
+
+---
+
+## Eksekusi Review Feedback 2026-08-15 (2026-08-16)
+
+> Status: dieksekusi di branch `draft/excel-project-template` (commit lokal, belum push).
+
+### Step 1 - Modul Kas/Cash Activity terpadu (+ hold/release dua sisi)
+- Menu `Cashflow` diganti nama jadi **Cash Activity** (route tetap `cashflows.*`).
+- Non-Project Expense otomatis masuk Cash Activity (sinkron `cashflows.non_project_expense_id`, sumber `non_project_expense`).
+- Cash Activity punya filter baru: lokasi dana (rekening), sumber, jenis, periode; kolom Voucher + Rekening.
+- **Hold/Release dua sisi (K1)**: Payment Request (tahan pengeluaran) & Receivable (tahan penerimaan) - kolom `hold_reason/held_by/held_at`; PR yang di-hold tidak bisa di-mark paid, receivable yang di-hold tidak bisa dibayar.
+
+### Step 2 - Buku besar (rekening) + Fund Transfer
+- Tabel `cash_accounts` (kode, nama, jenis kas/bank, saldo_awal, is_default, status) + halaman CRUD + saldo berjalan (saldo_awal + cash in/out + transfer masuk/keluar).
+- Tabel `fund_transfers` + halaman create/index; validasi rekening sumber != tujuan.
+- `cashflows.cash_account_id` untuk lokasi dana; entri otomatis memakai rekening default.
+
+### Step 3 - Voucher (K4)
+- Tabel `vouchers` (nomor seri otomatis `VC-YYYY-####` + tanggal + jenis) digenerate otomatis untuk setiap catatan kas.
+- Halaman Voucher (filter tanggal & jenis) + nomor voucher tampil di Cash Activity.
+
+### Step 4 - Workflow approval Settlement (K2)
+- Payment = **Settlement History** (label menu + breadcrumb).
+- `payments.status` (active / pending_cancel / cancelled) + kolom void (alasan, request, review).
+- Pembatalan wajib approval admin: request -> pending_cancel -> approve (balik saldo + hapus) atau reject (kembali aktif + catatan).
+
+### Step 5 - Master data dinamis + flag AR/AP (K3)
+- Tabel `master_types` (flag_ar, flag_ap, aktif) + `master_items` (per type).
+- CRUD generik: Dynamic Master (type) + Master Items, masuk menu Master.
+
+### Step 6 - Sinkron dua arah AR/AP <-> Budget (K5)
+- Koreksi Payable -> update `realisasi.nominal` (AP -> Budget).
+- Koreksi `realisasi.nominal` -> update Payable (Budget -> AP, sudah ada, diperkuat).
+- Koreksi Receivable -> sesuaikan `harga_satuan` project agar nilai kontrak (incl. pajak) sama dengan AR.
+
+### Database
+- 7 migration baru (2026_08_16_*): cash_accounts, cashflows lokasi, fund_transfers, vouchers, payments void, hold PR/receivable, master_types+items - sudah dijalankan.
+
+### Pengujian
+- Test baru `tests/Feature/CashModuleTest.php` (12 test: voucher, NPE sync, saldo rekening, transfer, void workflow, hold PR/receivable, sync 2 arah, master CRUD, render halaman baru).
+- Status: seluruh suite **296 passed / 773 assertions** (bertambah 12 test baru dari modul kas + master dinamis).

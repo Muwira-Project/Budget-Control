@@ -5,6 +5,7 @@ namespace App\Livewire\Cashflows;
 use App\Enums\CashflowJenis;
 use App\Livewire\Concerns\BulkSelection;
 use App\Livewire\Concerns\PerPagePagination;
+use App\Models\CashAccount;
 use App\Models\Cashflow;
 use App\Services\CashflowService;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -24,6 +25,10 @@ class Index extends Component
 
     public string $jenisFilter = '';
 
+    public string $sumberFilter = '';
+
+    public ?int $cashAccountId = null;
+
     /**
      * Delete a manual cashflow entry.
      */
@@ -40,32 +45,33 @@ class Index extends Component
         session()->flash('status', 'Cash record deleted successfully.');
     }
 
-    /**
-     * Reset the pagination when the start date changes.
-     */
     public function updatedStartDate(): void
     {
         $this->resetPage();
     }
 
-    /**
-     * Reset the pagination when the end date changes.
-     */
     public function updatedEndDate(): void
     {
         $this->resetPage();
     }
 
-    /**
-     * Reset the pagination when the jenis filter changes.
-     */
     public function updatedJenisFilter(): void
     {
         $this->resetPage();
     }
 
+    public function updatedSumberFilter(): void
+    {
+        $this->resetPage();
+    }
+
+    public function updatedCashAccountId(): void
+    {
+        $this->resetPage();
+    }
+
     /**
-     * The paginated list of cashflow entries.
+     * The paginated list of cash activity entries.
      */
     #[Computed]
     public function cashflows(): LengthAwarePaginator
@@ -74,22 +80,35 @@ class Index extends Component
             return Cashflow::query()->whereRaw('0 = 1')->paginate(10);
         }
 
-        return app(CashflowService::class)->paginate($this->startDate, $this->endDate, $this->jenisFilter !== '' ? $this->jenisFilter : null, $this->perPage);
+        return app(CashflowService::class)->paginate(
+            $this->startDate,
+            $this->endDate,
+            $this->jenisFilter !== '' ? $this->jenisFilter : null,
+            $this->sumberFilter !== '' ? $this->sumberFilter : null,
+            $this->cashAccountId,
+            $this->perPage,
+        );
     }
 
     /**
-     * Cashflow totals for the selected date range.
+     * Cash activity totals for the selected filters.
      *
-     * @return array{total_masuk: float, total_keluar: float, saldo: float}
+     * @return array{total_masuk: float, total_keluar: float, saldo: float, saldo_rekening: float|null}
      */
     #[Computed]
     public function stats(): array
     {
         if ($this->dateRangeInvalid) {
-            return ['total_masuk' => 0.0, 'total_keluar' => 0.0, 'saldo' => 0.0];
+            return ['total_masuk' => 0.0, 'total_keluar' => 0.0, 'saldo' => 0.0, 'saldo_rekening' => null];
         }
 
-        return app(CashflowService::class)->statistics($this->startDate, $this->endDate);
+        return app(CashflowService::class)->statistics(
+            $this->startDate,
+            $this->endDate,
+            $this->jenisFilter !== '' ? $this->jenisFilter : null,
+            $this->sumberFilter !== '' ? $this->sumberFilter : null,
+            $this->cashAccountId,
+        );
     }
 
     /**
@@ -118,8 +137,31 @@ class Index extends Component
     }
 
     /**
-     * Render the cashflow index page.
+     * The cashflow sumber options for filtering.
+     *
+     * @return array<string, string>
      */
+    #[Computed]
+    public function sumberOptions(): array
+    {
+        return [
+            'payment_request' => 'Payment Request',
+            'pendapatan' => 'Income',
+            'pelunasan_ar' => 'AR Settlement',
+            'pelunasan_ap' => 'AP Settlement',
+            'non_project_expense' => 'Non-Project Expense',
+        ];
+    }
+
+    /**
+     * The cash accounts available for filtering.
+     */
+    #[Computed]
+    public function cashAccounts()
+    {
+        return CashAccount::query()->orderBy('kode')->get();
+    }
+
     protected function bulkCollectionProperty(): string
     {
         return 'cashflows';

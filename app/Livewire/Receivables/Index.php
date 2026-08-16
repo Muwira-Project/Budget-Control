@@ -22,6 +22,10 @@ class Index extends Component
 
     public string $statusFilter = '';
 
+    public ?int $holdingId = null;
+
+    public string $holdReason = '';
+
     /**
      * Delete a receivable.
      */
@@ -32,6 +36,61 @@ class Index extends Component
         session()->flash('status', 'Receivable deleted successfully.');
     }
 
+    /**
+     * Open the hold modal for a receivable.
+     */
+    public function hold(int $receivableId): void
+    {
+        $this->holdingId = $receivableId;
+        $this->holdReason = '';
+    }
+
+    /**
+     * Confirm the hold with a reason.
+     */
+    public function confirmHold(ReceivableService $service): void
+    {
+        if ($this->holdingId === null) {
+            return;
+        }
+
+        if (trim($this->holdReason) === '') {
+            session()->flash('error', 'Hold reason is required.');
+
+            return;
+        }
+
+        /** @var Receivable|null $receivable */
+        $receivable = Receivable::find($this->holdingId);
+
+        if ($receivable === null) {
+            $this->reset('holdingId', 'holdReason');
+
+            return;
+        }
+
+        $service->hold($receivable, trim($this->holdReason));
+
+        session()->flash('status', 'Receivable is on hold.');
+
+        $this->reset('holdingId', 'holdReason');
+    }
+
+    /**
+     * Release a held receivable.
+     */
+    public function release(Receivable $receivable, ReceivableService $service): void
+    {
+        if (! auth()->user()->isAdmin()) {
+            session()->flash('error', 'Only admins can release receivables.');
+
+            return;
+        }
+
+        $service->release($receivable);
+
+        session()->flash('status', 'Receivable released.');
+    }
     /**
      * Reset the pagination when the project filter changes.
      */

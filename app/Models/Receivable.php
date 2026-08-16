@@ -12,7 +12,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['project_id', 'tanggal', 'jatuh_tempo', 'nominal', 'nominal_dibayar', 'keterangan'])]
+#[Fillable(['project_id', 'tanggal', 'jatuh_tempo', 'nominal', 'nominal_dibayar', 'keterangan', 'hold_reason', 'held_by', 'held_at'])]
 class Receivable extends Model
 {
     /**
@@ -22,6 +22,25 @@ class Receivable extends Model
     {
         static::created(fn ($model) => DashboardService::clearCache());
         static::updated(fn ($model) => DashboardService::clearCache());
+
+        static::updated(function (Receivable $receivable): void {
+            if (! $receivable->wasChanged('nominal')) {
+                return;
+            }
+
+            $project = $receivable->project;
+
+            if ($project === null || (float) $project->qty <= 0) {
+                return;
+            }
+
+            $taxFactor = 1 + ((float) $project->pajak / 100);
+            $targetPrice = (float) $receivable->nominal / ((float) $project->qty * $taxFactor);
+
+            if (abs((float) $project->harga_satuan - $targetPrice) > 0.009) {
+                $project->update(['harga_satuan' => $targetPrice]);
+            }
+        });
         static::deleted(fn ($model) => DashboardService::clearCache());
     }
 
@@ -40,6 +59,7 @@ class Receivable extends Model
             'jatuh_tempo' => 'date',
             'nominal' => 'decimal:2',
             'nominal_dibayar' => 'decimal:2',
+            'held_at' => 'datetime',
         ];
     }
 
@@ -57,6 +77,22 @@ class Receivable extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
+    }
+
+    /**
+     * Get the user who put this receivable on hold.
+     */
+    public function heldBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'held_by');
+    }
+
+    /**
+     * Whether this receivable is currently on hold (K1: tahan penerimaan).
+     */
+    public function isHeld(): bool
+    {
+        return $this->held_at !== null;
     }
 
     /**

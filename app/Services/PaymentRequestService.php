@@ -143,6 +143,10 @@ class PaymentRequestService
                 throw new \LogicException('Only approved payment requests can be marked as paid.');
             }
 
+            if ($paymentRequest->isHeld()) {
+                throw new \LogicException('Held payment requests cannot be marked as paid until released.');
+            }
+
             $paymentRequest->update([
                 'status' => PaymentRequestStatus::Paid,
                 'paid_at' => now(),
@@ -162,6 +166,37 @@ class PaymentRequestService
         });
     }
 
+    /**
+     * Put a payment request on hold (K1: tahan pengeluaran).
+     */
+    public function hold(PaymentRequest $paymentRequest, string $reason): PaymentRequest
+    {
+        if (in_array($paymentRequest->status->value, ['paid', 'closed', 'cancelled'], true)) {
+            throw new \LogicException('Finalized payment requests cannot be put on hold.');
+        }
+
+        $paymentRequest->update([
+            'hold_reason' => $reason,
+            'held_by' => auth()->id(),
+            'held_at' => now(),
+        ]);
+
+        return $paymentRequest->refresh();
+    }
+
+    /**
+     * Release a held payment request.
+     */
+    public function release(PaymentRequest $paymentRequest): PaymentRequest
+    {
+        $paymentRequest->update([
+            'hold_reason' => null,
+            'held_by' => null,
+            'held_at' => null,
+        ]);
+
+        return $paymentRequest->refresh();
+    }
     /**
      * Close an approved payment request.
      */

@@ -11,7 +11,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['nomor', 'project_id', 'akun_id', 'vendor_id', 'supplier_id', 'mandor_id', 'investor_id', 'tanggal', 'jatuh_tempo', 'nominal', 'prioritas', 'status', 'keterangan', 'created_by', 'approved_by', 'approved_at', 'paid_at'])]
+#[Fillable(['nomor', 'project_id', 'akun_id', 'vendor_id', 'supplier_id', 'mandor_id', 'investor_id', 'tanggal', 'jatuh_tempo', 'nominal', 'prioritas', 'status', 'keterangan', 'hold_reason', 'held_by', 'held_at', 'created_by', 'approved_by', 'approved_at', 'paid_at'])]
 class PaymentRequest extends Model
 {
     /** @use HasFactory<PaymentRequestFactory> */
@@ -51,6 +51,7 @@ class PaymentRequest extends Model
             'status' => PaymentRequestStatus::class,
             'approved_at' => 'datetime',
             'paid_at' => 'datetime',
+            'held_at' => 'datetime',
         ];
     }
 
@@ -110,6 +111,22 @@ class PaymentRequest extends Model
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    /**
+     * Get the user who put this payment request on hold.
+     */
+    public function heldBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'held_by');
+    }
+
+    /**
+     * Whether this payment request is currently on hold (K1: tahan pengeluaran).
+     */
+    public function isHeld(): bool
+    {
+        return $this->held_at !== null;
     }
 
     /**

@@ -44,6 +44,37 @@ class ReceivableService
     }
 
     /**
+     * Put a receivable on hold (K1: tahan penerimaan yang belum tercatat).
+     */
+    public function hold(Receivable $receivable, string $reason): Receivable
+    {
+        if ($receivable->isHeld()) {
+            return $receivable;
+        }
+
+        $receivable->update([
+            'hold_reason' => $reason,
+            'held_by' => auth()->id(),
+            'held_at' => now(),
+        ]);
+
+        return $receivable->refresh();
+    }
+
+    /**
+     * Release a held receivable.
+     */
+    public function release(Receivable $receivable): Receivable
+    {
+        $receivable->update([
+            'hold_reason' => null,
+            'held_by' => null,
+            'held_at' => null,
+        ]);
+
+        return $receivable->refresh();
+    }
+    /**
      * Delete a receivable (payments are removed by the database cascade).
      */
     public function delete(Receivable $receivable): void

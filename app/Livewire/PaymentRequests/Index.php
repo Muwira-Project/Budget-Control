@@ -28,6 +28,10 @@ class Index extends Component
 
     public string $search = '';
 
+    public ?int $holdingId = null;
+
+    public string $holdReason = '';
+
     /**
      * Delete a non-final payment request.
      */
@@ -185,6 +189,64 @@ class Index extends Component
         session()->flash('status', 'Payment request cancelled.');
     }
 
+    /**
+     * Open the hold modal for a payment request.
+     */
+    public function hold(int $paymentRequestId): void
+    {
+        $this->holdingId = $paymentRequestId;
+        $this->holdReason = '';
+    }
+
+    /**
+     * Confirm the hold with a reason.
+     */
+    public function confirmHold(PaymentRequestService $service): void
+    {
+        if ($this->holdingId === null) {
+            return;
+        }
+
+        if (trim($this->holdReason) === '') {
+            session()->flash('error', 'Hold reason is required.');
+
+            return;
+        }
+
+        /** @var PaymentRequest|null $paymentRequest */
+        $paymentRequest = PaymentRequest::find($this->holdingId);
+
+        if ($paymentRequest === null) {
+            $this->reset('holdingId', 'holdReason');
+
+            return;
+        }
+
+        try {
+            $service->hold($paymentRequest, trim($this->holdReason));
+            session()->flash('status', 'Payment request is on hold.');
+        } catch (\LogicException $exception) {
+            session()->flash('error', $exception->getMessage());
+        }
+
+        $this->reset('holdingId', 'holdReason');
+    }
+
+    /**
+     * Release a held payment request.
+     */
+    public function release(PaymentRequest $paymentRequest, PaymentRequestService $service): void
+    {
+        if (! auth()->user()->isAdmin()) {
+            session()->flash('error', 'Only admins can release payment requests.');
+
+            return;
+        }
+
+        $service->release($paymentRequest);
+
+        session()->flash('status', 'Payment request released.');
+    }
     /**
      * Reset the pagination when a filter changes.
      */

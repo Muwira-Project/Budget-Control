@@ -8,6 +8,7 @@ enum CashflowSumber: string
     case Pendapatan = 'pendapatan';
     case PelunasanAr = 'pelunasan_ar';
     case PelunasanAp = 'pelunasan_ap';
+    case NonProjectExpense = 'non_project_expense';
 
     /**
      * Human-readable label for the sumber.
@@ -19,6 +20,7 @@ enum CashflowSumber: string
             self::Pendapatan => 'Income',
             self::PelunasanAr => 'AR Settlement',
             self::PelunasanAp => 'AP Settlement',
+            self::NonProjectExpense => 'Non-Project Expense',
         };
     }
 }

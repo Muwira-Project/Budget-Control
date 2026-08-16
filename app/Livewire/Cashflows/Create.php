@@ -3,6 +3,7 @@
 namespace App\Livewire\Cashflows;
 
 use App\Http\Requests\Cashflow\StoreCashflowRequest;
+use App\Models\CashAccount;
 use App\Services\CashflowService;
 use Illuminate\Support\Facades\Validator;
 use Livewire\Attributes\Layout;
@@ -17,12 +18,15 @@ class Create extends Component
 
     public ?string $keterangan = null;
 
+    public ?int $cashAccountId = null;
+
     /**
      * Set the default entry date.
      */
     public function mount(): void
     {
         $this->tanggal = now()->format('Y-m-d');
+        $this->cashAccountId = CashAccount::defaultId();
     }
 
     /**
@@ -37,6 +41,7 @@ class Create extends Component
                 'sumber' => 'pendapatan',
                 'nominal' => $this->nominal,
                 'keterangan' => $this->keterangan,
+                'cash_account_id' => $this->cashAccountId,
             ],
             (new StoreCashflowRequest)->rules(),
         )->validate();
@@ -46,6 +51,14 @@ class Create extends Component
         session()->flash('status', 'Income recorded successfully.');
 
         $this->redirectRoute('cashflows.index', navigate: true);
+    }
+
+    /**
+     * The active cash accounts for the lokasi dana field.
+     */
+    public function cashAccounts()
+    {
+        return CashAccount::query()->where('status', 'active')->orderBy('kode')->get();
     }
 
     /**

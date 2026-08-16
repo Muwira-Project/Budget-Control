@@ -13,6 +13,18 @@ use App\Livewire\Backups\Index as IndexBackup;
 use App\Livewire\BudgetPlans\Create as CreateBudgetPlan;
 use App\Livewire\BudgetPlans\Edit as EditBudgetPlan;
 use App\Livewire\BudgetPlans\Index as IndexBudgetPlan;
+use App\Livewire\CashAccounts\Create as CreateCashAccount;
+use App\Livewire\CashAccounts\Index as IndexCashAccount;
+use App\Livewire\CashAccounts\Edit as EditCashAccount;
+use App\Livewire\FundTransfers\Create as CreateFundTransfer;
+use App\Livewire\FundTransfers\Index as IndexFundTransfer;
+use App\Livewire\MasterItems\Create as CreateMasterItem;
+use App\Livewire\MasterItems\Edit as EditMasterItem;
+use App\Livewire\MasterItems\Index as IndexMasterItem;
+use App\Livewire\MasterTypes\Create as CreateMasterType;
+use App\Livewire\MasterTypes\Edit as EditMasterType;
+use App\Livewire\MasterTypes\Index as IndexMasterType;
+use App\Livewire\Vouchers\Index as IndexVoucher;
 use App\Livewire\Cashflows\Create as CreateCashflow;
 use App\Livewire\Cashflows\Index as IndexCashflow;
 use App\Livewire\Dashboard;
@@ -97,6 +109,15 @@ Route::middleware(['auth', 'verified', 'draft-staff'])->group(function () {
     Route::get('/cashflows', IndexCashflow::class)->name('cashflows.index');
     Route::get('/cashflows/create', CreateCashflow::class)->name('cashflows.create');
 
+    Route::get('/cash-accounts', IndexCashAccount::class)->name('cash-accounts.index');
+    Route::get('/cash-accounts/create', CreateCashAccount::class)->name('cash-accounts.create');
+    Route::get('/cash-accounts/{cashAccount}/edit', EditCashAccount::class)->name('cash-accounts.edit');
+
+    Route::get('/fund-transfers', IndexFundTransfer::class)->name('fund-transfers.index');
+    Route::get('/fund-transfers/create', CreateFundTransfer::class)->name('fund-transfers.create');
+
+    Route::get('/vouchers', IndexVoucher::class)->name('vouchers.index');
+
     Route::get('/receivables', IndexReceivable::class)->name('receivables.index');
     Route::get('/receivables/create', CreateReceivable::class)->name('receivables.create');
     Route::get('/receivables/{receivable}/edit', EditReceivable::class)->name('receivables.edit');
@@ -131,6 +152,13 @@ Route::middleware(['auth', 'verified', 'draft-staff'])->group(function () {
     Route::get('/kategoris', IndexKategori::class)->name('kategoris.index');
     Route::get('/kategoris/create', CreateKategori::class)->name('kategoris.create');
     Route::get('/kategoris/{kategori}/edit', EditKategori::class)->name('kategoris.edit');
+
+    Route::get('/master-types', IndexMasterType::class)->name('master-types.index');
+    Route::get('/master-types/create', CreateMasterType::class)->name('master-types.create');
+    Route::get('/master-types/{masterType}/edit', EditMasterType::class)->name('master-types.edit');
+    Route::get('/master-types/{masterType}/items', IndexMasterItem::class)->name('master-items.index');
+    Route::get('/master-items/create', CreateMasterItem::class)->name('master-items.create');
+    Route::get('/master-items/{masterItem}/edit', EditMasterItem::class)->name('master-items.edit');
 
     Route::get('/users', IndexUser::class)->name('users.index');
     Route::get('/users/create', CreateUser::class)->name('users.create');

@@ -117,18 +117,30 @@ class PaymentTest extends TestCase
         ]);
     }
 
-    public function test_payment_can_be_deleted_from_index(): void
+    public function test_payment_requires_admin_approval_to_be_voided(): void
     {
-        $user = User::factory()->create();
+        $staff = User::factory()->create();
+        $admin = User::factory()->admin()->create();
         $receivable = Receivable::factory()->create(['nominal' => 100000000, 'nominal_dibayar' => 0]);
         $payment = app(PaymentService::class)->createForReceivable($receivable, [
             'tanggal' => '2026-07-20',
             'nominal' => 40000000,
         ]);
 
-        Livewire::actingAs($user)
+        // Staff meminta pembatalan -> status pending_cancel.
+        Livewire::actingAs($staff)
             ->test(IndexPayment::class)
-            ->call('delete', $payment->id);
+            ->call('requestVoid', $payment->id)
+            ->set('voidReason', 'Salah input nominal')
+            ->call('confirmVoid');
+
+        $this->assertSame('pending_cancel', $payment->fresh()->status->value);
+        $this->assertDatabaseHas('payments', ['id' => $payment->id]);
+
+        // Admin menyetujui pembatalan -> settlement dihapus + saldo dikembalikan.
+        Livewire::actingAs($admin)
+            ->test(IndexPayment::class)
+            ->call('approveVoid', $payment->id);
 
         $this->assertDatabaseMissing('payments', ['id' => $payment->id]);
         $this->assertSame(0.0, (float) $receivable->fresh()->nominal_dibayar);

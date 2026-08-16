@@ -127,6 +127,9 @@
                                             } }}">
                                                 {{ $pr->status->label() }}
                                             </span>
+                                            @if ($pr->isHeld())
+                                                <span class="inline-flex items-center rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700">Held</span>
+                                            @endif
                                         </td>
                                         <td class="px-6 py-4 text-right whitespace-nowrap">
                                             @if (in_array($pr->status->value, ['draft', 'rejected'], true))
@@ -140,6 +143,17 @@
                                                             class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-gray-300 hover:bg-gray-100">
                                                             <x-icon name="x-mark" class="h-4 w-4" />
                                                         </button>
+                                                        @if (! $pr->isHeld())
+                                                            <button type="button" wire:click="hold({{ $pr->id }})" title="Hold"
+                                                                class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-orange-300 hover:bg-orange-50 hover:text-orange-600">
+                                                                <x-icon name="pause" class="h-4 w-4" />
+                                                            </button>
+                                                        @else
+                                                            <button type="button" wire:click="release({{ $pr->id }})" title="Release"
+                                                                class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-green-300 hover:bg-green-50 hover:text-green-600">
+                                                                <x-icon name="play" class="h-4 w-4" />
+                                                            </button>
+                                                        @endif
                                                     </x-action-buttons>
                                                 </div>
                                             @elseif ($pr->status->value === 'waiting' && auth()->user()->isAdmin())
@@ -152,6 +166,17 @@
                                                         class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-red-300 hover:bg-red-50 hover:text-red-600">
                                                         <x-icon name="x-mark" class="h-4 w-4" />
                                                     </button>
+                                                    @if (! $pr->isHeld())
+                                                        <button type="button" wire:click="hold({{ $pr->id }})" title="Hold"
+                                                            class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-orange-300 hover:bg-orange-50 hover:text-orange-600">
+                                                            <x-icon name="pause" class="h-4 w-4" />
+                                                        </button>
+                                                    @else
+                                                        <button type="button" wire:click="release({{ $pr->id }})" title="Release"
+                                                            class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-green-300 hover:bg-green-50 hover:text-green-600">
+                                                            <x-icon name="play" class="h-4 w-4" />
+                                                        </button>
+                                                    @endif
                                                 </div>
                                             @elseif ($pr->status->value === 'approved' && auth()->user()->isAdmin())
                                                 <div class="flex items-center justify-end gap-1.5">
@@ -163,6 +188,17 @@
                                                         class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-gray-300 hover:bg-gray-100">
                                                         <x-icon name="lock-closed" class="h-4 w-4" />
                                                     </button>
+                                                    @if (! $pr->isHeld())
+                                                        <button type="button" wire:click="hold({{ $pr->id }})" title="Hold"
+                                                            class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-orange-300 hover:bg-orange-50 hover:text-orange-600">
+                                                            <x-icon name="pause" class="h-4 w-4" />
+                                                        </button>
+                                                    @else
+                                                        <button type="button" wire:click="release({{ $pr->id }})" title="Release"
+                                                            class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-green-300 hover:bg-green-50 hover:text-green-600">
+                                                            <x-icon name="play" class="h-4 w-4" />
+                                                        </button>
+                                                    @endif
                                                 </div>
                                             @endif
                                         </td>
@@ -178,4 +214,23 @@
             </div>
         </x-confirm-modal>
     </div>
+
+    @if ($this->holdingId !== null)
+        <div class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
+            <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                <div class="fixed inset-0 bg-gray-500/75 transition-opacity" aria-hidden="true" wire:click="$set('holdingId', null)"></div>
+                <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-md">
+                    <div class="px-6 pt-6 pb-4">
+                        <h3 class="text-base font-semibold text-gray-900">Hold Payment Request</h3>
+                        <p class="mt-1 text-sm text-gray-500">Alasan hold (prioritas bayar berdasarkan kondisi keuangan).</p>
+                        <textarea wire:model="holdReason" rows="3" placeholder="Alasan hold..." class="mt-4 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"></textarea>
+                    </div>
+                    <div class="flex justify-end gap-3 bg-gray-50 px-6 py-4">
+                        <button type="button" wire:click="$set('holdingId', null)" class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">Cancel</button>
+                        <button type="button" wire:click="confirmHold" class="inline-flex items-center rounded-lg bg-orange-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-orange-500">Hold</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
 </div>
