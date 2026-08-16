@@ -71,7 +71,7 @@
                                         <td class="px-6 py-4">
                                             <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ match ($project->status->value) {
                                                 'done' => 'bg-green-100 text-green-700',
-                                                'cancel' => 'bg-red-100 text-red-700',
+                                                'cancelled' => 'bg-red-100 text-red-700',
                                                 default => 'bg-blue-100 text-blue-700',
                                             } }}">
                                                 {{ $project->status->label() }}

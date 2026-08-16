@@ -81,7 +81,7 @@
                                         <td class="px-6 py-4">
                                             <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ match ($payment->status->value) {
                                                 'pending_cancel' => 'bg-amber-100 text-amber-700',
-                                                'cancelled' => 'bg-gray-200 text-gray-600',
+                                                'cancelled' => 'bg-red-100 text-red-700',
                                                 default => 'bg-green-100 text-green-700',
                                             } }}">
                                                 {{ $payment->status->label() }}

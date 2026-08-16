@@ -6,7 +6,7 @@ enum ProjectStatus: string
 {
     case InProgress = 'progress';
     case Done = 'done';
-    case Cancelled = 'cancel';
+    case Cancelled = 'cancelled';
 
     /**
      * Human-readable label for the status.

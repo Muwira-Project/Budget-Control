@@ -96,7 +96,7 @@
         <select id="status" wire:model="status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
             <option value="progress">In Progress</option>
             <option value="done">Done</option>
-            <option value="cancel">Cancelled</option>
+            <option value="cancelled">Cancelled</option>
         </select>
         <x-input-error :messages="$errors->get('status')" class="mt-2" />
     </div>

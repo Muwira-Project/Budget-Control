@@ -26,7 +26,7 @@ class ProjectTemplateExport implements FromArray
             ['PRJ-001', 'Gedung Serbaguna', 'Jakarta', 'Budi Santoso', 'Konstruksi', 'Pekerjaan pondasi', '2026', 'jasa', 1, 'paket', 500000000, 11, '2026-08-01', '2026-12-31', 'progress'],
             [],
             ['NOTE: DRAFT template — akan disesuaikan dengan Excel final klien.'],
-            ['Type: "barang" (goods) atau "jasa" (services). Status: "progress" / "done" / "cancel". Tanggal format: YYYY-MM-DD. Tax dalam persen (0-100).'],
+            ['Type: "barang" (goods) atau "jasa" (services). Status: "progress" / "done" / "cancelled". Tanggal format: YYYY-MM-DD. Tax dalam persen (0-100).'],
         ];
     }
 }

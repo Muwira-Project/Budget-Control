@@ -425,3 +425,9 @@ Scope: bug, error, N+1, validasi, security, route, middleware, penamaan, PSR-12,
 - `php -l` 320 file: 0 error.
 - `pint --test`: passed.
 - Full suite: 296 test passed / 773 assertions.
+## Fase A - Konsistensi Kamus Status (2026-08-16)
+
+- Standardisasi nilai status project: `cancel` -> `cancelled` (enum, request validation, form, badge, filter export, template Excel draft). Migration 2026_08_16_000009 memigrasi data existing.
+- Warna badge diseragamkan: `cancelled` = red (project, Payment Request, Settlement).
+- Dokumen acuan baru `docs/KAMUS-STATUS.md` (nilai DB, label UI, warna, makna, istilah accrual/cash).
+- Catatan: sempat terjadi korupsi karakter akibat bug skrip edit (indexing string PowerShell); sudah di-restore dari git dan diedit ulang dengan aman, diverifikasi php -l + pint + full test.
