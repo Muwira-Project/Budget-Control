@@ -2,6 +2,9 @@
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <x-page-header icon="folder" title="Project" description="Manage projects, contract values, and their budget scope.">
             <x-slot:actions>
+                <a href="{{ route('imports.projects.template') }}" class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900">
+                    <x-icon name="download" class="h-4 w-4" /> Download Template (Draft)
+                </a>
                 <a href="{{ route('projects.create') }}" wire:navigate class="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700">
                     <x-icon name="plus" class="h-4 w-4" /> Add Project
                 </a>

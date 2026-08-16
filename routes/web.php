@@ -146,6 +146,7 @@ Route::middleware(['auth', 'verified', 'draft-staff'])->group(function () {
 
     Route::get('/import/akuns', ImportAkuns::class)->name('imports.akuns');
     Route::get('/import/akuns/template', [ImportTemplateController::class, 'akun'])->name('imports.akuns.template');
+    Route::get('/import/projects/template', [ImportTemplateController::class, 'project'])->name('imports.projects.template');
 
     Route::get('/export/{type}', ExportIndex::class)
         ->whereIn('type', ['akuns', 'realisasi', 'vs'])
