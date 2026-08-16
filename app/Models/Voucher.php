@@ -8,7 +8,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['nomor', 'tanggal', 'jenis', 'cashflow_id', 'keterangan', 'created_by'])]
+#[Fillable(['nomor', 'tanggal', 'jenis', 'cashflow_id', 'fund_transfer_id', 'keterangan', 'created_by'])]
 class Voucher extends Model
 {
     /** @use HasFactory<VoucherFactory> */
@@ -29,6 +29,11 @@ class Voucher extends Model
     public function cashflow(): BelongsTo
     {
         return $this->belongsTo(Cashflow::class);
+    }
+
+    public function fundTransfer(): BelongsTo
+    {
+        return $this->belongsTo(FundTransfer::class);
     }
 
     public function createdBy(): BelongsTo

@@ -6,7 +6,6 @@ use App\Livewire\Concerns\BulkSelection;
 use App\Livewire\Concerns\PerPagePagination;
 use App\Models\Investor;
 use App\Models\Payable;
-use App\Models\PaymentRequest;
 use App\Models\Realisasi;
 use App\Services\InvestorService;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -25,14 +24,13 @@ class Index extends Component
     protected function isUsed(Investor $investor): bool
     {
         return Realisasi::where('investor_id', $investor->id)->exists()
-            || Payable::where('investor_id', $investor->id)->exists()
-            || PaymentRequest::where('investor_id', $investor->id)->exists();
+            || Payable::where('investor_id', $investor->id)->exists();
     }
 
     public function delete(Investor $investor, InvestorService $service): void
     {
         if ($this->isUsed($investor)) {
-            session()->flash('error', 'Investor is still used in actuals, payables, or payment requests and cannot be deleted.');
+            session()->flash('error', 'Investor is still used in actuals or payables and cannot be deleted.');
 
             return;
         }

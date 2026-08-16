@@ -25,6 +25,9 @@ class Edit extends Component
 
     public bool $aktif = true;
 
+    /** @var array<int, array{label: string, tipe: string, is_required: bool}> */
+    public array $fields = [];
+
     public function mount(MasterType $masterType): void
     {
         $this->masterType = $masterType;
@@ -34,10 +37,35 @@ class Edit extends Component
         $this->flagAr = (bool) $masterType->flag_ar;
         $this->flagAp = (bool) $masterType->flag_ap;
         $this->aktif = (bool) $masterType->aktif;
+        $this->fields = $masterType->fields
+            ->map(fn ($field) => [
+                'label' => $field->label,
+                'tipe' => $field->tipe,
+                'is_required' => (bool) $field->is_required,
+            ])
+            ->values()
+            ->all();
     }
 
     /**
-     * Update the master type.
+     * Add a custom field definition row.
+     */
+    public function addField(): void
+    {
+        $this->fields[] = ['label' => '', 'tipe' => 'text', 'is_required' => false];
+    }
+
+    /**
+     * Remove a custom field definition row.
+     */
+    public function removeField(int $index): void
+    {
+        unset($this->fields[$index]);
+        $this->fields = array_values($this->fields);
+    }
+
+    /**
+     * Update the master menu.
      */
     public function save(MasterTypeService $service): void
     {
@@ -57,9 +85,9 @@ class Edit extends Component
             'aktif' => ['boolean'],
         ])->validate();
 
-        $service->update($this->masterType, $validated);
+        $service->update($this->masterType, $validated + ['fields' => $this->fields]);
 
-        session()->flash('status', 'Master type updated.');
+        session()->flash('status', 'Master menu updated.');
 
         $this->redirectRoute('master-types.index', navigate: true);
     }

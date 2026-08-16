@@ -3,7 +3,6 @@
 namespace App\Services;
 
 use App\Models\Payable;
-use App\Models\PaymentRequest;
 use App\Models\Project;
 use App\Models\Realisasi;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -117,46 +116,6 @@ class PayableService
         }
 
         return Payable::create($data + ['realisasi_id' => $realisasi->id]);
-    }
-
-    /**
-     * Create or refresh the payable generated from an approved payment request (idempotent).
-     */
-    public function syncFromPaymentRequest(PaymentRequest $paymentRequest): ?Payable
-    {
-        $data = [
-            'project_id' => $paymentRequest->project_id,
-            'payment_request_id' => $paymentRequest->id,
-            'akun_id' => $paymentRequest->akun_id,
-            'vendor_id' => $paymentRequest->vendor_id,
-            'supplier_id' => $paymentRequest->supplier_id,
-            'mandor_id' => $paymentRequest->mandor_id,
-            'investor_id' => $paymentRequest->investor_id,
-            'tanggal' => $paymentRequest->tanggal->format('Y-m-d'),
-            'jatuh_tempo' => $paymentRequest->jatuh_tempo?->format('Y-m-d'),
-            'nominal' => $paymentRequest->nominal,
-            'jenis_pajak' => null,
-            'pajak_include' => true,
-            'keterangan' => 'Dari Payment Request '.$paymentRequest->nomor,
-        ];
-
-        $payable = Payable::where('payment_request_id', $paymentRequest->id)->first();
-
-        if ($payable) {
-            $payable->update($data);
-
-            return $payable->refresh();
-        }
-
-        return Payable::create($data);
-    }
-
-    /**
-     * Remove the payable linked to a payment request (when it leaves the approved state).
-     */
-    public function removeForPaymentRequest(PaymentRequest $paymentRequest): void
-    {
-        Payable::where('payment_request_id', $paymentRequest->id)->delete();
     }
 
     /**

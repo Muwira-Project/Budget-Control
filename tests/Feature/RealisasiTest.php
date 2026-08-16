@@ -4,13 +4,10 @@ namespace Tests\Feature;
 
 use App\Livewire\Realisasi\Index as IndexRealisasi;
 use App\Models\Akun;
-use App\Models\PaymentRequest;
 use App\Models\Project;
 use App\Models\ProjectAkun;
 use App\Models\Realisasi;
 use App\Models\User;
-use App\Models\Vendor;
-use App\Services\ActualService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
 use Livewire\Livewire;
@@ -62,65 +59,6 @@ class RealisasiTest extends TestCase
         $this->actingAs($user)
             ->get('/realisasi/create')
             ->assertNotFound();
-    }
-
-    public function test_source_label_is_displayed(): void
-    {
-        $user = User::factory()->admin()->create();
-        $project = Project::factory()->create();
-        $akun = $this->allocatedAkun($project);
-        $vendor = Vendor::factory()->create();
-        $pr = PaymentRequest::factory()->create([
-            'project_id' => $project->id,
-            'akun_id' => $akun->id,
-            'vendor_id' => $vendor->id,
-            'supplier_id' => null,
-        ]);
-
-        app(ActualService::class)->recordFromPaymentRequest($pr);
-
-        $this->actingAs($user)
-            ->get(route('realisasi.index'))
-            ->assertOk()
-            ->assertSee('Payment Request');
-    }
-
-    public function test_auto_actual_does_not_generate_payable(): void
-    {
-        $project = Project::factory()->create();
-        $akun = $this->allocatedAkun($project);
-        $vendor = Vendor::factory()->create();
-        $pr = PaymentRequest::factory()->create([
-            'project_id' => $project->id,
-            'akun_id' => $akun->id,
-            'vendor_id' => $vendor->id,
-            'supplier_id' => null,
-        ]);
-
-        $actual = app(ActualService::class)->recordFromPaymentRequest($pr);
-
-        $this->assertDatabaseMissing('payables', ['realisasi_id' => $actual->id]);
-    }
-
-    public function test_auto_actual_is_idempotent(): void
-    {
-        $project = Project::factory()->create();
-        $akun = $this->allocatedAkun($project);
-        $vendor = Vendor::factory()->create();
-        $pr = PaymentRequest::factory()->create([
-            'project_id' => $project->id,
-            'akun_id' => $akun->id,
-            'vendor_id' => $vendor->id,
-            'supplier_id' => null,
-        ]);
-
-        app(ActualService::class)->recordFromPaymentRequest($pr);
-        app(ActualService::class)->recordFromPaymentRequest($pr);
-
-        $this->assertSame(1, Realisasi::query()
-            ->where('sumber', Realisasi::SUMBER_PAYMENT_REQUEST)
-            ->where('sumber_id', $pr->id)
-            ->count());
     }
 
     public function test_index_uses_eager_loading(): void

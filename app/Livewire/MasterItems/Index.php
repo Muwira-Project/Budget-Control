@@ -22,6 +22,13 @@ class Index extends Component
 
     public string $search = '';
 
+    public function mount(MasterType $masterType): void
+    {
+        $masterType->load('fields');
+
+        $this->masterType = $masterType;
+    }
+
     /**
      * Delete a master item.
      */

@@ -20,17 +20,8 @@
     @endif
 
     @if (config('app.show_finance_modules') && auth()->user()->isAdmin())
-        <x-sidebar-dropdown label="Cash" icon="wallet" :active="request()->routeIs('cashflows.*') || request()->routeIs('payment-requests.*') || request()->routeIs('payments.*') || request()->routeIs('receivables.*') || request()->routeIs('payables.*') || request()->routeIs('cash-accounts.*') || request()->routeIs('fund-transfers.*') || request()->routeIs('vouchers.*') || request()->routeIs('non-project-expenses.*')">
-            <x-sidebar-link href="{{ route('cashflows.index') }}" label="Cash Activity" :active="request()->routeIs('cashflows.*')" />
-            <x-sidebar-link href="{{ route('payment-requests.index') }}" label="Payment Request" :active="request()->routeIs('payment-requests.*')" />
-            <x-sidebar-link href="{{ route('non-project-expenses.index') }}" label="Non-Project Expense" :active="request()->routeIs('non-project-expenses.*')" />
-            <x-sidebar-link href="{{ route('receivables.index') }}" label="Account Receivable" :active="request()->routeIs('receivables.*')" />
-            <x-sidebar-link href="{{ route('payables.index') }}" label="Account Payable" :active="request()->routeIs('payables.*')" />
-            <x-sidebar-link href="{{ route('payments.index') }}" label="Settlement History" :active="request()->routeIs('payments.*')" />
-            <x-sidebar-link href="{{ route('cash-accounts.index') }}" label="Cash Account" :active="request()->routeIs('cash-accounts.*')" />
-            <x-sidebar-link href="{{ route('fund-transfers.index') }}" label="Fund Transfer" :active="request()->routeIs('fund-transfers.*')" />
-            <x-sidebar-link href="{{ route('vouchers.index') }}" label="Voucher" :active="request()->routeIs('vouchers.*')" />
-        </x-sidebar-dropdown>
+        <x-sidebar-link href="{{ route('cashflows.index') }}" label="Cash Activity" icon="wallet" :active="request()->routeIs('cashflows.*') || request()->routeIs('fund-transfers.*') || request()->routeIs('cash-accounts.*') || request()->routeIs('vouchers.*')" />
+        <x-sidebar-link href="{{ route('ar-ap.index') }}" label="AR & AP" icon="arrow-trending-right" :active="request()->routeIs('ar-ap.*') || request()->routeIs('receivables.*') || request()->routeIs('payables.*') || request()->routeIs('payments.*')" />
     @endif
 
     @if (auth()->user()->isAdmin())
@@ -40,13 +31,21 @@
         <x-sidebar-link href="{{ route('audit-log.index') }}" label="Audit Log" icon="history" :active="request()->routeIs('audit-log.index')" />
 
         <x-sidebar-dropdown label="Master" icon="settings" :active="request()->routeIs('kategoris.*') || request()->routeIs('vendors.*') || request()->routeIs('suppliers.*') || request()->routeIs('mandors.*') || request()->routeIs('investors.*') || request()->routeIs('users.*') || request()->routeIs('master-types.*') || request()->routeIs('master-items.*')">
-            <x-sidebar-link href="{{ route('master-types.index') }}" label="Dynamic Master" :active="request()->routeIs('master-types.*') || request()->routeIs('master-items.*')" />
             <x-sidebar-link href="{{ route('kategoris.index') }}" label="Category" :active="request()->routeIs('kategoris.*')" />
             <x-sidebar-link href="{{ route('vendors.index') }}" label="Vendor" :active="request()->routeIs('vendors.*')" />
             <x-sidebar-link href="{{ route('suppliers.index') }}" label="Supplier" :active="request()->routeIs('suppliers.*')" />
             <x-sidebar-link href="{{ route('mandors.index') }}" label="Mandor" :active="request()->routeIs('mandors.*')" />
             <x-sidebar-link href="{{ route('investors.index') }}" label="Investor" :active="request()->routeIs('investors.*')" />
             <x-sidebar-link href="{{ route('users.index') }}" label="User" :active="request()->routeIs('users.*')" />
+
+            @foreach ($masterMenus ?? [] as $masterMenu)
+                <x-sidebar-link href="{{ route('master-items.index', $masterMenu) }}" :label="$masterMenu->nama" :active="request()->routeIs('master-items.*') && (string) request()->route('masterType') === (string) $masterMenu->id" />
+            @endforeach
+
+            <div class="pt-2 mt-1 border-t border-white/10">
+                <x-sidebar-link href="{{ route('master-types.create') }}" label="+ Add Master" icon="plus" :active="request()->routeIs('master-types.create')" />
+                <x-sidebar-link href="{{ route('master-types.index') }}" label="Manage Master" icon="settings" :active="request()->routeIs('master-types.index')" />
+            </div>
         </x-sidebar-dropdown>
     @endif
 

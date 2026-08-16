@@ -22,8 +22,28 @@ class Create extends Component
 
     public bool $aktif = true;
 
+    /** @var array<int, array{label: string, tipe: string, is_required: bool}> */
+    public array $fields = [];
+
     /**
-     * Store the new master type.
+     * Add a custom field definition row.
+     */
+    public function addField(): void
+    {
+        $this->fields[] = ['label' => '', 'tipe' => 'text', 'is_required' => false];
+    }
+
+    /**
+     * Remove a custom field definition row.
+     */
+    public function removeField(int $index): void
+    {
+        unset($this->fields[$index]);
+        $this->fields = array_values($this->fields);
+    }
+
+    /**
+     * Store the new master menu.
      */
     public function save(MasterTypeService $service): void
     {
@@ -43,9 +63,9 @@ class Create extends Component
             'aktif' => ['boolean'],
         ])->validate();
 
-        $service->create($validated);
+        $service->create($validated + ['fields' => $this->fields]);
 
-        session()->flash('status', 'Master type created.');
+        session()->flash('status', 'Master menu created. It now appears under the Master menu.');
 
         $this->redirectRoute('master-types.index', navigate: true);
     }

@@ -13,50 +13,69 @@ class Edit extends Component
 {
     public MasterItem $masterItem;
 
-    public string $masterTypeId = '';
-
     public string $kode = '';
 
     public string $nama = '';
 
-    public ?string $keterangan = null;
-
     public bool $aktif = true;
+
+    /** @var array<string, mixed> */
+    public array $data = [];
 
     public function mount(MasterItem $masterItem): void
     {
+        $masterItem->load('masterType.fields');
+
         $this->masterItem = $masterItem;
-        $this->masterTypeId = (string) $masterItem->master_type_id;
         $this->kode = $masterItem->kode;
         $this->nama = $masterItem->nama;
-        $this->keterangan = $masterItem->keterangan;
         $this->aktif = (bool) $masterItem->aktif;
+        $this->data = $masterItem->data ?? [];
     }
 
     /**
-     * Update the master item.
+     * Update the master item with its custom field values.
      */
     public function save(MasterItemService $service): void
     {
+        $rules = [
+            'kode' => ['required', 'string', 'max:50', 'unique:master_items,kode,'.$this->masterItem->id.',id,master_type_id,'.$this->masterItem->master_type_id],
+            'nama' => ['required', 'string', 'max:255'],
+            'aktif' => ['boolean'],
+        ];
+
+        $payload = ['data' => $this->data];
+
+        foreach ($this->masterItem->masterType->fields as $field) {
+            $value = $this->data[(string) $field->id] ?? null;
+            $payload['data'][(string) $field->id] = match ($field->tipe) {
+                'number' => $value === null || $value === '' ? null : (float) $value,
+                'date' => $value === null || $value === '' ? null : $value,
+                default => $value === null ? null : (string) $value,
+            };
+
+            if ($field->is_required && ($payload['data'][(string) $field->id] === null || $payload['data'][(string) $field->id] === '')) {
+                $rules['data.'.$field->id] = ['required'];
+            }
+        }
+
         $validated = Validator::make([
-            'master_type_id' => $this->masterTypeId,
             'kode' => $this->kode,
             'nama' => $this->nama,
-            'keterangan' => $this->keterangan,
             'aktif' => $this->aktif,
-        ], [
-            'master_type_id' => ['required', 'exists:master_types,id'],
-            'kode' => ['required', 'string', 'max:50', 'unique:master_items,kode,'.$this->masterItem->id.',id,master_type_id,'.$this->masterTypeId],
-            'nama' => ['required', 'string', 'max:255'],
-            'keterangan' => ['nullable', 'string', 'max:1000'],
-            'aktif' => ['boolean'],
-        ])->validate();
+            'data' => $payload['data'],
+        ], $rules)->validate();
 
-        $service->update($this->masterItem, $validated);
+        $service->update($this->masterItem, [
+            'kode' => $validated['kode'],
+            'nama' => $validated['nama'],
+            'aktif' => $validated['aktif'],
+            'data' => $payload['data'],
+        ]);
 
         session()->flash('status', 'Master item updated.');
 
-        $this->redirectRoute('master-items.index', ['masterType' => $this->masterTypeId], navigate: true);
+        $this->redirectRoute('master-items.index', ['masterType' => $this->masterItem->master_type_id], navigate: true);
     }
 
     public function render()

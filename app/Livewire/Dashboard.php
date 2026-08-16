@@ -2,10 +2,8 @@
 
 namespace App\Livewire;
 
-use App\Enums\PaymentRequestStatus;
 use App\Models\Activity;
 use App\Models\MonitoringPeriod;
-use App\Models\PaymentRequest;
 use App\Models\Project;
 use App\Models\Realisasi;
 use App\Services\DashboardService;
@@ -87,21 +85,6 @@ class Dashboard extends Component
             ->latest()
             ->take(8)
             ->get();
-    }
-
-    /**
-     * Payment request summary counts by status (existing data only).
-     *
-     * @return array{pending: int, approved: int, rejected: int}
-     */
-    #[Computed]
-    public function paymentRequestSummary(): array
-    {
-        return [
-            'pending' => PaymentRequest::where('status', PaymentRequestStatus::Waiting)->count(),
-            'approved' => PaymentRequest::where('status', PaymentRequestStatus::Approved)->count(),
-            'rejected' => PaymentRequest::where('status', PaymentRequestStatus::Rejected)->count(),
-        ];
     }
 
     public function showProjectDetail(int $projectId): void

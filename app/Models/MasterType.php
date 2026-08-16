@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['kode', 'nama', 'deskripsi', 'flag_ar', 'flag_ap', 'aktif'])]
+#[Fillable(['kode', 'nama', 'deskripsi', 'flag_ar', 'flag_ap', 'aktif', 'is_system', 'sort'])]
 class MasterType extends Model
 {
     /** @use HasFactory<MasterTypeFactory> */
@@ -26,12 +26,19 @@ class MasterType extends Model
             'flag_ar' => 'boolean',
             'flag_ap' => 'boolean',
             'aktif' => 'boolean',
+            'is_system' => 'boolean',
+            'sort' => 'integer',
         ];
     }
 
     public function items(): HasMany
     {
         return $this->hasMany(MasterItem::class);
+    }
+
+    public function fields(): HasMany
+    {
+        return $this->hasMany(MasterField::class)->orderBy('sort');
     }
 
     /**

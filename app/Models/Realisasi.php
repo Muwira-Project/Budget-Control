@@ -17,8 +17,6 @@ class Realisasi extends Model
 {
     public const SUMBER_MANUAL = 'manual';
 
-    public const SUMBER_PAYMENT_REQUEST = 'payment_request';
-
     public const SUMBER_AP_PAYMENT = 'pelunasan_ap';
 
     /** @use HasFactory<RealisasiFactory> */
@@ -180,7 +178,6 @@ class Realisasi extends Model
     public function getSumberLabelAttribute(): string
     {
         return match ($this->sumber) {
-            self::SUMBER_PAYMENT_REQUEST => 'Payment Request',
             self::SUMBER_AP_PAYMENT => 'AP Payment',
             default => 'Manual',
         };

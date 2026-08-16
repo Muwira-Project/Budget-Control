@@ -76,9 +76,13 @@ class PaymentService
 
             $payable->increment('nominal_dibayar', $data['nominal']);
 
-            $partyName = $payable->vendor_id !== null
-                ? $payable->vendor()->value('nama')
-                : ($payable->supplier_id !== null ? $payable->supplier()->value('nama') : null);
+            $partyName = match (true) {
+                $payable->vendor_id !== null => $payable->vendor()->value('nama'),
+                $payable->supplier_id !== null => $payable->supplier()->value('nama'),
+                $payable->mandor_id !== null => $payable->mandor()->value('nama'),
+                $payable->investor_id !== null => $payable->investor()->value('nama'),
+                default => null,
+            };
 
             app(CashflowService::class)->create([
                 'tanggal' => $data['tanggal'],

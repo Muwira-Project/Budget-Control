@@ -101,19 +101,18 @@ class BudgetPlanService
     {
         $approved = $project->projectAkuns()
             ->where('status', AllocationStatus::Approved)
-            ->get();
+            ->get(['akun_id', 'budget']);
+
+        $itemRows = $approved->map(fn ($allocation) => [
+            'akun_id' => $allocation->akun_id,
+            'nominal' => $allocation->budget,
+        ])->all();
+
+        $estimasiBiaya = (float) $approved->sum('budget');
 
         foreach ($project->budgetPlans()->get() as $plan) {
             $plan->items()->delete();
-
-            foreach ($approved as $allocation) {
-                $plan->items()->create([
-                    'akun_id' => $allocation->akun_id,
-                    'nominal' => $allocation->budget,
-                ]);
-            }
-
-            $estimasiBiaya = (float) $plan->items()->sum('nominal');
+            $plan->items()->createMany($itemRows);
 
             $plan->update([
                 'estimasi_biaya' => $estimasiBiaya,

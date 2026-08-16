@@ -2,14 +2,11 @@
 
 namespace Tests\Feature;
 
-use App\Models\Akun;
 use App\Models\CashAccount;
-use App\Models\Cashflow;
 use App\Models\FundTransfer;
 use App\Models\MasterItem;
 use App\Models\MasterType;
 use App\Models\Payable;
-use App\Models\PaymentRequest;
 use App\Models\Project;
 use App\Models\Realisasi;
 use App\Models\Receivable;
@@ -19,9 +16,7 @@ use App\Services\CashflowService;
 use App\Services\FundTransferService;
 use App\Services\MasterItemService;
 use App\Services\MasterTypeService;
-use App\Services\NonProjectExpenseService;
 use App\Services\PayableService;
-use App\Services\PaymentRequestService;
 use App\Services\PaymentService;
 use App\Services\ReceivableService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -51,38 +46,6 @@ class CashModuleTest extends TestCase
         $this->assertMatchesRegularExpression('/^VC-\d{4}-\d{4}$/', $voucher->nomor);
         $this->assertSame('masuk', $voucher->jenis);
         $this->assertSame('2026-08-01', $voucher->tanggal->format('Y-m-d'));
-    }
-
-    public function test_non_project_expense_is_mirrored_to_cash_activity_after_posted(): void
-    {
-        $admin = User::factory()->admin()->create();
-        $this->actingAs($admin);
-
-        $akun = Akun::factory()->create();
-        $expense = app(NonProjectExpenseService::class)->create([
-            'tanggal' => '2026-08-02',
-            'akun_id' => $akun->id,
-            'nominal' => 2500000,
-            'keterangan' => 'Listrik kantor',
-        ]);
-
-        // Draft belum masuk Cash Activity.
-        $this->assertDatabaseMissing('cashflows', ['non_project_expense_id' => $expense->id]);
-
-        app(NonProjectExpenseService::class)->submit($expense);
-        app(NonProjectExpenseService::class)->approve($expense->fresh());
-        app(NonProjectExpenseService::class)->post($expense->fresh());
-
-        $cashflow = Cashflow::where('non_project_expense_id', $expense->id)->first();
-
-        $this->assertNotNull($cashflow);
-        $this->assertSame('keluar', $cashflow->jenis->value);
-        $this->assertSame('non_project_expense', $cashflow->sumber->value);
-        $this->assertSame(2500000.0, (float) $cashflow->nominal);
-
-        // Expense yang sudah posted tidak bisa langsung dihapus.
-        $this->expectException(\LogicException::class);
-        app(NonProjectExpenseService::class)->delete($expense->fresh());
     }
 
     public function test_pending_kas_entries_do_not_affect_balances(): void
@@ -117,7 +80,7 @@ class CashModuleTest extends TestCase
         app(CashflowService::class)->create([
             'tanggal' => '2026-08-02',
             'jenis' => 'keluar',
-            'sumber' => 'non_project_expense',
+            'sumber' => 'pengeluaran_lain',
             'nominal' => 2000000,
             'cash_account_id' => $account->id,
         ]);
@@ -193,28 +156,6 @@ class CashModuleTest extends TestCase
         $this->assertSame('active', $payment->status->value);
         $this->assertSame('Tagihan masih valid', $payment->void_review_note);
         $this->assertSame(5000000.0, (float) $receivable->fresh()->nominal_dibayar);
-    }
-
-    public function test_held_payment_request_cannot_be_marked_paid(): void
-    {
-        $admin = User::factory()->admin()->create();
-        $this->actingAs($admin);
-
-        $pr = PaymentRequest::factory()->create(['status' => 'approved']);
-
-        app(PaymentRequestService::class)->hold($pr, 'Menunggu kondisi keuangan');
-
-        try {
-            app(PaymentRequestService::class)->markPaid($pr);
-            $this->fail('Held payment request should not be payable.');
-        } catch (\LogicException) {
-            $this->assertSame('approved', $pr->fresh()->status->value);
-        }
-
-        app(PaymentRequestService::class)->release($pr->fresh());
-        app(PaymentRequestService::class)->markPaid($pr->fresh());
-
-        $this->assertSame('paid', $pr->fresh()->status->value);
     }
 
     public function test_held_receivable_blocks_payment(): void
@@ -319,7 +260,7 @@ class CashModuleTest extends TestCase
             route('master-types.create'),
             route('master-types.edit', $type),
             route('master-items.index', $type),
-            route('master-items.create'),
+            route('master-items.create', $type),
             route('master-items.edit', $item),
         ];
 

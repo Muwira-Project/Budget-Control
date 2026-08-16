@@ -39,7 +39,7 @@ class DashboardTest extends TestCase
             ->assertSee('Cashflow Summary')
             ->assertSee('Project Overview')
             ->assertSee('Recent Activity')
-            ->assertSee('Payment Request')
+            ->assertSee('Cash Activity')
             ->assertSee('Outstanding Receivable')
             ->assertSee('Outstanding Payable');
     }

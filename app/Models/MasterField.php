@@ -3,16 +3,16 @@
 namespace App\Models;
 
 use App\Models\Concerns\LogsActivity;
-use Database\Factories\MasterItemFactory;
+use Database\Factories\MasterFieldFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['master_type_id', 'kode', 'nama', 'keterangan', 'data', 'aktif'])]
-class MasterItem extends Model
+#[Fillable(['master_type_id', 'label', 'tipe', 'is_required', 'sort'])]
+class MasterField extends Model
 {
-    /** @use HasFactory<MasterItemFactory> */
+    /** @use HasFactory<MasterFieldFactory> */
     use HasFactory, LogsActivity;
 
     /**
@@ -23,8 +23,8 @@ class MasterItem extends Model
     protected function casts(): array
     {
         return [
-            'aktif' => 'boolean',
-            'data' => 'array',
+            'is_required' => 'boolean',
+            'sort' => 'integer',
         ];
     }
 
@@ -34,10 +34,23 @@ class MasterItem extends Model
     }
 
     /**
+     * Human-readable label of the field type.
+     */
+    public function getTipeLabelAttribute(): string
+    {
+        return match ($this->tipe) {
+            'textarea' => 'Long Text',
+            'number' => 'Number',
+            'date' => 'Date',
+            default => 'Text',
+        };
+    }
+
+    /**
      * Short label used in the activity log.
      */
     protected function activityLabel(): string
     {
-        return 'Master Item '.($this->kode ?: '#'.$this->id);
+        return 'Master Field '.($this->label ?: '#'.$this->id);
     }
 }

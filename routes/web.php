@@ -9,6 +9,7 @@ use App\Livewire\Allokasis\Create as CreateAllokasi;
 use App\Livewire\Allokasis\Edit as EditAllokasi;
 use App\Livewire\Allokasis\Index as IndexAllokasi;
 use App\Livewire\Approvals\Index as ApprovalsIndex;
+use App\Livewire\ArAp\Index as IndexArAp;
 use App\Livewire\AuditLog\Index as AuditLogIndex;
 use App\Livewire\Backups\Index as IndexBackup;
 use App\Livewire\BudgetPlans\Create as CreateBudgetPlan;
@@ -43,16 +44,10 @@ use App\Livewire\Monitoring\Create as CreateMonitoring;
 use App\Livewire\Monitoring\Edit as EditMonitoring;
 use App\Livewire\Monitoring\Index as IndexMonitoring;
 use App\Livewire\Monitoring\Resume as ResumeMonitoring;
-use App\Livewire\NonProjectExpenses\Create as CreateNonProjectExpense;
-use App\Livewire\NonProjectExpenses\Edit as EditNonProjectExpense;
-use App\Livewire\NonProjectExpenses\Index as IndexNonProjectExpense;
 use App\Livewire\Payables\Create as CreatePayable;
 use App\Livewire\Payables\Edit as EditPayable;
 use App\Livewire\Payables\Index as IndexPayable;
 use App\Livewire\Payables\Pay as PayPayable;
-use App\Livewire\PaymentRequests\Create as CreatePaymentRequest;
-use App\Livewire\PaymentRequests\Edit as EditPaymentRequest;
-use App\Livewire\PaymentRequests\Index as IndexPaymentRequest;
 use App\Livewire\Payments\Index as IndexPayment;
 use App\Livewire\Projects\Create as CreateProject;
 use App\Livewire\Projects\Edit as EditProject;
@@ -105,10 +100,7 @@ Route::middleware(['auth', 'verified', 'draft-staff'])->group(function () {
     Route::get('/monitoring/create', CreateMonitoring::class)->name('monitoring.create');
     Route::get('/monitoring/{monitoringPeriod}', ResumeMonitoring::class)->name('monitoring.show');
     Route::get('/monitoring/{monitoringPeriod}/edit', EditMonitoring::class)->name('monitoring.edit');
-
-    Route::get('/payment-requests', IndexPaymentRequest::class)->name('payment-requests.index');
-    Route::get('/payment-requests/create', CreatePaymentRequest::class)->name('payment-requests.create');
-    Route::get('/payment-requests/{paymentRequest}/edit', EditPaymentRequest::class)->name('payment-requests.edit');
+    Route::get('/ar-ap', IndexArAp::class)->name('ar-ap.index');
 
     Route::get('/cashflows', IndexCashflow::class)->name('cashflows.index');
     Route::get('/cashflows/create', CreateCashflow::class)->name('cashflows.create');
@@ -165,16 +157,12 @@ Route::middleware(['auth', 'verified', 'draft-staff'])->group(function () {
     Route::get('/master-types/create', CreateMasterType::class)->name('master-types.create');
     Route::get('/master-types/{masterType}/edit', EditMasterType::class)->name('master-types.edit');
     Route::get('/master-types/{masterType}/items', IndexMasterItem::class)->name('master-items.index');
-    Route::get('/master-items/create', CreateMasterItem::class)->name('master-items.create');
+    Route::get('/master-types/{masterType}/items/create', CreateMasterItem::class)->name('master-items.create');
     Route::get('/master-items/{masterItem}/edit', EditMasterItem::class)->name('master-items.edit');
 
     Route::get('/users', IndexUser::class)->name('users.index');
     Route::get('/users/create', CreateUser::class)->name('users.create');
     Route::get('/users/{user}/edit', EditUser::class)->name('users.edit');
-
-    Route::get('/non-project-expenses', IndexNonProjectExpense::class)->name('non-project-expenses.index');
-    Route::get('/non-project-expenses/create', CreateNonProjectExpense::class)->name('non-project-expenses.create');
-    Route::get('/non-project-expenses/{expense}/edit', EditNonProjectExpense::class)->name('non-project-expenses.edit');
 
     Route::get('/audit-log', AuditLogIndex::class)->name('audit-log.index');
 

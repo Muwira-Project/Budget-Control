@@ -24,11 +24,12 @@ class StoreCashflowRequest extends FormRequest
     {
         return [
             'tanggal' => ['required', 'date'],
-            'jenis' => ['required', Rule::in(['masuk'])],
-            'sumber' => ['required', Rule::in(['pendapatan'])],
+            'jenis' => ['required', Rule::in(['masuk', 'keluar'])],
+            'sumber' => ['required', Rule::in(['pendapatan', 'pelunasan_ar', 'pelunasan_ap', 'pengeluaran_lain'])],
             'nominal' => ['required', 'numeric', 'min:0'],
             'keterangan' => ['nullable', 'string', 'max:1000'],
             'cash_account_id' => ['nullable', 'integer', 'exists:cash_accounts,id'],
+            'akun_id' => ['nullable', 'integer', 'exists:akuns,id'],
             'status' => ['required', Rule::in(['draft'])],
         ];
     }

@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Cashflow;
+use App\Models\FundTransfer;
 use App\Models\NumberSequence;
 use App\Models\Voucher;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -26,6 +27,27 @@ class VoucherService
             'jenis' => $cashflow->jenis->value,
             'cashflow_id' => $cashflow->id,
             'keterangan' => $cashflow->keterangan,
+            'created_by' => auth()->id(),
+        ]);
+    }
+
+    /**
+     * Generate a voucher (nomor seri otomatis + tanggal) for a fund transfer.
+     */
+    public function generateForFundTransfer(FundTransfer $fundTransfer): ?Voucher
+    {
+        if (Voucher::where('fund_transfer_id', $fundTransfer->id)->exists()) {
+            return null;
+        }
+
+        $year = $fundTransfer->tanggal?->format('Y') ?? (string) now()->year;
+
+        return Voucher::create([
+            'nomor' => $this->nextNomor($year),
+            'tanggal' => $fundTransfer->tanggal?->format('Y-m-d') ?? now()->format('Y-m-d'),
+            'jenis' => 'transfer',
+            'fund_transfer_id' => $fundTransfer->id,
+            'keterangan' => $fundTransfer->keterangan,
             'created_by' => auth()->id(),
         ]);
     }

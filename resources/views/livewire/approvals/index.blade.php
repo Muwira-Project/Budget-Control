@@ -1,6 +1,6 @@
 <div class="py-12">
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <x-page-header icon="check-circle" title="Approval Center" description="Semua permintaan menunggu persetujuan admin: kegiatan kas, payment request, dan pembatalan settlement." />
+        <x-page-header icon="check-circle" title="Approval Center" description="Semua permintaan menunggu persetujuan admin: kegiatan kas, fund transfer, dan pembatalan settlement." />
 
         @if (session('status'))
             <div class="mt-4 rounded-lg bg-blue-50 p-4 text-sm text-blue-700">{{ session('status') }}</div>
@@ -22,7 +22,7 @@
                     <h3 class="text-sm font-semibold text-gray-800">Pending Approval</h3>
                 </div>
 
-                @if ($this->pendingCashflows->isEmpty() && $this->pendingNpes->isEmpty() && $this->pendingTransfers->isEmpty() && $this->pendingPrs->isEmpty() && $this->pendingVoids->isEmpty())
+                @if ($this->pendingCashflows->isEmpty() && $this->pendingTransfers->isEmpty() && $this->pendingVoids->isEmpty())
                     <p class="p-6 text-sm text-gray-500">Tidak ada item pending.</p>
                 @else
                     <div class="overflow-x-auto">
@@ -40,7 +40,9 @@
                                 @foreach ($this->pendingCashflows as $entry)
                                     <tr class="hover:bg-gray-50">
                                         <td class="px-6 py-4">
-                                            <span class="inline-flex items-center rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">Cash In</span>
+                                            <span class="inline-flex items-center rounded-full {{ $entry->jenis->value === 'masuk' ? 'bg-blue-100 text-blue-700' : 'bg-purple-100 text-purple-700' }} px-2 py-0.5 text-xs font-medium">
+                                                {{ $entry->jenis->label() }}
+                                            </span>
                                         </td>
                                         <td class="px-6 py-4 text-gray-700">
                                             {{ $entry->sumber->label() }}
@@ -55,30 +57,6 @@
                                                 <x-icon name="check" class="h-4 w-4" />
                                             </button>
                                             <button type="button" wire:click="openReject('cashflow', {{ $entry->id }})" title="Reject"
-                                                class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-red-300 hover:bg-red-50 hover:text-red-600">
-                                                <x-icon name="x-mark" class="h-4 w-4" />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                @endforeach
-
-                                @foreach ($this->pendingNpes as $expense)
-                                    <tr class="hover:bg-gray-50">
-                                        <td class="px-6 py-4">
-                                            <span class="inline-flex items-center rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700">Non-Project Expense</span>
-                                        </td>
-                                        <td class="px-6 py-4 text-gray-700">
-                                            {{ $expense->akun->kode_akun }} - {{ $expense->akun->nama_akun }}
-                                            @if ($expense->pihak)<span class="text-gray-400">|</span> {{ $expense->pihak }}@endif
-                                        </td>
-                                        <td class="px-6 py-4 text-right font-medium text-gray-900">{{ format_idr($expense->nominal) }}</td>
-                                        <td class="px-6 py-4 text-gray-500">{{ $expense->tanggal->format('d M Y') }} / {{ $expense->submittedBy?->name ?? '-' }}</td>
-                                        <td class="px-6 py-4 text-right whitespace-nowrap">
-                                            <button type="button" wire:click="approveNpe({{ $expense->id }})" title="Approve"
-                                                class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-green-300 hover:bg-green-50 hover:text-green-600">
-                                                <x-icon name="check" class="h-4 w-4" />
-                                            </button>
-                                            <button type="button" wire:click="openReject('npe', {{ $expense->id }})" title="Reject"
                                                 class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-red-300 hover:bg-red-50 hover:text-red-600">
                                                 <x-icon name="x-mark" class="h-4 w-4" />
                                             </button>
@@ -102,32 +80,6 @@
                                                 <x-icon name="check" class="h-4 w-4" />
                                             </button>
                                             <button type="button" wire:click="openReject('transfer', {{ $transfer->id }})" title="Reject"
-                                                class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-red-300 hover:bg-red-50 hover:text-red-600">
-                                                <x-icon name="x-mark" class="h-4 w-4" />
-                                            </button>
-                                        </td>
-                                    </tr>
-                                @endforeach
-
-                                @foreach ($this->pendingPrs as $pr)
-                                    <tr class="hover:bg-gray-50">
-                                        <td class="px-6 py-4">
-                                            <span class="inline-flex items-center rounded-full bg-amber-100 px-2 py-0.5 text-xs font-medium text-amber-700">Payment Request</span>
-                                        </td>
-                                        <td class="px-6 py-4 text-gray-700">
-                                            {{ $pr->nomor }}
-                                            <span class="text-gray-400">|</span> {{ $pr->project->kode }} - {{ $pr->project->nama }}
-                                            <span class="text-gray-400">|</span> {{ $pr->akun->kode_akun }}
-                                            @if ($pr->pihak)<span class="text-gray-400">|</span> {{ $pr->pihak }}@endif
-                                        </td>
-                                        <td class="px-6 py-4 text-right font-medium text-gray-900">{{ format_idr($pr->nominal) }}</td>
-                                        <td class="px-6 py-4 text-gray-500">{{ $pr->tanggal->format('d M Y') }} / {{ $pr->jatuh_tempo ? 'due '.$pr->jatuh_tempo->format('d M Y') : '-' }}</td>
-                                        <td class="px-6 py-4 text-right whitespace-nowrap">
-                                            <button type="button" wire:click="approvePr({{ $pr->id }})" title="Approve"
-                                                class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-green-300 hover:bg-green-50 hover:text-green-600">
-                                                <x-icon name="check" class="h-4 w-4" />
-                                            </button>
-                                            <button type="button" wire:click="openReject('pr', {{ $pr->id }})" title="Reject"
                                                 class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-red-300 hover:bg-red-50 hover:text-red-600">
                                                 <x-icon name="x-mark" class="h-4 w-4" />
                                             </button>
@@ -187,19 +139,13 @@
                                 @foreach ($this->approvedItems as $row)
                                     <tr class="hover:bg-gray-50">
                                         <td class="px-6 py-4">
-                                            <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium {{ match ($row['type']) {
-                                                'npe' => 'bg-purple-100 text-purple-700',
-                                                'transfer' => 'bg-teal-100 text-teal-700',
-                                                default => 'bg-blue-100 text-blue-700',
-                                            } }}">
-                                                {{ match ($row['type']) { 'npe' => 'Non-Project Expense', 'transfer' => 'Fund Transfer', default => 'Cash In' } }}
+                                            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $row['type'] === 'cashflow' ? 'bg-blue-100 text-blue-700' : 'bg-teal-100 text-teal-700' }}">
+                                                {{ $row['type'] === 'cashflow' ? $row['item']->jenis->label() : 'Fund Transfer' }}
                                             </span>
                                         </td>
                                         <td class="px-6 py-4 text-gray-700">
                                             @if ($row['type'] === 'cashflow')
                                                 {{ $row['item']->sumber->label() }} <span class="text-gray-400">|</span> {{ $row['item']->keterangan }}
-                                            @elseif ($row['type'] === 'npe')
-                                                {{ $row['item']->akun->kode_akun }} - {{ $row['item']->akun->nama_akun }}
                                             @else
                                                 {{ $row['item']->dariCashAccount?->kode }} <x-icon name="arrow-trending-right" class="inline h-4 w-4 text-gray-400" /> {{ $row['item']->keCashAccount?->kode }}
                                             @endif
@@ -211,13 +157,6 @@
                                                 <button type="button" wire:click="postCashflow({{ $row['item']->id }})" title="Post"
                                                     class="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-blue-700">Post</button>
                                                 <button type="button" wire:click="openReject('cashflow', {{ $row['item']->id }})" title="Reject"
-                                                    class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-red-300 hover:bg-red-50 hover:text-red-600">
-                                                    <x-icon name="x-mark" class="h-4 w-4" />
-                                                </button>
-                                            @elseif ($row['type'] === 'npe')
-                                                <button type="button" wire:click="postNpe({{ $row['item']->id }})" title="Post"
-                                                    class="rounded-lg bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-blue-700">Post</button>
-                                                <button type="button" wire:click="openReject('npe', {{ $row['item']->id }})" title="Reject"
                                                     class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-red-300 hover:bg-red-50 hover:text-red-600">
                                                     <x-icon name="x-mark" class="h-4 w-4" />
                                                 </button>

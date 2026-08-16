@@ -12,11 +12,9 @@ use App\Models\Investor;
 use App\Models\Kategori;
 use App\Models\Mandor;
 use App\Models\MonitoringPeriod;
-use App\Models\NonProjectExpense;
 use App\Models\NumberSequence;
 use App\Models\Payable;
 use App\Models\Payment;
-use App\Models\PaymentRequest;
 use App\Models\Project;
 use App\Models\ProjectAkun;
 use App\Models\Realisasi;
@@ -24,7 +22,6 @@ use App\Models\Receivable;
 use App\Models\Supplier;
 use App\Models\User;
 use App\Models\Vendor;
-use App\Services\ActualService;
 use App\Services\PayableService;
 use App\Services\PaymentService;
 use App\Services\ReceivableService;
@@ -57,13 +54,10 @@ class DummyDataSeeder extends Seeder
         $this->seedProjects();
         $this->seedAllocationSamples();
         $this->seedBudgetPlans();
-        $this->seedPaymentRequests();
         $this->seedMonitoringPeriods();
 
-        $this->syncSequenceFromMax('payment_request', (string) PaymentRequest::max('nomor'));
         $this->syncSequenceFromMax('monitoring_period', (string) MonitoringPeriod::max('nomor'));
         $this->seedCashflows();
-        $this->seedNonProjectExpenses();
         $this->seedArAp();
     }
 
@@ -461,94 +455,6 @@ class DummyDataSeeder extends Seeder
     }
 
     /**
-     * Seed payment request samples across the workflow states.
-     */
-    protected function seedPaymentRequests(): void
-    {
-        $projectA = Project::where('kode', 'PRJ-2025-001')->first();
-        $projectB = Project::where('kode', 'PRJ-2025-002')->first();
-        $vendor = Vendor::where('kode', 'VND-002')->first();
-        $vendorPeralatan = Vendor::where('kode', 'VND-003')->first();
-        $supplier = Supplier::where('kode', 'SPL-001')->first();
-        $supplierB = Supplier::where('kode', 'SPL-002')->first();
-        $admin = User::where('email', 'admin@muwira.test')->first();
-        $akunMaterial = Akun::where('nama_akun', 'Biaya Material')->first();
-        $akunTenaga = Akun::where('nama_akun', 'Biaya Tenaga Kerja')->first();
-        $akunPeralatan = Akun::where('nama_akun', 'Biaya Peralatan')->first();
-
-        $samples = [
-            [
-                'nomor' => 'PR-2026-001',
-                'project_id' => $projectA?->id,
-                'akun_id' => $akunTenaga?->id,
-                'vendor_id' => $vendor?->id,
-                'supplier_id' => null,
-                'tanggal' => '2026-07-10',
-                'jatuh_tempo' => '2026-08-10',
-                'nominal' => 60000000,
-                'prioritas' => 'medium',
-                'status' => 'draft',
-                'keterangan' => 'Upah pekerja bulan Juli',
-            ],
-            [
-                'nomor' => 'PR-2026-002',
-                'project_id' => $projectA?->id,
-                'akun_id' => $akunMaterial?->id,
-                'vendor_id' => null,
-                'supplier_id' => $supplier?->id,
-                'tanggal' => '2026-07-15',
-                'jatuh_tempo' => '2026-07-30',
-                'nominal' => 120000000,
-                'prioritas' => 'high',
-                'status' => 'waiting',
-                'keterangan' => 'Material struktur tahap 1',
-            ],
-            [
-                'nomor' => 'PR-2026-003',
-                'project_id' => $projectA?->id,
-                'akun_id' => $akunPeralatan?->id,
-                'vendor_id' => $vendorPeralatan?->id,
-                'supplier_id' => null,
-                'tanggal' => '2026-07-01',
-                'jatuh_tempo' => null,
-                'nominal' => 45000000,
-                'prioritas' => 'low',
-                'status' => 'approved',
-                'approved_by' => $admin?->id,
-                'approved_at' => '2026-07-03 09:00:00',
-                'keterangan' => 'Sewa peralatan',
-            ],
-            [
-                'nomor' => 'PR-2026-004',
-                'project_id' => $projectB?->id,
-                'akun_id' => $akunMaterial?->id,
-                'vendor_id' => null,
-                'supplier_id' => $supplierB?->id,
-                'tanggal' => '2026-06-20',
-                'jatuh_tempo' => '2026-06-25',
-                'nominal' => 50000000,
-                'prioritas' => 'medium',
-                'status' => 'paid',
-                'approved_by' => $admin?->id,
-                'approved_at' => '2026-06-22 10:00:00',
-                'paid_at' => '2026-06-25 14:00:00',
-                'keterangan' => 'Material interior',
-            ],
-        ];
-
-        foreach ($samples as $sample) {
-            if ($sample['project_id'] === null || $sample['akun_id'] === null) {
-                continue;
-            }
-
-            PaymentRequest::updateOrCreate(
-                ['nomor' => $sample['nomor']],
-                collect($sample)->except('nomor')->all(),
-            );
-        }
-    }
-
-    /**
      * Seed the monitoring periods demo data.
      */
     protected function seedMonitoringPeriods(): void
@@ -575,26 +481,35 @@ class DummyDataSeeder extends Seeder
     }
 
     /**
-     * Seed cashflow entries (cash out from paid payment request + manual pendapatan).
+     * Seed receivables for completed projects, payables from realisasi, and sample payments.
+     */
+
+    /**
+     * Seed cashflow entries (manual cash in and cash out).
      */
     protected function seedCashflows(): void
     {
-        $paidPr = PaymentRequest::where('nomor', 'PR-2026-004')->first();
+        $akunOperasional = Akun::where('nama_akun', 'like', '%Operasional%')->orWhere('nama_akun', 'like', '%Umum%')->first()
+            ?? Akun::where('jenis_akun', 'pengeluaran')->first();
 
-        if ($paidPr && Cashflow::where('sumber', 'payment_request')->where('payment_request_id', $paidPr->id)->doesntExist()) {
-            Cashflow::create([
-                'tanggal' => '2026-06-25',
-                'jenis' => 'keluar',
-                'sumber' => 'payment_request',
-                'payment_request_id' => $paidPr->id,
-                'nominal' => 50000000,
-                'keterangan' => 'Pembayaran '.$paidPr->nomor,
-            ]);
+        $keluar = [
+            ['tanggal' => now()->startOfMonth()->toDateString(), 'nominal' => 3500000, 'akun_id' => $akunOperasional?->id, 'keterangan' => 'Listrik kantor bulan berjalan'],
+            ['tanggal' => now()->startOfMonth()->subDays(20)->toDateString(), 'nominal' => 1500000, 'akun_id' => $akunOperasional?->id, 'keterangan' => 'ATK kantor'],
+        ];
+
+        foreach ($keluar as $entry) {
+            if (Cashflow::where('sumber', 'pengeluaran_lain')->where('nominal', $entry['nominal'])->where('keterangan', $entry['keterangan'])->doesntExist()) {
+                Cashflow::create([
+                    'tanggal' => $entry['tanggal'],
+                    'jenis' => 'keluar',
+                    'sumber' => 'pengeluaran_lain',
+                    'akun_id' => $entry['akun_id'],
+                    'nominal' => $entry['nominal'],
+                    'keterangan' => $entry['keterangan'],
+                ]);
+            }
         }
 
-        if ($paidPr && Realisasi::where('sumber', Realisasi::SUMBER_PAYMENT_REQUEST)->where('sumber_id', $paidPr->id)->doesntExist()) {
-            app(ActualService::class)->recordFromPaymentRequest($paidPr);
-        }
         $pendapatan = [
             ['tanggal' => '2026-07-05', 'nominal' => 250000000, 'keterangan' => 'Pendapatan termin 1 Pembangunan Gedung Kantor'],
             ['tanggal' => '2026-06-28', 'nominal' => 100000000, 'keterangan' => 'Pendapatan Renovasi Ruang Rapat'],
@@ -606,40 +521,10 @@ class DummyDataSeeder extends Seeder
                     'tanggal' => $entry['tanggal'],
                     'jenis' => 'masuk',
                     'sumber' => 'pendapatan',
-                    'payment_request_id' => null,
                     'nominal' => $entry['nominal'],
                     'keterangan' => $entry['keterangan'],
                 ]);
             }
-        }
-    }
-
-    /**
-     * Seed receivables for completed projects, payables from realisasi, and sample payments.
-     */
-
-    /**
-     * Seed demo non-project expenses (outside projects).
-     */
-    protected function seedNonProjectExpenses(): void
-    {
-        $akun = Akun::where('nama_akun', 'like', '%Operasional%')->orWhere('nama_akun', 'like', '%Umum%')->first()
-            ?? Akun::where('jenis_akun', 'pengeluaran')->first();
-
-        if ($akun === null) {
-            return;
-        }
-
-        $samples = [
-            ['tanggal' => now()->startOfMonth()->toDateString(), 'nominal' => 3500000, 'keterangan' => 'Listrik kantor bulan berjalan'],
-            ['tanggal' => now()->startOfMonth()->subDays(20)->toDateString(), 'nominal' => 1500000, 'keterangan' => 'ATK kantor'],
-        ];
-
-        foreach ($samples as $sample) {
-            NonProjectExpense::firstOrCreate(
-                ['tanggal' => $sample['tanggal'], 'akun_id' => $akun->id, 'nominal' => $sample['nominal'], 'keterangan' => $sample['keterangan']],
-                ['created_by' => null],
-            );
         }
     }
 

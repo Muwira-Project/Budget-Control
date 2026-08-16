@@ -6,7 +6,6 @@ use App\Livewire\Concerns\BulkSelection;
 use App\Livewire\Concerns\PerPagePagination;
 use App\Models\Mandor;
 use App\Models\Payable;
-use App\Models\PaymentRequest;
 use App\Models\Realisasi;
 use App\Services\MandorService;
 use Illuminate\Pagination\LengthAwarePaginator;
@@ -25,14 +24,13 @@ class Index extends Component
     protected function isUsed(Mandor $mandor): bool
     {
         return Realisasi::where('mandor_id', $mandor->id)->exists()
-            || Payable::where('mandor_id', $mandor->id)->exists()
-            || PaymentRequest::where('mandor_id', $mandor->id)->exists();
+            || Payable::where('mandor_id', $mandor->id)->exists();
     }
 
     public function delete(Mandor $mandor, MandorService $service): void
     {
         if ($this->isUsed($mandor)) {
-            session()->flash('error', 'Mandor is still used in actuals, payables, or payment requests and cannot be deleted.');
+            session()->flash('error', 'Mandor is still used in actuals or payables and cannot be deleted.');
 
             return;
         }

@@ -2,6 +2,7 @@
 
 namespace App\Providers;
 
+use App\Models\MasterType;
 use App\Services\CompanySettingService;
 use App\Support\SqliteFileDumper;
 use Illuminate\Database\Eloquent\Model;
@@ -36,6 +37,17 @@ class AppServiceProvider extends ServiceProvider
             View::share('companyName', $settings->company_name);
             View::share('companyAddress', $settings->company_address);
             View::share('companyLogoUrl', $settings->logo_url);
+        }
+
+        if (Schema::hasTable('master_types')) {
+            View::composer('components.sidebar-menu', function ($view): void {
+                $view->with('masterMenus', MasterType::query()
+                    ->where('aktif', true)
+                    ->where('is_system', false)
+                    ->orderBy('sort')
+                    ->orderBy('nama')
+                    ->get());
+            });
         }
     }
 }

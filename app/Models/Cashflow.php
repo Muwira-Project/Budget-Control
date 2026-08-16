@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
-#[Fillable(['tanggal', 'jenis', 'sumber', 'payment_request_id', 'payment_id', 'non_project_expense_id', 'cash_account_id', 'nominal', 'keterangan', 'status', 'submitted_by', 'approved_by', 'approved_at', 'posted_by', 'posted_at', 'rejected_by', 'rejected_at', 'rejection_reason', 'created_by'])]
+#[Fillable(['tanggal', 'jenis', 'sumber', 'payment_id', 'cash_account_id', 'akun_id', 'nominal', 'keterangan', 'status', 'submitted_by', 'approved_by', 'approved_at', 'posted_by', 'posted_at', 'rejected_by', 'rejected_at', 'rejection_reason', 'created_by'])]
 class Cashflow extends Model
 {
     /**
@@ -66,14 +66,6 @@ class Cashflow extends Model
     }
 
     /**
-     * Get the payment request that triggered this cashflow entry.
-     */
-    public function paymentRequest(): BelongsTo
-    {
-        return $this->belongsTo(PaymentRequest::class);
-    }
-
-    /**
      * Get the payment (settlement) that triggered this cashflow entry.
      */
     public function payment(): BelongsTo
@@ -82,19 +74,19 @@ class Cashflow extends Model
     }
 
     /**
-     * Get the non-project expense that triggered this cashflow entry.
-     */
-    public function nonProjectExpense(): BelongsTo
-    {
-        return $this->belongsTo(NonProjectExpense::class);
-    }
-
-    /**
      * Get the cash account (rekening) that holds this entry.
      */
     public function cashAccount(): BelongsTo
     {
         return $this->belongsTo(CashAccount::class);
+    }
+
+    /**
+     * Get the expense/revenue account (COA) linked to this entry.
+     */
+    public function akun(): BelongsTo
+    {
+        return $this->belongsTo(Akun::class);
     }
 
     /**
@@ -135,9 +127,7 @@ class Cashflow extends Model
      */
     public function isManual(): bool
     {
-        return $this->payment_request_id === null
-            && $this->payment_id === null
-            && $this->non_project_expense_id === null;
+        return $this->payment_id === null;
     }
 
     /**

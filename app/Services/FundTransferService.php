@@ -88,6 +88,8 @@ class FundTransferService
             'posted_at' => now(),
         ]);
 
+        app(VoucherService::class)->generateForFundTransfer($transfer);
+
         return $transfer->refresh();
     }
 

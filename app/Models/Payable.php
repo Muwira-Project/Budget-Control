@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['project_id', 'realisasi_id', 'payment_request_id', 'akun_id', 'vendor_id', 'supplier_id', 'mandor_id', 'investor_id', 'tanggal', 'jatuh_tempo', 'nominal', 'jenis_pajak', 'pajak_include', 'nominal_dibayar', 'keterangan'])]
+#[Fillable(['project_id', 'realisasi_id', 'akun_id', 'vendor_id', 'supplier_id', 'mandor_id', 'investor_id', 'tanggal', 'jatuh_tempo', 'nominal', 'jenis_pajak', 'pajak_include', 'nominal_dibayar', 'keterangan'])]
 class Payable extends Model
 {
     /** @use HasFactory<PayableFactory> */
@@ -87,13 +87,6 @@ class Payable extends Model
     }
 
     /**
-     * Get the payment request that generated this payable (when synced).
-     */
-    public function paymentRequest(): BelongsTo
-    {
-        return $this->belongsTo(PaymentRequest::class);
-    }
-
     /**
      * Get the master akun.
      */

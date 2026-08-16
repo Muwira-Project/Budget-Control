@@ -56,6 +56,7 @@ class Index extends Component
         return [
             'masuk' => 'Income',
             'keluar' => 'Expense',
+            'transfer' => 'Fund Transfer',
         ];
     }
 

@@ -25,7 +25,6 @@ class CashflowFactory extends Factory
             'jenis' => fake()->randomElement([CashflowJenis::Masuk, CashflowJenis::Keluar]),
             'sumber' => CashflowSumber::Pendapatan,
             'status' => KasStatus::Posted,
-            'payment_request_id' => null,
             'nominal' => fake()->numberBetween(1_000_000, 200_000_000),
             'keterangan' => fake()->optional()->sentence(),
         ];

@@ -20,6 +20,7 @@ class MasterItemService
             'kode' => $data['kode'],
             'nama' => $data['nama'],
             'keterangan' => $data['keterangan'] ?? null,
+            'data' => $data['data'] ?? null,
             'aktif' => $data['aktif'] ?? true,
         ]);
     }
@@ -31,7 +32,13 @@ class MasterItemService
      */
     public function update(MasterItem $item, array $data): MasterItem
     {
-        $item->update($data);
+        $item->update([
+            'kode' => $data['kode'],
+            'nama' => $data['nama'],
+            'keterangan' => $data['keterangan'] ?? null,
+            'data' => $data['data'] ?? null,
+            'aktif' => $data['aktif'] ?? true,
+        ]);
 
         return $item->refresh();
     }

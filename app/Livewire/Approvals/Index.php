@@ -5,13 +5,9 @@ namespace App\Livewire\Approvals;
 use App\Enums\KasStatus;
 use App\Models\Cashflow;
 use App\Models\FundTransfer;
-use App\Models\NonProjectExpense;
 use App\Models\Payment;
-use App\Models\PaymentRequest;
 use App\Services\CashflowService;
 use App\Services\FundTransferService;
-use App\Services\NonProjectExpenseService;
-use App\Services\PaymentRequestService;
 use App\Services\PaymentService;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
@@ -62,40 +58,6 @@ class Index extends Component
     }
 
     /**
-     * Approve a waiting non-project expense.
-     */
-    public function approveNpe(int $id, NonProjectExpenseService $service): void
-    {
-        if (! $this->isAdmin()) {
-            return;
-        }
-
-        try {
-            $service->approve(NonProjectExpense::findOrFail($id));
-            session()->flash('status', 'Non-project expense approved.');
-        } catch (\LogicException $exception) {
-            session()->flash('error', $exception->getMessage());
-        }
-    }
-
-    /**
-     * Post an approved non-project expense.
-     */
-    public function postNpe(int $id, NonProjectExpenseService $service): void
-    {
-        if (! $this->isAdmin()) {
-            return;
-        }
-
-        try {
-            $service->post(NonProjectExpense::findOrFail($id));
-            session()->flash('status', 'Non-project expense posted to Cash Activity.');
-        } catch (\LogicException $exception) {
-            session()->flash('error', $exception->getMessage());
-        }
-    }
-
-    /**
      * Approve a waiting fund transfer.
      */
     public function approveTransfer(int $id, FundTransferService $service): void
@@ -130,48 +92,6 @@ class Index extends Component
     }
 
     /**
-     * Approve a waiting payment request.
-     */
-    public function approvePr(int $id, PaymentRequestService $service): void
-    {
-        if (! $this->isAdmin()) {
-            return;
-        }
-
-        $pr = PaymentRequest::findOrFail($id);
-
-        if ($pr->status->value !== 'waiting') {
-            session()->flash('error', 'Only payment requests awaiting approval can be approved.');
-
-            return;
-        }
-
-        $service->approve($pr);
-        session()->flash('status', 'Payment request approved.');
-    }
-
-    /**
-     * Reject a waiting payment request.
-     */
-    public function rejectPr(int $id, PaymentRequestService $service): void
-    {
-        if (! $this->isAdmin()) {
-            return;
-        }
-
-        $pr = PaymentRequest::findOrFail($id);
-
-        if ($pr->status->value !== 'waiting') {
-            session()->flash('error', 'Only payment requests awaiting approval can be rejected.');
-
-            return;
-        }
-
-        $service->reject($pr);
-        session()->flash('status', 'Payment request rejected.');
-    }
-
-    /**
      * Approve a pending settlement cancellation request.
      */
     public function approveVoid(int $id, PaymentService $service): void
@@ -203,9 +123,7 @@ class Index extends Component
      */
     public function confirmReject(
         CashflowService $cashflowService,
-        NonProjectExpenseService $npeService,
         FundTransferService $transferService,
-        PaymentRequestService $prService,
         PaymentService $paymentService,
     ): void {
         if (! $this->isAdmin() || $this->rejectingType === null || $this->rejectingId === null) {
@@ -221,9 +139,7 @@ class Index extends Component
         try {
             match ($this->rejectingType) {
                 'cashflow' => $cashflowService->reject(Cashflow::findOrFail($this->rejectingId), trim($this->rejectNote)),
-                'npe' => $npeService->reject(NonProjectExpense::findOrFail($this->rejectingId), trim($this->rejectNote)),
                 'transfer' => $transferService->reject(FundTransfer::findOrFail($this->rejectingId), trim($this->rejectNote)),
-                'pr' => $prService->reject(PaymentRequest::findOrFail($this->rejectingId)),
                 'void' => $paymentService->rejectVoid(Payment::findOrFail($this->rejectingId), trim($this->rejectNote)),
                 default => null,
             };
@@ -245,22 +161,7 @@ class Index extends Component
         return Cashflow::query()
             ->with(['cashAccount', 'submittedBy'])
             ->where('status', KasStatus::Waiting)
-            ->where('payment_request_id', null)
             ->where('payment_id', null)
-            ->where('non_project_expense_id', null)
-            ->orderByDesc('tanggal')
-            ->get();
-    }
-
-    /**
-     * Waiting non-project expenses.
-     */
-    #[Computed]
-    public function pendingNpes(): Collection
-    {
-        return NonProjectExpense::query()
-            ->with(['akun', 'vendor', 'supplier', 'mandor', 'investor', 'submittedBy'])
-            ->where('status', KasStatus::Waiting)
             ->orderByDesc('tanggal')
             ->get();
     }
@@ -274,19 +175,6 @@ class Index extends Component
         return FundTransfer::query()
             ->with(['dariCashAccount', 'keCashAccount', 'submittedBy'])
             ->where('status', KasStatus::Waiting)
-            ->orderByDesc('tanggal')
-            ->get();
-    }
-
-    /**
-     * Waiting payment requests.
-     */
-    #[Computed]
-    public function pendingPrs(): Collection
-    {
-        return PaymentRequest::query()
-            ->with(['project', 'akun', 'vendor', 'supplier', 'mandor', 'investor'])
-            ->where('status', 'waiting')
             ->orderByDesc('tanggal')
             ->get();
     }
@@ -314,18 +202,10 @@ class Index extends Component
             ->merge(Cashflow::query()
                 ->with(['cashAccount', 'approvedBy'])
                 ->where('status', KasStatus::Approved)
-                ->where('payment_request_id', null)
                 ->where('payment_id', null)
-                ->where('non_project_expense_id', null)
                 ->orderByDesc('tanggal')
                 ->get()
                 ->map(fn (Cashflow $item) => ['type' => 'cashflow', 'item' => $item]))
-            ->merge(NonProjectExpense::query()
-                ->with(['akun', 'vendor', 'supplier', 'approvedBy'])
-                ->where('status', KasStatus::Approved)
-                ->orderByDesc('tanggal')
-                ->get()
-                ->map(fn (NonProjectExpense $item) => ['type' => 'npe', 'item' => $item]))
             ->merge(FundTransfer::query()
                 ->with(['dariCashAccount', 'keCashAccount', 'approvedBy'])
                 ->where('status', KasStatus::Approved)
@@ -342,9 +222,7 @@ class Index extends Component
     public function hasPending(): bool
     {
         return $this->pendingCashflows->isNotEmpty()
-            || $this->pendingNpes->isNotEmpty()
             || $this->pendingTransfers->isNotEmpty()
-            || $this->pendingPrs->isNotEmpty()
             || $this->pendingVoids->isNotEmpty();
     }
 

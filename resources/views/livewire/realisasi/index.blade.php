@@ -63,7 +63,7 @@
                                 <tr class="hover:bg-gray-50">
                                     <td class="px-6 py-4 text-gray-700 whitespace-nowrap">{{ $item->tanggal->format('d M Y') }}</td>
                                     <td class="px-6 py-4">
-                                        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $item->sumber === \App\Models\Realisasi::SUMBER_PAYMENT_REQUEST ? 'bg-blue-100 text-blue-700' : ($item->sumber === \App\Models\Realisasi::SUMBER_AP_PAYMENT ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-700') }}">
+                                        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $item->sumber === \App\Models\Realisasi::SUMBER_AP_PAYMENT ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-700' }}">
                                             {{ $item->sumber_label }}
                                         </span>
                                     </td>

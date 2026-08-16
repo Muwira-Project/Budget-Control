@@ -9,6 +9,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 
 #[Fillable(['tanggal', 'dari_cash_account_id', 'ke_cash_account_id', 'nominal', 'keterangan', 'created_by', 'status', 'submitted_by', 'approved_by', 'approved_at', 'posted_by', 'posted_at', 'rejected_by', 'rejected_at', 'rejection_reason'])]
 class FundTransfer extends Model
@@ -57,6 +58,14 @@ class FundTransfer extends Model
     public function keCashAccount(): BelongsTo
     {
         return $this->belongsTo(CashAccount::class, 'ke_cash_account_id');
+    }
+
+    /**
+     * Get the voucher issued for this transfer.
+     */
+    public function voucher(): HasOne
+    {
+        return $this->hasOne(Voucher::class);
     }
 
     public function createdBy(): BelongsTo

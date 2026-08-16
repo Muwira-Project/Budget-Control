@@ -9,7 +9,6 @@
     $usagePercent = $totalBudget > 0 ? min(100, round($totalRealisasi / $totalBudget * 100, 1)) : 0;
     $kategoriTotal = array_sum($stats['kategori_breakdown'] ?? []);
     $categoryHues = ['emerald','teal','cyan','sky','indigo','fuchsia'];
-    $pr = $this->paymentRequestSummary;
 @endphp
 
 <div class="space-y-6">
@@ -18,13 +17,13 @@
         <div class="flex flex-col gap-6 p-6 lg:flex-row lg:items-center lg:justify-between lg:p-8">
             <div>
                 <p class="text-xs font-semibold uppercase tracking-[0.22em] text-emerald-300">Financial Workspace</p>
-                <h1 class="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">{{ $companyName ?? 'MyFinance' }} — Budget Control</h1>
+                <h1 class="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">{{ $companyName ?? 'MyFinance' }} Ã¢â‚¬â€ Budget Control</h1>
                 <p class="mt-1.5 max-w-xl text-sm text-emerald-100/90">Financial overview and budget monitoring across projects, accounts, and periods.</p>
                 <div class="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-emerald-100/90">
                     <span class="inline-flex items-center gap-1.5">
                         <x-icon name="calendar" class="h-4 w-4 text-emerald-300" />
                         @if ($this->activePeriod)
-                            {{ $this->activePeriod->nomor }} Â· {{ $this->activePeriod->periode_label }}
+                            {{ $this->activePeriod->nomor }} Ãƒâ€šÃ‚Â· {{ $this->activePeriod->periode_label }}
                         @else
                             No active period
                         @endif
@@ -32,7 +31,7 @@
                     <span class="inline-flex items-center gap-1.5">
                         <x-icon name="briefcase" class="h-4 w-4 text-emerald-300" />
                         @if ($this->activeProject)
-                            {{ $this->activeProject->kode }} Â· {{ $this->activeProject->nama }}
+                            {{ $this->activeProject->kode }} Ãƒâ€šÃ‚Â· {{ $this->activeProject->nama }}
                         @else
                             No project yet
                         @endif
@@ -58,7 +57,7 @@
                 </div>
                 @if ($this->startDate || $this->endDate)
                     <div class="mt-2 flex items-center justify-between gap-2 text-xs text-emerald-100">
-                        <span>Filter active: <strong>{{ $this->startDate ?? '...' }}</strong> → <strong>{{ $this->endDate ?? '...' }}</strong></span>
+                        <span>Filter active: <strong>{{ $this->startDate ?? '...' }}</strong> Ã¢â€ â€™ <strong>{{ $this->endDate ?? '...' }}</strong></span>
                         <button type="button" wire:click="$set('startDate', null); $set('endDate', null)" class="rounded-md bg-white/10 px-2 py-0.5 font-medium hover:bg-white/20">Clear</button>
                     </div>
                 @endif
@@ -120,7 +119,7 @@
                         <h3 class="flex items-center gap-2 font-semibold text-slate-900"><x-icon name="coins" class="h-5 w-5 text-brand-600" /> Cashflow Summary</h3>
                         <p class="mt-0.5 text-sm text-slate-500">Cash basis - income, expense, and net cash position</p>
                     </div>
-                    <a href="{{ route('cashflows.index') }}" wire:navigate class="text-xs font-semibold text-brand-600 hover:text-brand-700">View all →</a>
+                    <a href="{{ route('cashflows.index') }}" wire:navigate class="text-xs font-semibold text-brand-600 hover:text-brand-700">View all Ã¢â€ â€™</a>
                 </div>
                 <div class="space-y-4 p-5">
                     <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -154,9 +153,9 @@
                 <div class="flex items-center justify-between border-b border-slate-100 px-5 py-4">
                     <div>
                         <h3 class="flex items-center gap-2 font-semibold text-slate-900"><x-icon name="briefcase" class="h-5 w-5 text-brand-600" /> Project Overview</h3>
-                        <p class="mt-0.5 text-sm text-slate-500">Budget, actual, variance, and progress per project (Accrual basis) — klik baris untuk rincian</p>
+                        <p class="mt-0.5 text-sm text-slate-500">Budget, actual, variance, and progress per project (Accrual basis) Ã¢â‚¬â€ klik baris untuk rincian</p>
                     </div>
-                    <a href="{{ route('projects.index') }}" wire:navigate class="text-xs font-semibold text-brand-600 hover:text-brand-700">View all →</a>
+                    <a href="{{ route('projects.index') }}" wire:navigate class="text-xs font-semibold text-brand-600 hover:text-brand-700">View all Ã¢â€ â€™</a>
                 </div>
                 <div class="overflow-x-auto">
                     <table class="data-table min-w-full">
@@ -210,7 +209,7 @@
                         <h3 class="flex items-center gap-2 font-semibold text-slate-900"><x-icon name="history" class="h-5 w-5 text-brand-600" /> Recent Activity</h3>
                         <p class="mt-0.5 text-sm text-slate-500">Latest actions in the workspace</p>
                     </div>
-                    <a href="{{ route('audit-log.index') }}" wire:navigate class="text-xs font-semibold text-brand-600 hover:text-brand-700">View all →</a>
+                    <a href="{{ route('audit-log.index') }}" wire:navigate class="text-xs font-semibold text-brand-600 hover:text-brand-700">View all Ã¢â€ â€™</a>
                 </div>
                 <div class="divide-y divide-slate-100">
                     @forelse ($this->recentActivities as $activity)
@@ -222,7 +221,7 @@
                             <span class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full {{ $tone }}"><x-icon :name="$icon" class="h-4 w-4" /></span>
                             <div class="min-w-0 flex-1">
                                 <p class="line-clamp-1 text-sm text-slate-700">{{ $activity->description ?: ucfirst($activity->action) . ' ' . class_basename($activity->subject_type) }}</p>
-                                <p class="mt-0.5 text-xs text-slate-400">{{ $activity->user?->name ?? 'System' }} Â· {{ $activity->created_at->diffForHumans() }}</p>
+                                <p class="mt-0.5 text-xs text-slate-400">{{ $activity->user?->name ?? 'System' }} Ãƒâ€šÃ‚Â· {{ $activity->created_at->diffForHumans() }}</p>
                             </div>
                         </div>
                     @empty
@@ -237,7 +236,7 @@
             <div class="flex flex-col gap-1 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
                     <h3 class="flex items-center gap-2 font-semibold text-slate-900"><x-icon name="tag" class="h-5 w-5 text-brand-600" /> Actual per Category</h3>
-                    <p class="mt-0.5 text-sm text-slate-500">Budgeting categories — klik baris untuk rincian transaksi</p>
+                    <p class="mt-0.5 text-sm text-slate-500">Budgeting categories Ã¢â‚¬â€ klik baris untuk rincian transaksi</p>
                 </div>
                 <span class="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-emerald-100">Total {{ format_idr($totalRealisasi) }}</span>
             </div>
@@ -268,31 +267,26 @@
 
         {{-- ============ SECTION 6: PAYMENT + AR/AP ============ --}}
         <section class="grid grid-cols-1 gap-4 lg:grid-cols-2">
-            {{-- Payment Request --}}
+            {{-- Cash Activity --}}
             <div class="app-card overflow-hidden">
                 <div class="flex items-center justify-between border-b border-slate-100 px-5 py-4">
                     <div>
-                        <h3 class="flex items-center gap-2 font-semibold text-slate-900"><x-icon name="credit-card" class="h-5 w-5 text-brand-600" /> Payment Request</h3>
-                        <p class="mt-0.5 text-sm text-slate-500">Requests by approval status</p>
+                        <h3 class="flex items-center gap-2 font-semibold text-slate-900"><x-icon name="wallet" class="h-5 w-5 text-brand-600" /> Cash Activity</h3>
+                        <p class="mt-0.5 text-sm text-slate-500">Cash In, Cash Out & Fund Transfer</p>
                     </div>
-                    <a href="{{ route('payment-requests.index') }}" wire:navigate class="text-xs font-semibold text-brand-600 hover:text-brand-700">View all →</a>
+                    <a href="{{ route('cashflows.index') }}" wire:navigate class="text-xs font-semibold text-brand-600 hover:text-brand-700">View all &rarr;</a>
                 </div>
-                <div class="grid grid-cols-3 gap-3 p-5">
-                    <a href="{{ route('payment-requests.index') }}" wire:navigate class="rounded-lg bg-amber-50 p-3 text-center ring-1 ring-amber-100 transition hover:bg-amber-100/70">
-                        <p class="text-2xl font-bold text-amber-700">{{ $pr['pending'] }}</p>
-                        <p class="text-[11px] font-semibold uppercase tracking-wider text-amber-600">Pending</p>
+                <div class="grid grid-cols-2 gap-3 p-5">
+                    <a href="{{ route('cashflows.index') }}" wire:navigate class="rounded-lg bg-emerald-50 p-3 text-center ring-1 ring-emerald-100 transition hover:bg-emerald-100/70">
+                        <p class="text-2xl font-bold text-emerald-700">{{ format_idr($stats['cash_in'] ?? 0) }}</p>
+                        <p class="text-[11px] font-semibold uppercase tracking-wider text-emerald-600">Cash In</p>
                     </a>
-                    <a href="{{ route('payment-requests.index') }}" wire:navigate class="rounded-lg bg-emerald-50 p-3 text-center ring-1 ring-emerald-100 transition hover:bg-emerald-100/70">
-                        <p class="text-2xl font-bold text-emerald-700">{{ $pr['approved'] }}</p>
-                        <p class="text-[11px] font-semibold uppercase tracking-wider text-emerald-600">Approved</p>
-                    </a>
-                    <a href="{{ route('payment-requests.index') }}" wire:navigate class="rounded-lg bg-red-50 p-3 text-center ring-1 ring-red-100 transition hover:bg-red-100/70">
-                        <p class="text-2xl font-bold text-red-700">{{ $pr['rejected'] }}</p>
-                        <p class="text-[11px] font-semibold uppercase tracking-wider text-red-600">Rejected</p>
+                    <a href="{{ route('cashflows.index') }}" wire:navigate class="rounded-lg bg-red-50 p-3 text-center ring-1 ring-red-100 transition hover:bg-red-100/70">
+                        <p class="text-2xl font-bold text-red-700">{{ format_idr($stats['cash_out'] ?? 0) }}</p>
+                        <p class="text-[11px] font-semibold uppercase tracking-wider text-red-600">Cash Out</p>
                     </a>
                 </div>
             </div>
-
             {{-- Receivable & Payable --}}
             <div class="app-card overflow-hidden">
                 <div class="flex items-center justify-between border-b border-slate-100 px-5 py-4">
@@ -324,7 +318,7 @@
                 <div class="flex items-center justify-between border-b border-slate-100 px-6 py-4">
                     <div>
                         <p class="text-xs font-bold uppercase tracking-[0.16em] text-brand-600">Project Detail</p>
-                        <h3 class="mt-0.5 font-semibold text-slate-900">{{ $this->selectedProject->kode }} — {{ $this->selectedProject->nama }}</h3>
+                        <h3 class="mt-0.5 font-semibold text-slate-900">{{ $this->selectedProject->kode }} Ã¢â‚¬â€ {{ $this->selectedProject->nama }}</h3>
                     </div>
                     <button type="button" wire:click="closeDetails" class="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100"><x-icon name="x-mark" class="h-5 w-5" /></button>
                 </div>
@@ -367,7 +361,7 @@
                     <div>
                         <p class="text-xs font-bold uppercase tracking-[0.16em] text-brand-600">Category Detail</p>
                         <h3 class="mt-0.5 font-semibold text-slate-900">{{ $this->selectedCategoryName }}</h3>
-                        <p class="mt-1 text-xs text-slate-500">Filter {{ $this->startDate ?? '...' }} → {{ $this->endDate ?? '...' }}</p>
+                        <p class="mt-1 text-xs text-slate-500">Filter {{ $this->startDate ?? '...' }} Ã¢â€ â€™ {{ $this->endDate ?? '...' }}</p>
                     </div>
                     <button type="button" wire:click="closeDetails" class="rounded-lg p-1.5 text-slate-500 hover:bg-slate-100"><x-icon name="x-mark" class="h-5 w-5" /></button>
                 </div>

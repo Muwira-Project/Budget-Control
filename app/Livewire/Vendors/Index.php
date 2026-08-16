@@ -5,7 +5,6 @@ namespace App\Livewire\Vendors;
 use App\Livewire\Concerns\BulkSelection;
 use App\Livewire\Concerns\PerPagePagination;
 use App\Models\Payable;
-use App\Models\PaymentRequest;
 use App\Models\Realisasi;
 use App\Models\Vendor;
 use App\Services\VendorService;
@@ -28,11 +27,10 @@ class Index extends Component
     public function delete(Vendor $vendor, VendorService $service): void
     {
         $used = Realisasi::where('vendor_id', $vendor->id)->exists()
-            || Payable::where('vendor_id', $vendor->id)->exists()
-            || PaymentRequest::where('vendor_id', $vendor->id)->exists();
+            || Payable::where('vendor_id', $vendor->id)->exists();
 
         if ($used) {
-            session()->flash('error', 'Vendor is still used in actuals, payables, or payment requests and cannot be deleted.');
+            session()->flash('error', 'Vendor is still used in actuals or payables and cannot be deleted.');
 
             return;
         }
@@ -76,8 +74,7 @@ class Index extends Component
                 continue;
             }
             $used = Realisasi::where('vendor_id', $vendor->id)->exists()
-                || Payable::where('vendor_id', $vendor->id)->exists()
-                || PaymentRequest::where('vendor_id', $vendor->id)->exists();
+                || Payable::where('vendor_id', $vendor->id)->exists();
             if ($used) {
                 $skipped++;
 

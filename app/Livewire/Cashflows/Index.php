@@ -19,15 +19,41 @@ class Index extends Component
 {
     use BulkSelection, PerPagePagination, WithPagination;
 
+    public string $tab = 'cash-in';
+
     public ?string $startDate = null;
 
     public ?string $endDate = null;
 
-    public string $jenisFilter = '';
-
     public string $sumberFilter = '';
 
     public ?int $cashAccountId = null;
+
+    public ?int $voucherId = null;
+
+    /**
+     * Reset pagination when the active tab changes.
+     */
+    public function updatedTab(): void
+    {
+        $this->resetPage();
+    }
+
+    /**
+     * Show the voucher for a posted cash entry.
+     */
+    public function viewVoucher(int $id): void
+    {
+        $this->voucherId = $id;
+    }
+
+    /**
+     * Close the voucher modal.
+     */
+    public function closeVoucher(): void
+    {
+        $this->voucherId = null;
+    }
 
     /**
      * Submit a draft manual cashflow entry for admin approval.
@@ -54,7 +80,7 @@ class Index extends Component
     public function delete(Cashflow $cashflow, CashflowService $service): void
     {
         if (! $cashflow->isManual()) {
-            session()->flash('error', 'Records created automatically from payment requests cannot be deleted.');
+            session()->flash('error', 'Records created automatically from settlements cannot be deleted.');
 
             return;
         }
@@ -77,11 +103,6 @@ class Index extends Component
         $this->resetPage();
     }
 
-    public function updatedJenisFilter(): void
-    {
-        $this->resetPage();
-    }
-
     public function updatedSumberFilter(): void
     {
         $this->resetPage();
@@ -93,19 +114,32 @@ class Index extends Component
     }
 
     /**
-     * The paginated list of cash activity entries.
+     * The jenis derived from the active tab (null for non-cash tabs).
+     */
+    #[Computed]
+    public function jenisForTab(): ?string
+    {
+        return match ($this->tab) {
+            'cash-in' => CashflowJenis::Masuk->value,
+            'cash-out' => CashflowJenis::Keluar->value,
+            default => null,
+        };
+    }
+
+    /**
+     * The paginated list of cash activity entries for the active tab.
      */
     #[Computed]
     public function cashflows(): LengthAwarePaginator
     {
-        if ($this->dateRangeInvalid) {
+        if ($this->jenisForTab === null || $this->dateRangeInvalid) {
             return Cashflow::query()->whereRaw('0 = 1')->paginate(10);
         }
 
         return app(CashflowService::class)->paginate(
             $this->startDate,
             $this->endDate,
-            $this->jenisFilter !== '' ? $this->jenisFilter : null,
+            $this->jenisForTab,
             $this->sumberFilter !== '' ? $this->sumberFilter : null,
             $this->cashAccountId,
             $this->perPage,
@@ -113,7 +147,7 @@ class Index extends Component
     }
 
     /**
-     * Cash activity totals for the selected filters.
+     * Cash activity totals for the selected tab and filters.
      *
      * @return array{total_masuk: float, total_keluar: float, saldo: float, saldo_rekening: float|null}
      */
@@ -127,7 +161,7 @@ class Index extends Component
         return app(CashflowService::class)->statistics(
             $this->startDate,
             $this->endDate,
-            $this->jenisFilter !== '' ? $this->jenisFilter : null,
+            $this->jenisForTab,
             $this->sumberFilter !== '' ? $this->sumberFilter : null,
             $this->cashAccountId,
         );
@@ -145,20 +179,6 @@ class Index extends Component
     }
 
     /**
-     * The cashflow jenis options for filtering.
-     *
-     * @return array<string, string>
-     */
-    #[Computed]
-    public function jenisOptions(): array
-    {
-        return [
-            'masuk' => CashflowJenis::Masuk->label(),
-            'keluar' => CashflowJenis::Keluar->label(),
-        ];
-    }
-
-    /**
      * The cashflow sumber options for filtering.
      *
      * @return array<string, string>
@@ -167,11 +187,10 @@ class Index extends Component
     public function sumberOptions(): array
     {
         return [
-            'payment_request' => 'Payment Request',
             'pendapatan' => 'Income',
             'pelunasan_ar' => 'AR Settlement',
             'pelunasan_ap' => 'AP Settlement',
-            'non_project_expense' => 'Non-Project Expense',
+            'pengeluaran_lain' => 'Other Expense',
         ];
     }
 
@@ -181,7 +200,7 @@ class Index extends Component
     #[Computed]
     public function cashAccounts()
     {
-        return CashAccount::query()->orderBy('kode')->get();
+        return CashAccount::query()->where('status', 'active')->orderBy('kode')->get();
     }
 
     protected function bulkCollectionProperty(): string
@@ -189,32 +208,24 @@ class Index extends Component
         return 'cashflows';
     }
 
+    /**
+     * Bulk delete non-posted manual cash entries.
+     */
     public function deleteSelected(CashflowService $service): void
     {
         $deleted = 0;
-        $skipped = 0;
         foreach ($this->selectedIds as $id) {
             if (! $cashflow = Cashflow::find($id)) {
                 continue;
             }
             if (! $cashflow->isManual() || $cashflow->isPosted()) {
-                $skipped++;
-
                 continue;
             }
-
-            try {
-                $service->delete($cashflow);
-                $deleted++;
-            } catch (\LogicException) {
-                $skipped++;
-            }
+            $service->delete($cashflow);
+            $deleted++;
         }
         $this->selectedIds = [];
         session()->flash('status', $deleted.' cash record(s) deleted.');
-        if ($skipped > 0) {
-            session()->flash('error', $skipped.' automatic record(s) cannot be deleted.');
-        }
     }
 
     public function render()
