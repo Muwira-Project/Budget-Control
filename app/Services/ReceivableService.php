@@ -74,6 +74,7 @@ class ReceivableService
 
         return $receivable->refresh();
     }
+
     /**
      * Delete a receivable (payments are removed by the database cascade).
      */

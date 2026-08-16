@@ -28,6 +28,7 @@ class StoreCashflowRequest extends FormRequest
             'sumber' => ['required', Rule::in(['pendapatan'])],
             'nominal' => ['required', 'numeric', 'min:0'],
             'keterangan' => ['nullable', 'string', 'max:1000'],
+            'cash_account_id' => ['nullable', 'integer', 'exists:cash_accounts,id'],
         ];
     }
 }

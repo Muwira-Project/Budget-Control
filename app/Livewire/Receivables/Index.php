@@ -91,6 +91,7 @@ class Index extends Component
 
         session()->flash('status', 'Receivable released.');
     }
+
     /**
      * Reset the pagination when the project filter changes.
      */

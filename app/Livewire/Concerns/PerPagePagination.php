@@ -20,9 +20,13 @@ trait PerPagePagination
 
     /**
      * Reset the paginator when the page size changes.
+     *
+     * The value is clamped to the allowed range (1-100) so a tampered
+     * request cannot force an unbounded pagination query.
      */
     public function updatedPerPage(): void
     {
+        $this->perPage = min(max(1, (int) $this->perPage), 100);
         $this->resetPage();
     }
 

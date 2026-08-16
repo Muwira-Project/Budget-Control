@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Cashflow;
 use App\Models\NumberSequence;
 use App\Models\Voucher;
+use Illuminate\Pagination\LengthAwarePaginator;
 
 class VoucherService
 {
@@ -32,7 +33,7 @@ class VoucherService
     /**
      * List vouchers, optionally filtered by date range and jenis.
      */
-    public function paginate(?string $startDate = null, ?string $endDate = null, ?string $jenis = null, int $perPage = 10): \Illuminate\Pagination\LengthAwarePaginator
+    public function paginate(?string $startDate = null, ?string $endDate = null, ?string $jenis = null, int $perPage = 10): LengthAwarePaginator
     {
         return Voucher::query()
             ->with('cashflow')

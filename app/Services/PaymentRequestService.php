@@ -197,6 +197,7 @@ class PaymentRequestService
 
         return $paymentRequest->refresh();
     }
+
     /**
      * Close an approved payment request.
      */

@@ -80,7 +80,6 @@ class CashflowService
         return $cashflow;
     }
 
-
     /**
      * List cashflow entries, optionally filtered by date range, jenis, sumber, and lokasi dana.
      */

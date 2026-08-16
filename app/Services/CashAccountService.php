@@ -2,9 +2,9 @@
 
 namespace App\Services;
 
-use App\Models\CashAccount;
-use App\Enums\CashAccountStatus;
 use App\Enums\CashAccountJenis;
+use App\Enums\CashAccountStatus;
+use App\Models\CashAccount;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class CashAccountService

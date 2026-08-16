@@ -82,6 +82,7 @@ class Project extends Model
     {
         return $this->belongsTo(MasterItem::class, 'project_category_id');
     }
+
     /**
      * Get the per-akun allocations for the project.
      */

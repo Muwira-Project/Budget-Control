@@ -247,6 +247,7 @@ class Index extends Component
 
         session()->flash('status', 'Payment request released.');
     }
+
     /**
      * Reset the pagination when a filter changes.
      */

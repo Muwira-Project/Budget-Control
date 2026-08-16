@@ -407,3 +407,21 @@ php artisan serve
   - Receivable otomatis dibuat saat status **Done** (sebelumnya `completed`).
 - Form (create/edit), daftar project (badge 3 warna + kolom PIC) dan modal detail (PIC/Category/Sub Work/Period) diupdate.
 - Filter status Export & template Excel Project (draft) ikut disesuaikan.
+## Review Kualitas & Stabilitas (2026-08-16)
+
+Scope: bug, error, N+1, validasi, security, route, middleware, penamaan, PSR-12, struktur folder. Tanpa fitur baru.
+
+### Temuan & Perbaikan
+- **PSR-12 / Pint**: 59 file dirapikan (`vendor/bin/pint`) - EOF newline, line ending LF, urutan import, spacing unary operator. `pint --test` sekarang lulus untuk seluruh project.
+- **Bug validasi (fixed)**: `StoreCashflowRequest` belum memvalidasi `cash_account_id`; akibatnya pilihan rekening pada form manual cash-in DIABAIKAN (selalu jatuh ke rekening default) dan input ilegal berisiko FK violation 500. Sekarang divalidasi `nullable|integer|exists:cash_accounts,id`.
+- **Security hardening (fixed)**: `PerPagePagination::updatedPerPage()` meng-clamp nilai 1-100, mencegah query pagination tak terbatas dari parameter yang dimanipulasi.
+- **Konsistensi UI (fixed)**: delete catatan kas manual dikembalikan lewat modal konfirmasi (konsisten dengan halaman lain).
+- **N+1**: hasil audit bersih - index/modal sudah eager-load (Akun, BudgetPlan, Dashboard, Monitoring batch, Payments/PR/Receivables/Payables/NPE/Cashflows, modal detail Akun & Project). Tidak ada perbaikan yang diperlukan.
+- **Security**: staff dibatasi middleware `EnsureDraftStaffAccess` (403) termasuk halaman baru (cash-accounts, fund-transfers, vouchers, master-types, master-items) yang otomatis admin-only; ownership check pada Edit PaymentRequest/Allokasi staff; tidak ada route registrasi publik; upload divalidasi (xlsx/xls, 10MB); output Blade terekap (escaped), `{!! !!}` hanya untuk konstanta icon/vendor.
+- **Route**: semua route dalam grup `auth + verified + draft-staff`; penamaan snake_case konsisten.
+- **Struktur folder**: Livewire per fitur, views kebab-case, services flat, models + enums + requests terpisah - konsisten.
+
+### Status
+- `php -l` 320 file: 0 error.
+- `pint --test`: passed.
+- Full suite: 296 test passed / 773 assertions.

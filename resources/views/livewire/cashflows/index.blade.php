@@ -129,12 +129,7 @@
                                         </td>
                                         <td class="px-6 py-4 text-right whitespace-nowrap">
                                             @if ($entry->isManual())
-                                                <x-action-buttons :delete-id="$entry->id" :show-delete="false">
-                                                    <button type="button" wire:click="delete({{ $entry->id }})" title="Delete"
-                                                        class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-red-300 hover:bg-red-50 hover:text-red-600">
-                                                        <x-icon name="trash" class="h-4 w-4" />
-                                                    </button>
-                                                </x-action-buttons>
+                                                <x-action-buttons :delete-id="$entry->id" />
                                             @endif
                                         </td>
                                     </tr>
