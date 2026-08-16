@@ -10,7 +10,7 @@
                     @else
                         · All Projects (Global)
                     @endif
-                    · Week {{ $monitoringPeriod->week }} · {{ $monitoringPeriod->month }}
+                    · Week {{ $monitoringPeriod->week }} · {{ $monitoringPeriod->month }} (Accrual basis)
                 </p>
             </div>
             <a href="{{ route('monitoring.index') }}" wire:navigate class="text-sm text-blue-600 hover:text-blue-800">Back to Monitoring</a>

@@ -446,3 +446,17 @@ Scope: bug, error, N+1, validasi, security, route, middleware, penamaan, PSR-12,
 - Dokumen kamus diperbarui (status rejected + catatan approve/post terpisah).
 - Test: +4 skenario alur approval & posted; NonProjectExpenseTest/CashflowTest/CashModuleTest disesuaikan.
 - Status: 300 test / 788 assertions hijau.
+## Fase C - Pelaporan (2026-08-16)
+
+- **Label basis anti-ambigu**: Dashboard & Monitoring kini menandai basis laporan secara eksplisit
+  (Accrual untuk Budget/Realisasi/Profit, Cash untuk Arus Kas/Saldo rekening).
+- **Laporan baru (menu Reports, admin-only)**:
+  - `Profit & Loss` (Accrual): nilai kontrak (revenue) vs biaya realisasi (cost) per project,
+    profit + margin, filter periode & project.
+  - `Cash Flow per Account` (Cash): saldo awal, masuk, keluar, transfer in/out, saldo akhir
+    per rekening - hanya entri posted.
+  - `Aging AR/AP`: sisa piutang/hutang per bucket jatuh tempo (Current, 1-30, 31-60, 61-90, >90),
+    filter as-of date.
+- Service baru `ReportService` (aggregasi batch); routes `reports.{profit-loss,cash-flow,aging}`.
+- Test baru `ReportTest` (5 skenario: admin-only, P&L, arus kas posted-only, bucket aging).
+- Status: 305 test / 807 assertions hijau.

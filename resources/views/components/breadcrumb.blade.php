@@ -61,6 +61,9 @@
         'non-project-expenses.edit' => ['Dashboard', 'Non-Project Expense', 'Edit Expense'],
         'audit-log.index' => ['Dashboard', 'Audit Log'],
         'approvals.index' => ['Dashboard', 'Approval Center'],
+        'reports.profit-loss' => ['Dashboard', 'Reports', 'Profit & Loss'],
+        'reports.cash-flow' => ['Dashboard', 'Reports', 'Cash Flow per Account'],
+        'reports.aging' => ['Dashboard', 'Reports', 'Aging AR/AP'],
         'profile' => ['Dashboard', 'Profile'],
         default => ['Dashboard'],
     };

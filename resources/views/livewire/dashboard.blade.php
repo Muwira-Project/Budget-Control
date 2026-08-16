@@ -79,10 +79,10 @@
     @unless ($invalid)
         {{-- ============ SECTION 2: FINANCIAL SUMMARY (4 metric cards) ============ --}}
         <section class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <x-metric-card label="Total Budget" :value="format_idr($stats['total_budget'])" icon="clipboard" tone="brand" hint="Approved project budget" :href="auth()->user()->isAdmin() ? route('budget-plans.index') : null" />
-            <x-metric-card label="Total Actual" :value="format_idr($stats['total_realisasi'])" icon="trending-up" tone="amber" hint="Recorded transactions" :href="auth()->user()->isAdmin() ? route('realisasi.index') : null" />
-            <x-metric-card label="Remaining Budget" :value="format_idr($stats['total_sisa'])" icon="wallet" :tone="$totalSisa >= 0 ? 'emerald' : 'red'" :hint="$totalSisa >= 0 ? 'Budget not yet used' : 'Over budget'" :href="auth()->user()->isAdmin() ? route('realisasi.index') : null" />
-            <x-metric-card label="Variance" :value="format_idr($variance)" icon="scale" :tone="$variance <= 0 ? 'brand' : 'red'" :hint="$variance <= 0 ? 'Actual vs budget' : 'Over budget by ' . format_idr($variance)" href="{{ route('monitoring.index') }}" />
+            <x-metric-card label="Total Budget" :value="format_idr($stats['total_budget'])" icon="clipboard" tone="brand" hint="Accrual: approved project budget" :href="auth()->user()->isAdmin() ? route('budget-plans.index') : null" />
+            <x-metric-card label="Total Actual" :value="format_idr($stats['total_realisasi'])" icon="trending-up" tone="amber" hint="Accrual: recorded transactions" :href="auth()->user()->isAdmin() ? route('realisasi.index') : null" />
+            <x-metric-card label="Remaining Budget" :value="format_idr($stats['total_sisa'])" icon="wallet" :tone="$totalSisa >= 0 ? 'emerald' : 'red'" :hint="$totalSisa >= 0 ? 'Accrual: budget not yet used' : 'Accrual: over budget'" :href="auth()->user()->isAdmin() ? route('realisasi.index') : null" />
+            <x-metric-card label="Variance" :value="format_idr($variance)" icon="scale" :tone="$variance <= 0 ? 'brand' : 'red'" :hint="$variance <= 0 ? 'Accrual: actual vs budget' : 'Over budget by ' . format_idr($variance)" href="{{ route('monitoring.index') }}" />
         </section>
 
         {{-- ============ SECTION 3: BUDGET UTILIZATION + CASHFLOW ============ --}}
@@ -118,7 +118,7 @@
                 <div class="flex items-center justify-between border-b border-slate-100 px-5 py-4">
                     <div>
                         <h3 class="flex items-center gap-2 font-semibold text-slate-900"><x-icon name="coins" class="h-5 w-5 text-brand-600" /> Cashflow Summary</h3>
-                        <p class="mt-0.5 text-sm text-slate-500">Income, expense, and net cash position</p>
+                        <p class="mt-0.5 text-sm text-slate-500">Cash basis - income, expense, and net cash position</p>
                     </div>
                     <a href="{{ route('cashflows.index') }}" wire:navigate class="text-xs font-semibold text-brand-600 hover:text-brand-700">View all →</a>
                 </div>
@@ -154,7 +154,7 @@
                 <div class="flex items-center justify-between border-b border-slate-100 px-5 py-4">
                     <div>
                         <h3 class="flex items-center gap-2 font-semibold text-slate-900"><x-icon name="briefcase" class="h-5 w-5 text-brand-600" /> Project Overview</h3>
-                        <p class="mt-0.5 text-sm text-slate-500">Budget, actual, variance, and progress per project — klik baris untuk rincian</p>
+                        <p class="mt-0.5 text-sm text-slate-500">Budget, actual, variance, and progress per project (Accrual basis) — klik baris untuk rincian</p>
                     </div>
                     <a href="{{ route('projects.index') }}" wire:navigate class="text-xs font-semibold text-brand-600 hover:text-brand-700">View all →</a>
                 </div>

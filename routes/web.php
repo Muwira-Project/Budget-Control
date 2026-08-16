@@ -63,6 +63,9 @@ use App\Livewire\Receivables\Create as CreateReceivable;
 use App\Livewire\Receivables\Edit as EditReceivable;
 use App\Livewire\Receivables\Index as IndexReceivable;
 use App\Livewire\Receivables\Pay as PayReceivable;
+use App\Livewire\Reports\Aging as AgingReport;
+use App\Livewire\Reports\CashFlow as CashFlowReport;
+use App\Livewire\Reports\ProfitLoss as ProfitLossReport;
 use App\Livewire\Suppliers\Create as CreateSupplier;
 use App\Livewire\Suppliers\Edit as EditSupplier;
 use App\Livewire\Suppliers\Index as IndexSupplier;
@@ -132,6 +135,10 @@ Route::middleware(['auth', 'verified', 'draft-staff'])->group(function () {
     Route::get('/payments', IndexPayment::class)->name('payments.index');
 
     Route::get('/realisasi', IndexRealisasi::class)->name('realisasi.index');
+
+    Route::get('/reports/profit-loss', ProfitLossReport::class)->name('reports.profit-loss');
+    Route::get('/reports/cash-flow', CashFlowReport::class)->name('reports.cash-flow');
+    Route::get('/reports/aging', AgingReport::class)->name('reports.aging');
     Route::get('/realisasi/{realisasi}', ShowRealisasi::class)->name('realisasi.show');
 
     Route::get('/vendors', IndexVendor::class)->name('vendors.index');

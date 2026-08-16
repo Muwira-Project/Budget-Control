@@ -11,6 +11,14 @@
     <x-sidebar-link href="{{ route('allokasis.index') }}" label="Budget Allocation" icon="document" :active="request()->routeIs('allokasis.*')" />
     <x-sidebar-link href="{{ route('monitoring.index') }}" label="Monitoring" icon="scale" :active="request()->routeIs('monitoring.*')" />
 
+    @if (auth()->user()->isAdmin())
+        <x-sidebar-dropdown label="Reports" icon="chart-pie" :active="request()->routeIs('reports.*')">
+            <x-sidebar-link href="{{ route('reports.profit-loss') }}" label="Profit & Loss" :active="request()->routeIs('reports.profit-loss')" />
+            <x-sidebar-link href="{{ route('reports.cash-flow') }}" label="Cash Flow per Account" :active="request()->routeIs('reports.cash-flow')" />
+            <x-sidebar-link href="{{ route('reports.aging') }}" label="Aging AR/AP" :active="request()->routeIs('reports.aging')" />
+        </x-sidebar-dropdown>
+    @endif
+
     @if (config('app.show_finance_modules') && auth()->user()->isAdmin())
         <x-sidebar-dropdown label="Cash" icon="wallet" :active="request()->routeIs('cashflows.*') || request()->routeIs('payment-requests.*') || request()->routeIs('payments.*') || request()->routeIs('receivables.*') || request()->routeIs('payables.*') || request()->routeIs('cash-accounts.*') || request()->routeIs('fund-transfers.*') || request()->routeIs('vouchers.*') || request()->routeIs('non-project-expenses.*')">
             <x-sidebar-link href="{{ route('cashflows.index') }}" label="Cash Activity" :active="request()->routeIs('cashflows.*')" />
