@@ -460,3 +460,25 @@ Scope: bug, error, N+1, validasi, security, route, middleware, penamaan, PSR-12,
 - Service baru `ReportService` (aggregasi batch); routes `reports.{profit-loss,cash-flow,aging}`.
 - Test baru `ReportTest` (5 skenario: admin-only, P&L, arus kas posted-only, bucket aging).
 - Status: 305 test / 807 assertions hijau.
+## Review Kualitas & Stabilitas II (2026-08-16, setelah Fase A/B/C)
+
+### Temuan & Perbaikan
+- **CRITICAL (fixed)**: `StoreCashflowRequest` belum memvalidasi `status`. Karena `Validator::validate()`
+  hanya mengembalikan atribut yang ada di rules, `'status' => 'draft'` dari form manual cash-in terbuang,
+  sehingga entri kas manual dibuat langsung berstatus **posted** (masuk buku besar tanpa approval) -
+  melemahkan Fase B. Sekarang rule `status in ['draft']` ditambahkan; test manual create diperkuat
+  (assert `status = draft`).
+- **Hardening (fixed)**: `NonProjectExpenses\Edit` kini abort 403 untuk status non-editable
+  (approved/rejected/posted), konsisten dengan guard di service & penyembunyian tombol di UI.
+
+### Verifikasi Bersih
+- `php -l` 343 file: 0 error; `pint --test`: passed; full suite: **305 test / 807 assertions hijau**.
+- N+1: semua jalur baru (Approval Center, Reports, index kas) eager-load/batched, tanpa N+1.
+- Validasi: form baru (cash account, fund transfer, master, project) sudah ter-validasi; approve/reject
+  ter-guard status; catatan penolakan wajib.
+- Security: `reports.*` & `approvals` admin-only (middleware 403 untuk staff sudah dites); output Blade
+  terekap.
+- Route: rute baru di dalam grup `auth + verified + draft-staff`; penamaan konsisten.
+- Middleware: tidak ada whitelist bocor untuk halaman admin baru.
+- Penamaan & struktur folder: konsisten (`KasStatus`, `App\Livewire\Reports`, `App\Livewire\Approvals`).
+- Karakter/UTF-8: tidak ada mojibake (verifikasi byte-level).

@@ -40,6 +40,10 @@ class Edit extends Component
 
     public function mount(NonProjectExpense $expense): void
     {
+        if (! $expense->status->isDraft() && ! $expense->status->isWaiting()) {
+            abort(403, 'Only draft or pending non-project expenses can be edited.');
+        }
+
         $this->expense = $expense;
         $this->tanggal = $expense->tanggal->format('Y-m-d');
         $this->akunId = $expense->akun_id;
