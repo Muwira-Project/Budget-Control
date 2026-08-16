@@ -2,6 +2,7 @@
 
 namespace Database\Factories;
 
+use App\Enums\KasStatus;
 use App\Models\CashAccount;
 use App\Models\FundTransfer;
 use Illuminate\Database\Eloquent\Factories\Factory;
@@ -20,6 +21,7 @@ class FundTransferFactory extends Factory
     {
         return [
             'tanggal' => fake()->dateTimeBetween('-3 months', 'now'),
+            'status' => KasStatus::Posted,
             'dari_cash_account_id' => CashAccount::factory(),
             'ke_cash_account_id' => CashAccount::factory(),
             'nominal' => fake()->numberBetween(1_000_000, 50_000_000),

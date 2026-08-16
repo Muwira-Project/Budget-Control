@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\KasStatus;
 use App\Services\CashflowService;
 use Database\Factories\NonProjectExpenseFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -10,12 +11,12 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
-#[Fillable(['tanggal', 'akun_id', 'vendor_id', 'supplier_id', 'mandor_id', 'investor_id', 'nominal', 'keterangan', 'created_by'])]
+#[Fillable(['tanggal', 'akun_id', 'vendor_id', 'supplier_id', 'mandor_id', 'investor_id', 'nominal', 'keterangan', 'created_by', 'status', 'submitted_by', 'approved_by', 'approved_at', 'posted_by', 'posted_at', 'rejected_by', 'rejected_at', 'rejection_reason'])]
 class NonProjectExpense extends Model
 {
     /**
      * A non-project expense may reference at most one party.
-     * Every non-project expense is mirrored into Cash Activity.
+     * Cash Activity mirror is created/removed based on the approval status.
      */
     protected static function booted(): void
     {
@@ -32,10 +33,9 @@ class NonProjectExpense extends Model
             }
         });
 
-        static::created(fn (NonProjectExpense $expense) => app(CashflowService::class)->syncFromNonProjectExpense($expense));
-        static::updated(fn (NonProjectExpense $expense) => app(CashflowService::class)->syncFromNonProjectExpense($expense));
+        static::created(fn (NonProjectExpense $expense) => app(CashflowService::class)->syncNonProjectExpenseCashflow($expense));
+        static::updated(fn (NonProjectExpense $expense) => app(CashflowService::class)->syncNonProjectExpenseCashflow($expense));
         static::deleting(function (NonProjectExpense $expense): void {
-            // Hapus sebelum FK nullOnDelete mengosongkan non_project_expense_id.
             Cashflow::where('non_project_expense_id', $expense->id)->delete();
         });
     }
@@ -53,6 +53,10 @@ class NonProjectExpense extends Model
         return [
             'tanggal' => 'date',
             'nominal' => 'decimal:2',
+            'status' => KasStatus::class,
+            'approved_at' => 'datetime',
+            'posted_at' => 'datetime',
+            'rejected_at' => 'datetime',
         ];
     }
 
@@ -92,12 +96,48 @@ class NonProjectExpense extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function submittedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'submitted_by');
+    }
+
+    public function approvedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function postedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'posted_by');
+    }
+
+    public function rejectedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'rejected_by');
+    }
+
     /**
      * Get the cash activity entry mirrored from this expense.
      */
     public function cashflow(): HasOne
     {
         return $this->hasOne(Cashflow::class, 'non_project_expense_id');
+    }
+
+    /**
+     * Whether this expense is posted (mirrored into Cash Activity).
+     */
+    public function isPosted(): bool
+    {
+        return $this->status->isPosted();
+    }
+
+    /**
+     * Whether this expense is waiting for admin approval.
+     */
+    public function isWaiting(): bool
+    {
+        return $this->status->isWaiting();
     }
 
     /**

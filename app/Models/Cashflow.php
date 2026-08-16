@@ -4,21 +4,23 @@ namespace App\Models;
 
 use App\Enums\CashflowJenis;
 use App\Enums\CashflowSumber;
+use App\Enums\KasStatus;
 use App\Models\Concerns\LogsActivity;
 use App\Services\DashboardService;
 use App\Services\VoucherService;
 use Database\Factories\CashflowFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
-#[Fillable(['tanggal', 'jenis', 'sumber', 'payment_request_id', 'payment_id', 'non_project_expense_id', 'cash_account_id', 'nominal', 'keterangan'])]
+#[Fillable(['tanggal', 'jenis', 'sumber', 'payment_request_id', 'payment_id', 'non_project_expense_id', 'cash_account_id', 'nominal', 'keterangan', 'status', 'submitted_by', 'approved_by', 'approved_at', 'posted_by', 'posted_at', 'rejected_by', 'rejected_at', 'rejection_reason', 'created_by'])]
 class Cashflow extends Model
 {
     /**
-     * Keep the dashboard cache in sync and issue vouchers for every cash entry.
+     * Keep the dashboard cache in sync and issue vouchers for posted entries.
      */
     protected static function booted(): void
     {
@@ -26,7 +28,11 @@ class Cashflow extends Model
         static::updated(fn ($model) => DashboardService::clearCache());
         static::deleted(fn ($model) => DashboardService::clearCache());
 
-        static::created(fn (Cashflow $cashflow) => app(VoucherService::class)->generateFor($cashflow));
+        static::created(function (Cashflow $cashflow): void {
+            if ($cashflow->status->isPosted()) {
+                app(VoucherService::class)->generateFor($cashflow);
+            }
+        });
     }
 
     /** @use HasFactory<CashflowFactory> */
@@ -43,8 +49,20 @@ class Cashflow extends Model
             'tanggal' => 'date',
             'jenis' => CashflowJenis::class,
             'sumber' => CashflowSumber::class,
+            'status' => KasStatus::class,
             'nominal' => 'decimal:2',
+            'approved_at' => 'datetime',
+            'posted_at' => 'datetime',
+            'rejected_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Scope for posted entries only (affect ledgers and balances).
+     */
+    public function scopePosted(Builder $query): Builder
+    {
+        return $query->where('status', KasStatus::Posted);
     }
 
     /**
@@ -87,6 +105,31 @@ class Cashflow extends Model
         return $this->hasOne(Voucher::class);
     }
 
+    public function submittedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'submitted_by');
+    }
+
+    public function approvedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function postedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'posted_by');
+    }
+
+    public function rejectedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'rejected_by');
+    }
+
+    public function createdBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'created_by');
+    }
+
     /**
      * Determine whether this is a manually recorded entry.
      */
@@ -95,6 +138,22 @@ class Cashflow extends Model
         return $this->payment_request_id === null
             && $this->payment_id === null
             && $this->non_project_expense_id === null;
+    }
+
+    /**
+     * Whether the entry is posted and affects the ledger.
+     */
+    public function isPosted(): bool
+    {
+        return $this->status->isPosted();
+    }
+
+    /**
+     * Whether the entry is waiting for admin approval.
+     */
+    public function isWaiting(): bool
+    {
+        return $this->status->isWaiting();
     }
 
     /**

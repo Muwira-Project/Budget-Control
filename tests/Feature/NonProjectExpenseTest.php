@@ -99,7 +99,7 @@ class NonProjectExpenseTest extends TestCase
     public function test_admin_can_edit_non_project_expense(): void
     {
         $admin = User::factory()->admin()->create();
-        $expense = NonProjectExpense::factory()->create();
+        $expense = NonProjectExpense::factory()->create(['status' => 'draft']);
         $akun = Akun::factory()->create();
 
         Livewire::actingAs($admin)
@@ -133,7 +133,7 @@ class NonProjectExpenseTest extends TestCase
     public function test_admin_can_delete_non_project_expense(): void
     {
         $admin = User::factory()->admin()->create();
-        $expense = NonProjectExpense::factory()->create();
+        $expense = NonProjectExpense::factory()->create(['status' => 'draft']);
 
         Livewire::actingAs($admin)
             ->test(IndexNonProjectExpense::class)

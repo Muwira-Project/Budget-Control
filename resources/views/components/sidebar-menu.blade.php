@@ -1,6 +1,9 @@
 <nav class="flex-1 space-y-1">
     <x-sidebar-link href="{{ route('dashboard') }}" label="Dashboard" icon="home" :active="request()->routeIs('dashboard')" />
     @if (auth()->user()->isAdmin())
+        <x-sidebar-link href="{{ route('approvals.index') }}" label="Approval Center" icon="check-circle" :active="request()->routeIs('approvals.index')" />
+    @endif
+    @if (auth()->user()->isAdmin())
         <x-sidebar-link href="{{ route('projects.index') }}" label="Project" icon="folder" :active="request()->routeIs('projects.*')" />
         <x-sidebar-link href="{{ route('akuns.index') }}" label="Account" icon="banknotes" :active="request()->routeIs('akuns.*')" />
         <x-sidebar-link href="{{ route('budget-plans.index') }}" label="Budget" icon="clipboard" :active="request()->routeIs('budget-plans.*')" />

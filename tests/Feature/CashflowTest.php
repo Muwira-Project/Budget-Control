@@ -130,7 +130,7 @@ class CashflowTest extends TestCase
     public function test_manual_entry_can_be_deleted(): void
     {
         $user = User::factory()->create();
-        $entry = Cashflow::factory()->create(['payment_request_id' => null]);
+        $entry = Cashflow::factory()->create(['payment_request_id' => null, 'status' => 'draft']);
 
         Livewire::actingAs($user)
             ->test(IndexCashflow::class)

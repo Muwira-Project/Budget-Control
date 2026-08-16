@@ -73,7 +73,7 @@ class Create extends Component
 
         $service->create($validated);
 
-        session()->flash('status', 'Non-project expense created successfully.');
+        session()->flash('status', 'Non-project expense saved as draft. Submit it for admin approval.');
 
         $this->redirectRoute('non-project-expenses.index', navigate: true);
     }

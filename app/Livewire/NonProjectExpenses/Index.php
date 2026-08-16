@@ -28,9 +28,25 @@ class Index extends Component
 
     public function delete(NonProjectExpense $expense, NonProjectExpenseService $service): void
     {
-        $service->delete($expense);
+        try {
+            $service->delete($expense);
+            session()->flash('status', 'Non-project expense deleted successfully.');
+        } catch (\LogicException $exception) {
+            session()->flash('error', $exception->getMessage());
+        }
+    }
 
-        session()->flash('status', 'Non-project expense deleted successfully.');
+    /**
+     * Submit a draft non-project expense for admin approval.
+     */
+    public function submit(NonProjectExpense $expense, NonProjectExpenseService $service): void
+    {
+        try {
+            $service->submit($expense);
+            session()->flash('status', 'Non-project expense submitted for approval.');
+        } catch (\LogicException $exception) {
+            session()->flash('error', $exception->getMessage());
+        }
     }
 
     public function updatedSearch(): void
@@ -83,9 +99,16 @@ class Index extends Component
         $count = 0;
 
         foreach ($this->selectedIds as $id) {
-            if ($expense = NonProjectExpense::find($id)) {
+            if (! $expense = NonProjectExpense::find($id)) {
+                continue;
+            }
+            if ($expense->isPosted()) {
+                continue;
+            }
+            try {
                 $service->delete($expense);
                 $count++;
+            } catch (\LogicException) {
             }
         }
 

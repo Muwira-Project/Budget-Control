@@ -60,6 +60,7 @@
         'non-project-expenses.create' => ['Dashboard', 'Non-Project Expense', 'Add Expense'],
         'non-project-expenses.edit' => ['Dashboard', 'Non-Project Expense', 'Edit Expense'],
         'audit-log.index' => ['Dashboard', 'Audit Log'],
+        'approvals.index' => ['Dashboard', 'Approval Center'],
         'profile' => ['Dashboard', 'Profile'],
         default => ['Dashboard'],
     };

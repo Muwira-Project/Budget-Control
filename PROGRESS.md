@@ -431,3 +431,18 @@ Scope: bug, error, N+1, validasi, security, route, middleware, penamaan, PSR-12,
 - Warna badge diseragamkan: `cancelled` = red (project, Payment Request, Settlement).
 - Dokumen acuan baru `docs/KAMUS-STATUS.md` (nilai DB, label UI, warna, makna, istilah accrual/cash).
 - Catatan: sempat terjadi korupsi karakter akibat bug skrip edit (indexing string PowerShell); sudah di-restore dari git dan diedit ulang dengan aman, diverifikasi php -l + pint + full test.
+## Fase B - Approval Terpusat (2026-08-16)
+
+- Alur status kegiatan kas (Manual Cash In, Non-Project Expense, Fund Transfer): `draft -> waiting -> approved -> posted / rejected` (enum `KasStatus`).
+  - Saldo rekening, statistik kas, dan voucher HANYA terpengaruh saat status `posted`.
+  - Draft/approved/rejected tidak masuk buku besar.
+  - Non-Project Expense baru ter-mirror ke Cash Activity saat `posted`.
+- **Approval Center** (`/approvals`, admin-only): satu halaman terpusat menampilkan rincian terkait untuk:
+  - Manual Cash In, Non-Project Expense, Fund Transfer (pending + approved-ready-to-post dengan aksi Post/Reject).
+  - Payment Request waiting (Approve/Reject).
+  - Settlement void `pending_cancel` (Approve/Reject pembatalan).
+- Aksi Submit tersedia di halaman masing-masing (Cash Activity, Non-Project Expense, Fund Transfer); notifikasi dikirim ke admin saat submit.
+- Kolom workflow baru: status, submitted_by, approved_by/at, posted_by/at, rejected_by/at, rejection_reason (+ `created_by` di cashflows). 4 migration baru (000010-000013).
+- Dokumen kamus diperbarui (status rejected + catatan approve/post terpisah).
+- Test: +4 skenario alur approval & posted; NonProjectExpenseTest/CashflowTest/CashModuleTest disesuaikan.
+- Status: 300 test / 788 assertions hijau.

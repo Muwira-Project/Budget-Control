@@ -30,7 +30,26 @@ class Index extends Component
     public ?int $cashAccountId = null;
 
     /**
-     * Delete a manual cashflow entry.
+     * Submit a draft manual cashflow entry for admin approval.
+     */
+    public function submit(Cashflow $cashflow, CashflowService $service): void
+    {
+        if (! $cashflow->isManual()) {
+            session()->flash('error', 'Records created automatically cannot be submitted.');
+
+            return;
+        }
+
+        try {
+            $service->submit($cashflow);
+            session()->flash('status', 'Cash record submitted for approval.');
+        } catch (\LogicException $exception) {
+            session()->flash('error', $exception->getMessage());
+        }
+    }
+
+    /**
+     * Delete a non-posted manual cashflow entry.
      */
     public function delete(Cashflow $cashflow, CashflowService $service): void
     {
@@ -40,9 +59,12 @@ class Index extends Component
             return;
         }
 
-        $service->delete($cashflow);
-
-        session()->flash('status', 'Cash record deleted successfully.');
+        try {
+            $service->delete($cashflow);
+            session()->flash('status', 'Cash record deleted successfully.');
+        } catch (\LogicException $exception) {
+            session()->flash('error', $exception->getMessage());
+        }
     }
 
     public function updatedStartDate(): void
@@ -175,13 +197,18 @@ class Index extends Component
             if (! $cashflow = Cashflow::find($id)) {
                 continue;
             }
-            if (! $cashflow->isManual()) {
+            if (! $cashflow->isManual() || $cashflow->isPosted()) {
                 $skipped++;
 
                 continue;
             }
-            $service->delete($cashflow);
-            $deleted++;
+
+            try {
+                $service->delete($cashflow);
+                $deleted++;
+            } catch (\LogicException) {
+                $skipped++;
+            }
         }
         $this->selectedIds = [];
         session()->flash('status', $deleted.' cash record(s) deleted.');

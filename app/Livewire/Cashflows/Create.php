@@ -42,13 +42,14 @@ class Create extends Component
                 'nominal' => $this->nominal,
                 'keterangan' => $this->keterangan,
                 'cash_account_id' => $this->cashAccountId,
+                'status' => 'draft',
             ],
             (new StoreCashflowRequest)->rules(),
         )->validate();
 
         $service->create($validated);
 
-        session()->flash('status', 'Income recorded successfully.');
+        session()->flash('status', 'Income saved as draft. Submit it for admin approval.');
 
         $this->redirectRoute('cashflows.index', navigate: true);
     }

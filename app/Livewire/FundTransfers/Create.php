@@ -46,7 +46,7 @@ class Create extends Component
 
         $service->create($validated);
 
-        session()->flash('status', 'Fund transfer recorded.');
+        session()->flash('status', 'Fund transfer saved as draft. Submit it for admin approval.');
 
         $this->redirectRoute('fund-transfers.index', navigate: true);
     }

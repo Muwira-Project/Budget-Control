@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Enums\KasStatus;
 use App\Models\Concerns\LogsActivity;
 use Database\Factories\FundTransferFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -9,7 +10,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-#[Fillable(['tanggal', 'dari_cash_account_id', 'ke_cash_account_id', 'nominal', 'keterangan', 'created_by'])]
+#[Fillable(['tanggal', 'dari_cash_account_id', 'ke_cash_account_id', 'nominal', 'keterangan', 'created_by', 'status', 'submitted_by', 'approved_by', 'approved_at', 'posted_by', 'posted_at', 'rejected_by', 'rejected_at', 'rejection_reason'])]
 class FundTransfer extends Model
 {
     /** @use HasFactory<FundTransferFactory> */
@@ -41,6 +42,10 @@ class FundTransfer extends Model
         return [
             'tanggal' => 'date',
             'nominal' => 'decimal:2',
+            'status' => KasStatus::class,
+            'approved_at' => 'datetime',
+            'posted_at' => 'datetime',
+            'rejected_at' => 'datetime',
         ];
     }
 
@@ -57,6 +62,42 @@ class FundTransfer extends Model
     public function createdBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function submittedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'submitted_by');
+    }
+
+    public function approvedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function postedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'posted_by');
+    }
+
+    public function rejectedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'rejected_by');
+    }
+
+    /**
+     * Whether this transfer is posted (affects account balances).
+     */
+    public function isPosted(): bool
+    {
+        return $this->status->isPosted();
+    }
+
+    /**
+     * Whether this transfer is waiting for admin approval.
+     */
+    public function isWaiting(): bool
+    {
+        return $this->status->isWaiting();
     }
 
     /**

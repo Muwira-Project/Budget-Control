@@ -16,7 +16,13 @@
 | draft | Draft | Dibuat user/approver, belum diajukan |
 | waiting | Pending Approval | Dikirim, menunggu admin |
 | approved | Approved | Disetujui admin |
-| posted | Posted | Sudah masuk ke buku besar (saldo rekening terpengaruh) |
+| approved | Approved | Disetujui admin, belum diposting |
+| posted | Posted | Sudah masuk ke buku besar (saldo rekening + voucher diterbitkan) |
+| rejected | Rejected | Ditolak admin (dengan alasan) |
+
+Catatan: approve dan post adalah dua aksi admin terpisah di Approval Center. Saldo rekening,
+statistik kas, dan voucher hanya terpengaruh saat status `posted`. Item yang ditolak tidak
+masuk ke buku besar.
 
 ## 3. Status Payment Request
 | Nilai DB | Label UI | Makna |

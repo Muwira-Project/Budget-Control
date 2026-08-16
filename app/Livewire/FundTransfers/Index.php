@@ -18,13 +18,29 @@ class Index extends Component
     use BulkSelection, PerPagePagination, WithPagination;
 
     /**
-     * Delete a fund transfer.
+     * Delete a non-posted fund transfer.
      */
-    public function delete(FundTransfer $transfer): void
+    public function delete(FundTransfer $transfer, FundTransferService $service): void
     {
-        $transfer->delete();
+        try {
+            $service->delete($transfer);
+            session()->flash('status', 'Fund transfer deleted.');
+        } catch (\LogicException $exception) {
+            session()->flash('error', $exception->getMessage());
+        }
+    }
 
-        session()->flash('status', 'Fund transfer deleted.');
+    /**
+     * Submit a draft fund transfer for admin approval.
+     */
+    public function submit(FundTransfer $transfer, FundTransferService $service): void
+    {
+        try {
+            $service->submit($transfer);
+            session()->flash('status', 'Fund transfer submitted for approval.');
+        } catch (\LogicException $exception) {
+            session()->flash('error', $exception->getMessage());
+        }
     }
 
     /**
@@ -41,10 +57,22 @@ class Index extends Component
         return 'transfers';
     }
 
-    public function deleteSelected(): void
+    public function deleteSelected(FundTransferService $service): void
     {
-        FundTransfer::whereIn('id', $this->selectedIds)->delete();
-        $count = count($this->selectedIds);
+        $count = 0;
+        foreach ($this->selectedIds as $id) {
+            if (! $transfer = FundTransfer::find($id)) {
+                continue;
+            }
+            if ($transfer->isPosted()) {
+                continue;
+            }
+            try {
+                $service->delete($transfer);
+                $count++;
+            } catch (\LogicException) {
+            }
+        }
         $this->selectedIds = [];
         session()->flash('status', $count.' fund transfer(s) deleted.');
     }

@@ -60,10 +60,10 @@ class CashAccount extends Model
      */
     public function getSaldoAttribute(): float
     {
-        $in = (float) $this->cashflows()->where('jenis', 'masuk')->sum('nominal');
-        $out = (float) $this->cashflows()->where('jenis', 'keluar')->sum('nominal');
-        $trIn = (float) $this->incomingTransfers()->sum('nominal');
-        $trOut = (float) $this->outgoingTransfers()->sum('nominal');
+        $in = (float) $this->cashflows()->posted()->where('jenis', 'masuk')->sum('nominal');
+        $out = (float) $this->cashflows()->posted()->where('jenis', 'keluar')->sum('nominal');
+        $trIn = (float) $this->incomingTransfers()->where('status', 'posted')->sum('nominal');
+        $trOut = (float) $this->outgoingTransfers()->where('status', 'posted')->sum('nominal');
 
         return (float) $this->saldo_awal + $in - $out + $trIn - $trOut;
     }
@@ -82,6 +82,7 @@ class CashAccount extends Model
         $in = static::sumByCashflow($accountIds, 'masuk');
         $out = static::sumByCashflow($accountIds, 'keluar');
         $trIn = FundTransfer::query()
+            ->where('status', 'posted')
             ->whereIn('ke_cash_account_id', $accountIds)
             ->groupBy('ke_cash_account_id')
             ->selectRaw('ke_cash_account_id as account_id, sum(nominal) as total')
@@ -89,6 +90,7 @@ class CashAccount extends Model
             ->map(fn ($value) => (float) $value)
             ->all();
         $trOut = FundTransfer::query()
+            ->where('status', 'posted')
             ->whereIn('dari_cash_account_id', $accountIds)
             ->groupBy('dari_cash_account_id')
             ->selectRaw('dari_cash_account_id as account_id, sum(nominal) as total')
@@ -132,6 +134,7 @@ class CashAccount extends Model
     private static function sumByCashflow(array $accountIds, string $jenis): array
     {
         return Cashflow::query()
+            ->where('status', 'posted')
             ->whereIn('cash_account_id', $accountIds)
             ->where('jenis', $jenis)
             ->groupBy('cash_account_id')

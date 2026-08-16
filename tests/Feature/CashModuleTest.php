@@ -53,8 +53,11 @@ class CashModuleTest extends TestCase
         $this->assertSame('2026-08-01', $voucher->tanggal->format('Y-m-d'));
     }
 
-    public function test_non_project_expense_is_mirrored_to_cash_activity(): void
+    public function test_non_project_expense_is_mirrored_to_cash_activity_after_posted(): void
     {
+        $admin = User::factory()->admin()->create();
+        $this->actingAs($admin);
+
         $akun = Akun::factory()->create();
         $expense = app(NonProjectExpenseService::class)->create([
             'tanggal' => '2026-08-02',
@@ -63,6 +66,13 @@ class CashModuleTest extends TestCase
             'keterangan' => 'Listrik kantor',
         ]);
 
+        // Draft belum masuk Cash Activity.
+        $this->assertDatabaseMissing('cashflows', ['non_project_expense_id' => $expense->id]);
+
+        app(NonProjectExpenseService::class)->submit($expense);
+        app(NonProjectExpenseService::class)->approve($expense->fresh());
+        app(NonProjectExpenseService::class)->post($expense->fresh());
+
         $cashflow = Cashflow::where('non_project_expense_id', $expense->id)->first();
 
         $this->assertNotNull($cashflow);
@@ -70,9 +80,27 @@ class CashModuleTest extends TestCase
         $this->assertSame('non_project_expense', $cashflow->sumber->value);
         $this->assertSame(2500000.0, (float) $cashflow->nominal);
 
-        app(NonProjectExpenseService::class)->delete($expense);
+        // Expense yang sudah posted tidak bisa langsung dihapus.
+        $this->expectException(\LogicException::class);
+        app(NonProjectExpenseService::class)->delete($expense->fresh());
+    }
 
-        $this->assertDatabaseMissing('cashflows', ['id' => $cashflow->id]);
+    public function test_pending_kas_entries_do_not_affect_balances(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $this->actingAs($admin);
+
+        $account = CashAccount::factory()->create(['saldo_awal' => 0]);
+        app(CashflowService::class)->create([
+            'tanggal' => '2026-08-01',
+            'jenis' => 'masuk',
+            'sumber' => 'pendapatan',
+            'nominal' => 1000000,
+            'cash_account_id' => $account->id,
+            'status' => 'draft',
+        ]);
+
+        $this->assertSame(0.0, (float) $account->fresh()->saldo);
     }
 
     public function test_cash_account_balance_includes_flows_and_transfers(): void
@@ -298,6 +326,72 @@ class CashModuleTest extends TestCase
         foreach ($pages as $page) {
             $this->actingAs($admin)->get($page)->assertOk();
         }
+    }
+
+    public function test_manual_cash_in_approval_flow_posts_to_ledger(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $this->actingAs($admin);
+
+        $account = CashAccount::factory()->create(['saldo_awal' => 0]);
+        $cashflow = app(CashflowService::class)->create([
+            'tanggal' => '2026-08-01',
+            'jenis' => 'masuk',
+            'sumber' => 'pendapatan',
+            'nominal' => 2000000,
+            'cash_account_id' => $account->id,
+            'status' => 'draft',
+        ]);
+
+        $this->assertSame(0.0, (float) $account->fresh()->saldo);
+        $this->assertNull($cashflow->voucher);
+
+        app(CashflowService::class)->submit($cashflow);
+        $this->assertSame('waiting', $cashflow->fresh()->status->value);
+
+        app(CashflowService::class)->approve($cashflow->fresh());
+        $this->assertSame('approved', $cashflow->fresh()->status->value);
+        $this->assertSame(0.0, (float) $account->fresh()->saldo);
+
+        app(CashflowService::class)->post($cashflow->fresh());
+
+        $this->assertSame('posted', $cashflow->fresh()->status->value);
+        $this->assertSame(2000000.0, (float) $account->fresh()->saldo);
+        $this->assertNotNull($cashflow->fresh()->voucher);
+    }
+
+    public function test_approval_center_page_admin_only(): void
+    {
+        $staff = User::factory()->create();
+        $admin = User::factory()->admin()->create();
+
+        $this->actingAs($staff)->get(route('approvals.index'))->assertForbidden();
+        $this->actingAs($admin)->get(route('approvals.index'))->assertOk();
+    }
+
+    public function test_fund_transfer_affects_balances_only_after_posted(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $this->actingAs($admin);
+
+        $source = CashAccount::factory()->create(['saldo_awal' => 5000000]);
+        $target = CashAccount::factory()->create(['saldo_awal' => 1000000]);
+
+        $transfer = app(FundTransferService::class)->create([
+            'tanggal' => '2026-08-01',
+            'dari_cash_account_id' => $source->id,
+            'ke_cash_account_id' => $target->id,
+            'nominal' => 2000000,
+        ]);
+
+        $this->assertSame(5000000.0, (float) $source->fresh()->saldo);
+
+        app(FundTransferService::class)->submit($transfer);
+        app(FundTransferService::class)->approve($transfer->fresh());
+        app(FundTransferService::class)->post($transfer->fresh());
+
+        $this->assertSame(3000000.0, (float) $source->fresh()->saldo);
+        $this->assertSame(3000000.0, (float) $target->fresh()->saldo);
     }
 
     public function test_master_type_and_items_crud(): void

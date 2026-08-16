@@ -52,6 +52,7 @@
                                 <tr>
                                     <th class="w-8 px-6 py-3"><input type="checkbox" disabled class="rounded border-gray-300 text-blue-600 cursor-not-allowed" aria-hidden="true" /></th>
                                     <th class="px-6 py-3">Date</th>
+                                    <th class="px-6 py-3">Status</th>
                                     <th class="px-6 py-3">Account</th>
                                     <th class="px-6 py-3">Party</th>
                                     <th class="px-6 py-3">Description</th>
@@ -64,6 +65,17 @@
                                     <tr class="hover:bg-gray-50">
                                         <td class="w-8 px-6 py-4"><input type="checkbox" wire:click="toggleSelected({{ $expense->id }})" @checked(in_array($expense->id, $this->selectedIds, true)) class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" /></td>
                                         <td class="px-6 py-4 text-gray-700 whitespace-nowrap">{{ $expense->tanggal->format('d M Y') }}</td>
+                                        <td class="px-6 py-4">
+                                            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ match ($expense->status->value) {
+                                                'posted' => 'bg-green-100 text-green-700',
+                                                'waiting' => 'bg-amber-100 text-amber-700',
+                                                'approved' => 'bg-blue-100 text-blue-700',
+                                                'rejected' => 'bg-red-100 text-red-700',
+                                                default => 'bg-gray-200 text-gray-600',
+                                            } }}">
+                                                {{ $expense->status->label() }}
+                                            </span>
+                                        </td>
                                         <td class="px-6 py-4 text-gray-700">{{ $expense->akun->kode_akun }} - {{ $expense->akun->nama_akun }}</td>
                                         <td class="px-6 py-4 text-gray-700">
                                             @if ($expense->pihakJenis)
@@ -83,7 +95,16 @@
                                         <td class="px-6 py-4 text-gray-500">{{ $expense->keterangan }}</td>
                                         <td class="px-6 py-4 text-right font-medium text-gray-900">{{ format_idr($expense->nominal) }}</td>
                                         <td class="px-6 py-4 text-right whitespace-nowrap">
-                                            <x-action-buttons :edit-href="route('non-project-expenses.edit', $expense)" :delete-id="$expense->id" />
+                                            <x-action-buttons
+                                                :edit-href="in_array($expense->status->value, ['draft', 'waiting'], true) ? route('non-project-expenses.edit', $expense) : null"
+                                                :delete-id="$expense->isPosted() ? null : $expense->id">
+                                                @if ($expense->status->value === 'draft')
+                                                    <button type="button" wire:click="submit({{ $expense->id }})" title="Submit for Approval"
+                                                        class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-amber-300 hover:bg-amber-50 hover:text-amber-600">
+                                                        <x-icon name="upload" class="h-4 w-4" />
+                                                    </button>
+                                                @endif
+                                            </x-action-buttons>
                                         </td>
                                     </tr>
                                 @endforeach

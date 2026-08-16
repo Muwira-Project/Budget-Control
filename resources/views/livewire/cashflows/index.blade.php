@@ -104,6 +104,7 @@
                                     <th class="px-6 py-3">Type</th>
                                     <th class="px-6 py-3">Source</th>
                                     <th class="px-6 py-3">Account</th>
+                                    <th class="px-6 py-3">Status</th>
                                     <th class="px-6 py-3">Description</th>
                                     <th class="px-6 py-3 text-right">Amount</th>
                                     <th class="px-6 py-3 text-right">Actions</th>
@@ -123,13 +124,31 @@
                                         </td>
                                         <td class="px-6 py-4 text-gray-700">{{ $entry->sumber->label() }}</td>
                                         <td class="px-6 py-4 text-gray-500">{{ $entry->cashAccount?->kode ?? '-' }}</td>
+                                        <td class="px-6 py-4">
+                                            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ match ($entry->status->value) {
+                                                'posted' => 'bg-green-100 text-green-700',
+                                                'waiting' => 'bg-amber-100 text-amber-700',
+                                                'approved' => 'bg-blue-100 text-blue-700',
+                                                'rejected' => 'bg-red-100 text-red-700',
+                                                default => 'bg-gray-200 text-gray-600',
+                                            } }}">
+                                                {{ $entry->status->label() }}
+                                            </span>
+                                        </td>
                                         <td class="px-6 py-4 text-gray-500">{{ $entry->keterangan }}</td>
                                         <td class="px-6 py-4 text-right font-medium {{ $entry->jenis->value === 'masuk' ? 'text-green-600' : 'text-red-600' }}">
                                             {{ $entry->jenis->value === 'masuk' ? '+' : '-' }}{{ format_idr($entry->nominal) }}
                                         </td>
                                         <td class="px-6 py-4 text-right whitespace-nowrap">
                                             @if ($entry->isManual())
-                                                <x-action-buttons :delete-id="$entry->id" />
+                                                <x-action-buttons :delete-id="$entry->id">
+                                                    @if ($entry->status->value === 'draft')
+                                                        <button type="button" wire:click="submit({{ $entry->id }})" title="Submit for Approval"
+                                                            class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-amber-300 hover:bg-amber-50 hover:text-amber-600">
+                                                            <x-icon name="upload" class="h-4 w-4" />
+                                                        </button>
+                                                    @endif
+                                                </x-action-buttons>
                                             @endif
                                         </td>
                                     </tr>

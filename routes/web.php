@@ -8,6 +8,7 @@ use App\Livewire\Akuns\Index as IndexAkun;
 use App\Livewire\Allokasis\Create as CreateAllokasi;
 use App\Livewire\Allokasis\Edit as EditAllokasi;
 use App\Livewire\Allokasis\Index as IndexAllokasi;
+use App\Livewire\Approvals\Index as ApprovalsIndex;
 use App\Livewire\AuditLog\Index as AuditLogIndex;
 use App\Livewire\Backups\Index as IndexBackup;
 use App\Livewire\BudgetPlans\Create as CreateBudgetPlan;
@@ -169,6 +170,8 @@ Route::middleware(['auth', 'verified', 'draft-staff'])->group(function () {
     Route::get('/non-project-expenses/{expense}/edit', EditNonProjectExpense::class)->name('non-project-expenses.edit');
 
     Route::get('/audit-log', AuditLogIndex::class)->name('audit-log.index');
+
+    Route::get('/approvals', ApprovalsIndex::class)->name('approvals.index');
 
     Route::get('/backup', IndexBackup::class)->name('backup.index');
 
