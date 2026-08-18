@@ -248,3 +248,15 @@ Catatan:
 - Guard tambahan: `User::isStaff()`, `CashflowPolicy::manageDraft` (admin atau pemilik draft), tab fund-transfer/cash-account disembunyikan dari staff, tombol edit/delete AR-AP disembunyikan untuk staff.
 - Vendor/Supplier/Mandor/Investor tetap entitas terpisah — Master tidak berubah struktur.
 - Test: `StaffDraftAccessTest`, `RealisasiTest`, `ReceivableTest`, `PayableTest`, `ReportTest` diperbarui + test baru aging filter; `php artisan test` = **303 lulus** (estimasi setelah penambahan test aging & staff).
+
+### 8.4 Voucher print + Company Settings (selesai 2026-08-18, lanjutan 8.3)
+
+- **Voucher → tombol aksi cetak (bukan kolom)**: kolom "Voucher" dihapus dari tabel Cash Activity; voucher kini tombol printer di kolom **Actions** untuk transaksi **posted** yang punya voucher (Cash In, Cash Out, Fund Transfer). Klik → buka tab baru **print preview** (`cashflows.print` & `fund-transfers.print` di `resources/views/cashflows/print.blade.php` & `fund-transfers/print.blade.php`) → auto `window.print()` → cetak/simpan PDF. Modal voucher lama (`viewVoucher`/`closeVoucher`/`$voucherId`) dihapus.
+- **Company Settings (fitur baru, admin-only)**: halaman `/company-settings` (route `company-settings.index`, `App\Livewire\CompanySettings\Index`, menu sidebar "Company Settings" icon cog).
+  - Upload **logo** perusahaan (max 2MB) & **login illustration** (max 4MB) — tersimpan di `storage/app/public/logos` & `storage/app/public/illustrations`, file lama otomatis dihapus saat replace.
+  - **Pengaturan tampilan login illustration**: `illustration_fit` (cover/contain/fill) + `illustration_position` (top/center/bottom) dengan **live preview** di halaman settings — dipakai di `layouts/auth.blade.php` via `object-fit`/`object-position`.
+  - Migrations: `2026_08_18_163040_add_login_illustration_to_company_settings_table` & `2026_08_18_174951_add_fit_settings_to_company_settings_table`.
+  - View share: `companyLoginIllustrationUrl`, `companyIllustrationFit`, `companyIllustrationPosition` (fallback ke SVG `hero-finance.svg` saat kosong).
+  - Fix penting: `save()` awalnya memakai `app(CompanySetting::class)` (instance kosong) → diganti `CompanySettingService::get()` agar update menyentuh row yang benar.
+- **Test**: `CompanySettingsTest` +1 test upload login illustration; `php artisan test` = **308 lulus, 837 assertions**; Pint bersih; `npm run build` sukses.
+- **Commit**: `7a921da` (P8) di branch `feature/review-16-aug-2026` — belum di-push.
