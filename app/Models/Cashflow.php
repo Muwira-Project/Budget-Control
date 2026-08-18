@@ -15,6 +15,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable(['tanggal', 'jenis', 'sumber', 'payment_id', 'cash_account_id', 'akun_id', 'nominal', 'keterangan', 'status', 'submitted_by', 'approved_by', 'approved_at', 'posted_by', 'posted_at', 'rejected_by', 'rejected_at', 'rejection_reason', 'created_by'])]
 class Cashflow extends Model
@@ -27,6 +28,7 @@ class Cashflow extends Model
         static::created(fn ($model) => DashboardService::clearCache());
         static::updated(fn ($model) => DashboardService::clearCache());
         static::deleted(fn ($model) => DashboardService::clearCache());
+        static::restored(fn ($model) => DashboardService::clearCache());
 
         static::created(function (Cashflow $cashflow): void {
             if ($cashflow->status->isPosted()) {
@@ -36,7 +38,7 @@ class Cashflow extends Model
     }
 
     /** @use HasFactory<CashflowFactory> */
-    use HasFactory, LogsActivity;
+    use HasFactory, LogsActivity, SoftDeletes;
 
     /**
      * Get the attributes that should be cast.

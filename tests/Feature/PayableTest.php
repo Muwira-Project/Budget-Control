@@ -123,6 +123,6 @@ class PayableTest extends TestCase
             ->test(IndexPayable::class)
             ->call('delete', $payable->id);
 
-        $this->assertDatabaseMissing('payables', ['id' => $payable->id]);
+        $this->assertSoftDeleted('payables', ['id' => $payable->id]);
     }
 }

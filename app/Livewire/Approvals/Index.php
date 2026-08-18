@@ -10,6 +10,7 @@ use App\Services\CashflowService;
 use App\Services\FundTransferService;
 use App\Services\PaymentService;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -28,7 +29,7 @@ class Index extends Component
      */
     public function approveCashflow(int $id, CashflowService $service): void
     {
-        if (! $this->isAdmin()) {
+        if (! Gate::allows('manageSettlements', Payment::class)) {
             return;
         }
 
@@ -45,7 +46,7 @@ class Index extends Component
      */
     public function postCashflow(int $id, CashflowService $service): void
     {
-        if (! $this->isAdmin()) {
+        if (! Gate::allows('manageSettlements', Payment::class)) {
             return;
         }
 
@@ -62,7 +63,7 @@ class Index extends Component
      */
     public function approveTransfer(int $id, FundTransferService $service): void
     {
-        if (! $this->isAdmin()) {
+        if (! Gate::allows('manageSettlements', Payment::class)) {
             return;
         }
 
@@ -79,7 +80,7 @@ class Index extends Component
      */
     public function postTransfer(int $id, FundTransferService $service): void
     {
-        if (! $this->isAdmin()) {
+        if (! Gate::allows('manageSettlements', Payment::class)) {
             return;
         }
 
@@ -96,7 +97,7 @@ class Index extends Component
      */
     public function approveVoid(int $id, PaymentService $service): void
     {
-        if (! $this->isAdmin()) {
+        if (! Gate::allows('manageSettlements', Payment::class)) {
             return;
         }
 
@@ -126,7 +127,7 @@ class Index extends Component
         FundTransferService $transferService,
         PaymentService $paymentService,
     ): void {
-        if (! $this->isAdmin() || $this->rejectingType === null || $this->rejectingId === null) {
+        if (! Gate::allows('manageSettlements', Payment::class) || $this->rejectingType === null || $this->rejectingId === null) {
             return;
         }
 
@@ -231,7 +232,7 @@ class Index extends Component
      */
     private function isAdmin(): bool
     {
-        return auth()->user()->isAdmin();
+        return Gate::allows('manageSettlements', Payment::class);
     }
 
     public function render()

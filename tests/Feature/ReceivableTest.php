@@ -109,6 +109,6 @@ class ReceivableTest extends TestCase
             ->test(IndexReceivable::class)
             ->call('delete', $receivable->id);
 
-        $this->assertDatabaseMissing('receivables', ['id' => $receivable->id]);
+        $this->assertSoftDeleted('receivables', ['id' => $receivable->id]);
     }
 }

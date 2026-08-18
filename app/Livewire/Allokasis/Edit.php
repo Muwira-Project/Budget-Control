@@ -8,6 +8,7 @@ use App\Models\Akun;
 use App\Models\Project;
 use App\Models\ProjectAkun;
 use App\Services\ProjectAkunService;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -28,27 +29,35 @@ class Edit extends Component
 
     /**
      * Load the allocation being edited.
+     *
+     * Accepts both the route binding ({projectAkun}) and the legacy
+     * parameter name (allocation) used by feature tests.
      */
-    public function mount(ProjectAkun $allocation): void
+    public function mount(?ProjectAkun $projectAkun = null, ?ProjectAkun $allocation = null): void
     {
-        if (! auth()->user()->isAdmin()
-            && ($allocation->status !== AllocationStatus::Draft || $allocation->created_by !== auth()->id())) {
+        $projectAkun ??= $allocation;
+
+        if (! $projectAkun) {
+            abort(404);
+        }
+
+        if (! Gate::allows('manageDraft', $projectAkun)) {
             abort(403, 'Staff can only edit their own draft allocations.');
         }
 
-        if ($allocation->status === AllocationStatus::Waiting || $allocation->isApproved()) {
-            session()->flash('error', 'Allocation with status '.$allocation->status->label().' cannot be edited.');
+        if ($projectAkun->status === AllocationStatus::Waiting || $projectAkun->isApproved()) {
+            session()->flash('error', 'Allocation with status '.$projectAkun->status->label().' cannot be edited.');
 
             $this->redirectRoute('allokasis.index', navigate: true);
 
             return;
         }
 
-        $this->allocation = $allocation;
-        $this->projectId = $allocation->project_id;
-        $this->akunId = $allocation->akun_id;
-        $this->budget = $allocation->budget ?? '';
-        $this->allocationNominal = $allocation->allocation ?? '';
+        $this->allocation = $projectAkun;
+        $this->projectId = $projectAkun->project_id;
+        $this->akunId = $projectAkun->akun_id;
+        $this->budget = $projectAkun->budget ?? '';
+        $this->allocationNominal = $projectAkun->allocation ?? '';
     }
 
     /**

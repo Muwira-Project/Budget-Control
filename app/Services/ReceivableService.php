@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\Project;
 use App\Models\Receivable;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Validation\ValidationException;
 
 class ReceivableService
 {
@@ -15,6 +16,12 @@ class ReceivableService
      */
     public function create(array $data): Receivable
     {
+        // Uniqueness is enforced here because SQLite cannot express a
+        // partial unique index for active (non-soft-deleted) rows.
+        if (Receivable::where('project_id', $data['project_id'])->exists()) {
+            throw ValidationException::withMessages(['project_id' => 'Project ini sudah memiliki piutang.']);
+        }
+
         return Receivable::create([
             'project_id' => $data['project_id'],
             'tanggal' => $data['tanggal'],

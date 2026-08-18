@@ -6,6 +6,7 @@ use App\Enums\CashAccountJenis;
 use App\Enums\CashAccountStatus;
 use App\Models\CashAccount;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Validation\ValidationException;
 
 class CashAccountService
 {
@@ -16,6 +17,12 @@ class CashAccountService
      */
     public function create(array $data): CashAccount
     {
+        // Uniqueness is enforced here because SQLite cannot express a
+        // partial unique index for active (non-soft-deleted) rows.
+        if (CashAccount::where('kode', $data['kode'])->exists()) {
+            throw ValidationException::withMessages(['kode' => 'Kode rekening sudah digunakan.']);
+        }
+
         return CashAccount::create([
             'kode' => $data['kode'],
             'nama' => $data['nama'],

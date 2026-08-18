@@ -134,7 +134,7 @@ class CashModuleTest extends TestCase
 
         app(PaymentService::class)->approveVoid($payment->fresh());
 
-        $this->assertDatabaseMissing('payments', ['id' => $payment->id]);
+        $this->assertSoftDeleted('payments', ['id' => $payment->id]);
         $this->assertSame(0.0, (float) $receivable->fresh()->nominal_dibayar);
     }
 

@@ -86,8 +86,8 @@ class PaymentTest extends TestCase
 
         $this->assertSame(0.0, (float) $receivable->fresh()->nominal_dibayar);
         $this->assertSame('belum_dibayar', $receivable->fresh()->status->value);
-        $this->assertDatabaseMissing('payments', ['id' => $payment->id]);
-        $this->assertDatabaseMissing('cashflows', ['payment_id' => $payment->id]);
+        $this->assertSoftDeleted('payments', ['id' => $payment->id]);
+        $this->assertSoftDeleted('cashflows', ['payment_id' => $payment->id]);
     }
 
     public function test_receivable_payment_cannot_exceed_sisa(): void
@@ -142,7 +142,7 @@ class PaymentTest extends TestCase
             ->test(IndexPayment::class)
             ->call('approveVoid', $payment->id);
 
-        $this->assertDatabaseMissing('payments', ['id' => $payment->id]);
+        $this->assertSoftDeleted('payments', ['id' => $payment->id]);
         $this->assertSame(0.0, (float) $receivable->fresh()->nominal_dibayar);
     }
 }

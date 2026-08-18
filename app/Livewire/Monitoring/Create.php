@@ -5,6 +5,7 @@ namespace App\Livewire\Monitoring;
 use App\Http\Requests\MonitoringPeriod\StoreMonitoringPeriodRequest;
 use App\Models\Project;
 use App\Services\MonitoringPeriodService;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -21,7 +22,7 @@ class Create extends Component
 
     public function mount(): void
     {
-        abort_unless(auth()->user()->isAdmin(), 403);
+        abort_unless(Gate::allows('manageMonitoring', MonitoringPeriod::class), 403);
 
         $this->tanggalMulai = now()->startOfMonth()->format('Y-m-d');
         $this->tanggalSelesai = now()->startOfMonth()->addDays(13)->format('Y-m-d');

@@ -11,12 +11,13 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable(['receivable_id', 'payable_id', 'tanggal', 'nominal', 'jenis', 'keterangan', 'status', 'void_reason', 'void_requested_by', 'void_requested_at', 'void_review_note', 'void_reviewed_by', 'void_reviewed_at'])]
 class Payment extends Model
 {
     /** @use HasFactory<PaymentFactory> */
-    use HasFactory, LogsActivity;
+    use HasFactory, LogsActivity, SoftDeletes;
 
     /**
      * A payment settles exactly one receivable or payable.
@@ -32,6 +33,7 @@ class Payment extends Model
         static::created(fn ($model) => DashboardService::clearCache());
         static::updated(fn ($model) => DashboardService::clearCache());
         static::deleted(fn ($model) => DashboardService::clearCache());
+        static::restored(fn ($model) => DashboardService::clearCache());
     }
 
     /**

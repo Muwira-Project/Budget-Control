@@ -86,7 +86,7 @@ class CashflowTest extends TestCase
             ->test(IndexCashflow::class)
             ->call('delete', $entry->id);
 
-        $this->assertDatabaseMissing('cashflows', ['id' => $entry->id]);
+        $this->assertSoftDeleted('cashflows', ['id' => $entry->id]);
     }
 
     public function test_index_filters_by_jenis(): void

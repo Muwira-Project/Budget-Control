@@ -12,12 +12,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable(['project_id', 'realisasi_id', 'akun_id', 'vendor_id', 'supplier_id', 'mandor_id', 'investor_id', 'tanggal', 'jatuh_tempo', 'nominal', 'jenis_pajak', 'pajak_include', 'nominal_dibayar', 'keterangan'])]
 class Payable extends Model
 {
     /** @use HasFactory<PayableFactory> */
-    use HasFactory, LogsActivity;
+    use HasFactory, LogsActivity, SoftDeletes;
 
     /**
      * Ensure a payable always has one, and only one, counterparty.
@@ -39,6 +40,7 @@ class Payable extends Model
         static::created(fn ($model) => DashboardService::clearCache());
         static::updated(fn ($model) => DashboardService::clearCache());
         static::deleted(fn ($model) => DashboardService::clearCache());
+        static::restored(fn ($model) => DashboardService::clearCache());
 
         static::updated(function (Payable $payable): void {
             if (! $payable->wasChanged('nominal') || $payable->realisasi_id === null) {

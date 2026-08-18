@@ -9,6 +9,7 @@ use App\Models\Project;
 use App\Models\ProjectAkun;
 use App\Services\ProjectAkunService;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -28,7 +29,7 @@ class Index extends Component
      */
     public function delete(ProjectAkun $allocation, ProjectAkunService $service): void
     {
-        if (! $this->canManageDraft($allocation)) {
+        if (! Gate::allows('manageDraft', $allocation)) {
             session()->flash('error', 'Staff can only manage their own draft allocations.');
 
             return;
@@ -50,7 +51,7 @@ class Index extends Component
      */
     public function submit(ProjectAkun $allocation, ProjectAkunService $service): void
     {
-        if (! $this->canManageDraft($allocation)) {
+        if (! Gate::allows('manageDraft', $allocation)) {
             session()->flash('error', 'Staff can only submit their own draft allocations.');
 
             return;
@@ -72,7 +73,7 @@ class Index extends Component
      */
     public function approve(ProjectAkun $allocation, ProjectAkunService $service): void
     {
-        if (! auth()->user()->isAdmin()) {
+        if (! Gate::allows('approve', $allocation)) {
             session()->flash('error', 'Only admins can approve allocations.');
 
             return;
@@ -94,7 +95,7 @@ class Index extends Component
      */
     public function reject(ProjectAkun $allocation, ProjectAkunService $service): void
     {
-        if (! auth()->user()->isAdmin()) {
+        if (! Gate::allows('approve', $allocation)) {
             session()->flash('error', 'Only admins can reject allocations.');
 
             return;
@@ -135,7 +136,7 @@ class Index extends Component
     {
         $project = $this->projectId ? Project::find($this->projectId) : null;
 
-        if (! auth()->user()->isAdmin()) {
+        if (! Gate::allows('viewAny', ProjectAkun::class)) {
             return ProjectAkun::query()
                 ->with(['project', 'akun'])
                 ->where('created_by', auth()->id())
@@ -190,7 +191,7 @@ class Index extends Component
             if (! $allocation = ProjectAkun::find($id)) {
                 continue;
             }
-            if (! $this->canManageDraft($allocation)) {
+            if (! Gate::allows('manageDraft', $allocation)) {
                 $skipped++;
 
                 continue;
@@ -208,11 +209,5 @@ class Index extends Component
     public function render()
     {
         return view('livewire.allokasis.index');
-    }
-
-    private function canManageDraft(ProjectAkun $allocation): bool
-    {
-        return auth()->user()->isAdmin()
-            || ($allocation->status === AllocationStatus::Draft && $allocation->created_by === auth()->id());
     }
 }

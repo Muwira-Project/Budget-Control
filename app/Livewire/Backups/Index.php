@@ -3,6 +3,7 @@
 namespace App\Livewire\Backups;
 
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -19,7 +20,7 @@ class Index extends Component
 
     public function mount(): void
     {
-        abort_unless(auth()->user()->isAdmin(), 403);
+        abort_unless(Gate::allows('accessBackups', Backup::class), 403);
     }
 
     #[Computed]
@@ -42,7 +43,7 @@ class Index extends Component
 
     public function createBackup(): void
     {
-        abort_unless(auth()->user()->isAdmin(), 403);
+        abort_unless(Gate::allows('accessBackups', Backup::class), 403);
 
         try {
             Artisan::call('backup:run', [
@@ -61,7 +62,7 @@ class Index extends Component
 
     public function cleanOldBackups(): void
     {
-        abort_unless(auth()->user()->isAdmin(), 403);
+        abort_unless(Gate::allows('accessBackups', Backup::class), 403);
 
         try {
             Artisan::call('backup:clean', ['--disable-notifications' => true]);
@@ -84,7 +85,7 @@ class Index extends Component
 
     public function delete(string $path): void
     {
-        abort_unless(auth()->user()->isAdmin(), 403);
+        abort_unless(Gate::allows('accessBackups', Backup::class), 403);
         abort_unless($this->isValidBackupPath($path), 404);
 
         Storage::disk('local')->delete($path);

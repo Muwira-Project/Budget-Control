@@ -8,6 +8,7 @@ use App\Models\Project;
 use App\Models\Receivable;
 use App\Services\ReceivableService;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -81,7 +82,7 @@ class Index extends Component
      */
     public function release(Receivable $receivable, ReceivableService $service): void
     {
-        if (! auth()->user()->isAdmin()) {
+        if (! Gate::allows('releaseReceivables', $receivable)) {
             session()->flash('error', 'Only admins can release receivables.');
 
             return;

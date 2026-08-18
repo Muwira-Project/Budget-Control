@@ -10,12 +10,13 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable(['tanggal', 'dari_cash_account_id', 'ke_cash_account_id', 'nominal', 'keterangan', 'created_by', 'status', 'submitted_by', 'approved_by', 'approved_at', 'posted_by', 'posted_at', 'rejected_by', 'rejected_at', 'rejection_reason'])]
 class FundTransfer extends Model
 {
     /** @use HasFactory<FundTransferFactory> */
-    use HasFactory, LogsActivity;
+    use HasFactory, LogsActivity, SoftDeletes;
 
     /**
      * A transfer must move money between two different accounts.

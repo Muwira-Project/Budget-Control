@@ -9,12 +9,13 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable(['kode', 'nama', 'jenis', 'saldo_awal', 'is_default', 'status', 'keterangan'])]
 class CashAccount extends Model
 {
     /** @use HasFactory<CashAccountFactory> */
-    use HasFactory, LogsActivity;
+    use HasFactory, LogsActivity, SoftDeletes;
 
     /**
      * Get the attributes that should be cast.

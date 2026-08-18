@@ -8,6 +8,7 @@ use App\Models\MonitoringPeriod;
 use App\Models\Project;
 use App\Services\MonitoringPeriodService;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -24,7 +25,7 @@ class Index extends Component
 
     public function delete(MonitoringPeriod $period, MonitoringPeriodService $service): void
     {
-        abort_unless(auth()->user()->isAdmin(), 403, 'Only admins can manage monitoring periods.');
+        abort_unless(Gate::allows('manageMonitoring', $period), 403, 'Only admins can manage monitoring periods.');
 
         $service->delete($period);
 
@@ -73,7 +74,7 @@ class Index extends Component
 
     public function deleteSelected(MonitoringPeriodService $service): void
     {
-        abort_unless(auth()->user()->isAdmin(), 403, 'Only admins can manage monitoring periods.');
+        abort_unless(Gate::allows('manageMonitoring', MonitoringPeriod::class), 403, 'Only admins can manage monitoring periods.');
 
         $count = 0;
         foreach ($this->selectedIds as $id) {

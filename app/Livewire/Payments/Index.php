@@ -9,6 +9,7 @@ use App\Livewire\Concerns\PerPagePagination;
 use App\Models\Payment;
 use App\Services\PaymentService;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -79,7 +80,7 @@ class Index extends Component
      */
     public function approveVoid(Payment $payment, PaymentService $service): void
     {
-        if (! auth()->user()->isAdmin()) {
+        if (! Gate::allows('manageSettlements', $payment)) {
             session()->flash('error', 'Only admins can approve cancellations.');
 
             return;
@@ -111,7 +112,7 @@ class Index extends Component
             return;
         }
 
-        if (! auth()->user()->isAdmin()) {
+        if (! Gate::allows('manageSettlements', $payment)) {
             session()->flash('error', 'Only admins can reject cancellations.');
 
             return;
@@ -147,7 +148,7 @@ class Index extends Component
      */
     public function delete(Payment $payment, PaymentService $service): void
     {
-        if (! auth()->user()->isAdmin()) {
+        if (! Gate::allows('manageSettlements', $payment)) {
             session()->flash('error', 'Only admins can delete settlements directly.');
 
             return;
@@ -217,7 +218,7 @@ class Index extends Component
 
     public function deleteSelected(PaymentService $service): void
     {
-        if (! auth()->user()->isAdmin()) {
+        if (! Gate::allows('manageSettlements', Payment::class)) {
             session()->flash('error', 'Only admins can delete settlements directly.');
 
             return;

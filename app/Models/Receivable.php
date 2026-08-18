@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable(['project_id', 'tanggal', 'jatuh_tempo', 'nominal', 'nominal_dibayar', 'keterangan', 'hold_reason', 'held_by', 'held_at'])]
 class Receivable extends Model
@@ -22,6 +23,8 @@ class Receivable extends Model
     {
         static::created(fn ($model) => DashboardService::clearCache());
         static::updated(fn ($model) => DashboardService::clearCache());
+        static::deleted(fn ($model) => DashboardService::clearCache());
+        static::restored(fn ($model) => DashboardService::clearCache());
 
         static::updated(function (Receivable $receivable): void {
             if (! $receivable->wasChanged('nominal')) {
@@ -41,11 +44,10 @@ class Receivable extends Model
                 $project->update(['harga_satuan' => $targetPrice]);
             }
         });
-        static::deleted(fn ($model) => DashboardService::clearCache());
     }
 
     /** @use HasFactory<ReceivableFactory> */
-    use HasFactory, LogsActivity;
+    use HasFactory, LogsActivity, SoftDeletes;
 
     /**
      * Get the attributes that should be cast.
