@@ -38,6 +38,8 @@ class ReportTest extends TestCase
             'qty' => 1,
             'harga_satuan' => 1000000,
             'pajak' => 11,
+            'tanggal_mulai' => '2026-08-01',
+            'target_selesai' => '2026-08-31',
         ]);
 
         $akun = Akun::factory()->create();
@@ -60,6 +62,79 @@ class ReportTest extends TestCase
         $this->assertEqualsWithDelta(500000.0, $report['totals']['cost'], 0.01);
         $this->assertEqualsWithDelta(610000.0, $report['totals']['profit'], 0.01);
         $this->assertEqualsWithDelta(55.0, $report['totals']['margin'], 0.01);
+    }
+
+    public function test_profit_loss_prorates_revenue_over_project_duration(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $project = Project::factory()->create([
+            'status' => 'progress',
+            'qty' => 1,
+            'harga_satuan' => 1000000,
+            'pajak' => 10, // nilai_total = 1.100.000
+            'tanggal_mulai' => '2026-08-01',
+            'target_selesai' => '2026-08-31', // 31 hari
+        ]);
+
+        // Laporan untuk minggu pertama (7 dari 31 hari) -> revenue prorata.
+        $report = app(ReportService::class)->profitLoss('2026-08-01', '2026-08-07');
+
+        $expectedRevenue = round(1100000 * (7 / 31), 2);
+        $this->assertEqualsWithDelta($expectedRevenue, $report['totals']['revenue'], 0.01);
+    }
+
+    public function test_profit_loss_returns_zero_revenue_for_project_outside_period(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $project = Project::factory()->create([
+            'status' => 'progress',
+            'qty' => 1,
+            'harga_satuan' => 1000000,
+            'pajak' => 10,
+            'tanggal_mulai' => '2026-09-01',
+            'target_selesai' => '2026-09-30',
+        ]);
+
+        // Laporan Agustus -> proyek belum mulai, revenue 0.
+        $report = app(ReportService::class)->profitLoss('2026-08-01', '2026-08-31');
+
+        $this->assertSame(0.0, $report['totals']['revenue']);
+        $this->assertSame(0.0, $report['totals']['profit']);
+    }
+
+    public function test_profit_loss_without_date_range_uses_full_contract_value(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $project = Project::factory()->create([
+            'status' => 'progress',
+            'qty' => 2,
+            'harga_satuan' => 500000,
+            'pajak' => 10, // nilai_total = 1.100.000
+            'tanggal_mulai' => '2026-08-01',
+            'target_selesai' => '2026-08-31',
+        ]);
+
+        $report = app(ReportService::class)->profitLoss();
+
+        $this->assertEqualsWithDelta(1100000.0, $report['totals']['revenue'], 0.01);
+    }
+
+    public function test_profit_loss_revenue_full_when_period_covers_entire_project(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $project = Project::factory()->create([
+            'status' => 'progress',
+            'qty' => 1,
+            'harga_satuan' => 1000000,
+            'pajak' => 10,
+            'tanggal_mulai' => '2026-08-01',
+            'target_selesai' => '2026-08-31',
+        ]);
+
+        // Periode lebih lebar dari durasi proyek -> revenue penuh.
+        $report = app(ReportService::class)->profitLoss('2026-07-01', '2026-09-30');
+
+        $this->assertEqualsWithDelta(1100000.0, $report['totals']['revenue'], 0.01);
     }
 
     public function test_cash_flow_counts_only_posted_entries(): void

@@ -29,6 +29,7 @@
 
         <x-sidebar-link href="{{ route('backup.index') }}" label="Backup" icon="arrow-path" :active="request()->routeIs('backup.index')" />
         <x-sidebar-link href="{{ route('audit-log.index') }}" label="Audit Log" icon="history" :active="request()->routeIs('audit-log.index')" />
+        <x-sidebar-link href="{{ route('trash.index') }}" label="Trash" icon="trash" :active="request()->routeIs('trash.index')" />
 
         <x-sidebar-dropdown label="Master" icon="settings" :active="request()->routeIs('kategoris.*') || request()->routeIs('vendors.*') || request()->routeIs('suppliers.*') || request()->routeIs('mandors.*') || request()->routeIs('investors.*') || request()->routeIs('users.*') || request()->routeIs('master-types.*') || request()->routeIs('master-items.*')">
             <x-sidebar-link href="{{ route('kategoris.index') }}" label="Category" :active="request()->routeIs('kategoris.*')" />

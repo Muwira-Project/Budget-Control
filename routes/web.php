@@ -64,6 +64,7 @@ use App\Livewire\Reports\ProfitLoss as ProfitLossReport;
 use App\Livewire\Suppliers\Create as CreateSupplier;
 use App\Livewire\Suppliers\Edit as EditSupplier;
 use App\Livewire\Suppliers\Index as IndexSupplier;
+use App\Livewire\Trash\Index as IndexTrash;
 use App\Livewire\Users\Create as CreateUser;
 use App\Livewire\Users\Edit as EditUser;
 use App\Livewire\Users\Index as IndexUser;
@@ -165,6 +166,8 @@ Route::middleware(['auth', 'verified', 'draft-staff'])->group(function () {
     Route::get('/users/{user}/edit', EditUser::class)->name('users.edit');
 
     Route::get('/audit-log', AuditLogIndex::class)->name('audit-log.index');
+
+    Route::get('/trash', IndexTrash::class)->name('trash.index');
 
     Route::get('/approvals', ApprovalsIndex::class)->name('approvals.index');
 

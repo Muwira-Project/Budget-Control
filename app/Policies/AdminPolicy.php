@@ -53,4 +53,12 @@ class AdminPolicy
     {
         return $user->isAdmin();
     }
+
+    /**
+     * Whether the user can access the trash (restore/force-delete soft-deleted rows).
+     */
+    public function accessTrash(User $user): bool
+    {
+        return $user->isAdmin();
+    }
 }

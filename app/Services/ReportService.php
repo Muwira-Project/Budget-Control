@@ -18,6 +18,9 @@ class ReportService
     /**
      * Profit & Loss (accrual basis): contract revenue vs realized cost per project.
      *
+     * Revenue is prorated over the project duration (tanggal_mulai -> target_selesai)
+     * when a date range is given; without a range, the full contract value is used.
+     *
      * @return array{rows: array<int, array<string, mixed>>, totals: array{revenue: float, cost: float, profit: float, margin: float}}
      */
     public function profitLoss(?string $startDate = null, ?string $endDate = null, ?int $projectId = null): array
@@ -36,7 +39,7 @@ class ReportService
                 ->when($endDate, fn ($q) => $q->whereDate('tanggal', '<=', $endDate))
                 ->sum('nominal');
 
-            $revenue = (float) $project->nilai_total;
+            $revenue = $this->proratedRevenue($project, $startDate, $endDate);
             $profit = $revenue - $cost;
 
             return [
@@ -63,6 +66,47 @@ class ReportService
                 'margin' => $revenue > 0 ? round(($profit / $revenue) * 100, 1) : 0,
             ],
         ];
+    }
+
+    /**
+     * Contract revenue recognized within the reporting period.
+     *
+     * When both the project duration and the report range are known, revenue is
+     * prorated by the number of overlapping days. Otherwise the full contract
+     * value (nilai_total) applies, preserving the previous behaviour.
+     */
+    private function proratedRevenue(Project $project, ?string $startDate, ?string $endDate): float
+    {
+        $total = (float) $project->nilai_total;
+
+        // No range or no project duration -> full contract value.
+        if ($startDate === null || $endDate === null || $project->tanggal_mulai === null || $project->target_selesai === null) {
+            return $total;
+        }
+
+        $projectStart = $project->tanggal_mulai;
+        $projectEnd = $project->target_selesai;
+
+        $durationDays = $projectStart->diffInDays($projectEnd) + 1;
+
+        if ($durationDays <= 0) {
+            return $total;
+        }
+
+        $rangeStart = Carbon::parse($startDate)->startOfDay();
+        $rangeEnd = Carbon::parse($endDate)->startOfDay();
+
+        // Overlap of [projectStart, projectEnd] with [rangeStart, rangeEnd].
+        $overlapStart = $projectStart->greaterThan($rangeStart) ? $projectStart : $rangeStart;
+        $overlapEnd = $projectEnd->lessThan($rangeEnd) ? $projectEnd : $rangeEnd;
+
+        if ($overlapEnd->lt($overlapStart)) {
+            return 0.0;
+        }
+
+        $overlapDays = $overlapStart->diffInDays($overlapEnd) + 1;
+
+        return round($total * ($overlapDays / $durationDays), 2);
     }
 
     /**
