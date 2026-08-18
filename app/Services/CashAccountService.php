@@ -23,6 +23,8 @@ class CashAccountService
             throw ValidationException::withMessages(['kode' => 'Kode rekening sudah digunakan.']);
         }
 
+        $this->assertSingleDefault($data);
+
         return CashAccount::create([
             'kode' => $data['kode'],
             'nama' => $data['nama'],
@@ -41,16 +43,59 @@ class CashAccountService
      */
     public function update(CashAccount $account, array $data): CashAccount
     {
+        $this->assertSingleDefault($data, $account->id);
+
         $account->update($data);
 
         return $account->refresh();
     }
 
     /**
+     * Ensure only one active cash account can be marked as default.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    protected function assertSingleDefault(array $data, ?int $ignoreId = null): void
+    {
+        $isDefault = (bool) ($data['is_default'] ?? false);
+
+        if (! $isDefault) {
+            return;
+        }
+
+        $conflict = CashAccount::query()
+            ->where('is_default', true)
+            ->when($ignoreId !== null, fn ($query) => $query->where('id', '!=', $ignoreId))
+            ->exists();
+
+        if ($conflict) {
+            throw ValidationException::withMessages([
+                'is_default' => 'Sudah ada akun kas default lain. Nonaktifkan akun default sebelumnya terlebih dahulu.',
+            ]);
+        }
+    }
+
+    /**
      * Delete a cash account.
+     *
+     * Accounts that still have transactions (cashflow entries or fund
+     * transfers) cannot be deleted — doing so would silently orphan the
+     * transaction history from the cash flow reports.
+     *
+     * @throws ValidationException
      */
     public function delete(CashAccount $account): void
     {
+        $hasTransactions = $account->cashflows()->exists()
+            || $account->outgoingTransfers()->exists()
+            || $account->incomingTransfers()->exists();
+
+        if ($hasTransactions) {
+            throw ValidationException::withMessages([
+                'kode' => 'Akun kas dengan riwayat transaksi tidak dapat dihapus.',
+            ]);
+        }
+
         $account->delete();
     }
 

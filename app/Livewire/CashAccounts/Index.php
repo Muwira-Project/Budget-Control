@@ -7,6 +7,7 @@ use App\Livewire\Concerns\PerPagePagination;
 use App\Models\CashAccount;
 use App\Services\CashAccountService;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -24,9 +25,12 @@ class Index extends Component
      */
     public function delete(CashAccount $account, CashAccountService $service): void
     {
-        $service->delete($account);
-
-        session()->flash('status', 'Cash account deleted.');
+        try {
+            $service->delete($account);
+            session()->flash('status', 'Cash account deleted.');
+        } catch (ValidationException $exception) {
+            session()->flash('error', $exception->getMessage());
+        }
     }
 
     public function updatedStatusFilter(): void
@@ -51,14 +55,22 @@ class Index extends Component
     public function deleteSelected(CashAccountService $service): void
     {
         $deleted = 0;
+        $skipped = 0;
         foreach ($this->selectedIds as $id) {
             if ($account = CashAccount::find($id)) {
-                $service->delete($account);
-                $deleted++;
+                try {
+                    $service->delete($account);
+                    $deleted++;
+                } catch (ValidationException $exception) {
+                    $skipped++;
+                }
             }
         }
         $this->selectedIds = [];
         session()->flash('status', $deleted.' cash account(s) deleted.');
+        if ($skipped > 0) {
+            session()->flash('error', $skipped.' account(s) with transaction history could not be deleted.');
+        }
     }
 
     public function render()

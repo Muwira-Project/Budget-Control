@@ -10,9 +10,11 @@ use App\Models\Payment;
 use App\Models\Project;
 use App\Models\Receivable;
 use App\Models\User;
+use App\Services\CashAccountService;
 use App\Services\CashflowService;
 use App\Services\PaymentService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
 
 class SoftDeleteTest extends TestCase
@@ -125,5 +127,32 @@ class SoftDeleteTest extends TestCase
 
         $this->assertSoftDeleted('payables', ['id' => $payable->id]);
         $this->assertSame(0, Payable::count());
+    }
+
+    public function test_cash_account_with_transactions_cannot_be_deleted(): void
+    {
+        $account = CashAccount::factory()->create(['kode' => 'KAS-HIST']);
+        Cashflow::factory()->create([
+            'cash_account_id' => $account->id,
+            'status' => 'posted',
+            'jenis' => 'masuk',
+            'nominal' => 100000,
+        ]);
+
+        try {
+            app(CashAccountService::class)->delete($account);
+            $this->fail('Expected ValidationException was not thrown.');
+        } catch (ValidationException) {
+            $this->assertNotSoftDeleted('cash_accounts', ['id' => $account->id]);
+        }
+    }
+
+    public function test_cash_account_without_transactions_can_be_deleted(): void
+    {
+        $account = CashAccount::factory()->create(['kode' => 'KAS-EMPTY']);
+
+        app(CashAccountService::class)->delete($account);
+
+        $this->assertSoftDeleted('cash_accounts', ['id' => $account->id]);
     }
 }

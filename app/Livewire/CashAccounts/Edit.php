@@ -5,6 +5,7 @@ namespace App\Livewire\CashAccounts;
 use App\Models\CashAccount;
 use App\Services\CashAccountService;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -62,10 +63,16 @@ class Edit extends Component
             'keterangan' => ['nullable', 'string', 'max:1000'],
         ])->validate();
 
-        $service->update($this->cashAccount, [
-            ...$validated,
-            'is_default' => $this->isDefault,
-        ]);
+        try {
+            $service->update($this->cashAccount, [
+                ...$validated,
+                'is_default' => $this->isDefault,
+            ]);
+        } catch (ValidationException $exception) {
+            session()->flash('error', $exception->getMessage());
+
+            return;
+        }
 
         session()->flash('status', 'Cash account updated.');
 

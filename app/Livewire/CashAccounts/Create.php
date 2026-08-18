@@ -4,6 +4,7 @@ namespace App\Livewire\CashAccounts;
 
 use App\Services\CashAccountService;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -47,10 +48,16 @@ class Create extends Component
             'keterangan' => ['nullable', 'string', 'max:1000'],
         ])->validate();
 
-        $service->create([
-            ...$validated,
-            'is_default' => $this->isDefault,
-        ]);
+        try {
+            $service->create([
+                ...$validated,
+                'is_default' => $this->isDefault,
+            ]);
+        } catch (ValidationException $exception) {
+            session()->flash('error', $exception->getMessage());
+
+            return;
+        }
 
         session()->flash('status', 'Cash account created.');
 

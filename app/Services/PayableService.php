@@ -3,9 +3,11 @@
 namespace App\Services;
 
 use App\Models\Payable;
+use App\Models\Payment;
 use App\Models\Project;
 use App\Models\Realisasi;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 
 class PayableService
 {
@@ -60,11 +62,17 @@ class PayableService
     }
 
     /**
-     * Delete a payable (payments are removed by the database cascade).
+     * Delete a payable. Any payments linked to it are removed as well so the
+     * AP balance stays consistent (the FK cascade no longer applies because
+     * payments use soft deletes).
      */
     public function delete(Payable $payable): void
     {
-        $payable->delete();
+        DB::transaction(function () use ($payable): void {
+            Payment::where('payable_id', $payable->id)->get()->each(fn (Payment $payment) => app(PaymentService::class)->delete($payment));
+
+            $payable->delete();
+        });
     }
 
     /**

@@ -11,6 +11,7 @@ use App\Services\VoucherService;
 use Database\Factories\CashflowFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -50,13 +51,34 @@ class Cashflow extends Model
         return [
             'tanggal' => 'date',
             'jenis' => CashflowJenis::class,
-            'sumber' => CashflowSumber::class,
+            // 'sumber' sengaja TIDAK di-cast ke enum: nilai legacy
+            // ('payment_request'/'non_project_expense' dari modul yang sudah
+            // dihapus) akan melempar ValueError. Dipakai getter sumber() di bawah.
             'status' => KasStatus::class,
             'nominal' => 'decimal:2',
             'approved_at' => 'datetime',
             'posted_at' => 'datetime',
             'rejected_at' => 'datetime',
         ];
+    }
+
+    /**
+     * Normalize legacy sumber values (payment_request / non_project_expense
+     * from the removed modules) and always return a valid CashflowSumber enum.
+     */
+    protected function sumber(): Attribute
+    {
+        return Attribute::make(
+            get: function (mixed $value): CashflowSumber {
+                if ($value instanceof CashflowSumber) {
+                    return $value;
+                }
+
+                $value = (string) $value;
+
+                return CashflowSumber::tryFrom($value) ?? CashflowSumber::PengeluaranLain;
+            },
+        );
     }
 
     /**

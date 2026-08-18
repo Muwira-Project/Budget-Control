@@ -30,6 +30,20 @@ class CashflowTest extends TestCase
             ->assertOk();
     }
 
+    public function test_index_page_renders_with_legacy_payment_request_sumber(): void
+    {
+        $user = User::factory()->admin()->create();
+        Cashflow::factory()->create([
+            'sumber' => 'payment_request',
+            'jenis' => 'keluar',
+            'status' => 'posted',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('cashflows.index'))
+            ->assertOk();
+    }
+
     public function test_manual_cash_in_can_be_created(): void
     {
         $user = User::factory()->create();

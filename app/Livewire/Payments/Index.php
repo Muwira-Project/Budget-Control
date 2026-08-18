@@ -112,6 +112,15 @@ class Index extends Component
             return;
         }
 
+        /** @var Payment|null $payment */
+        $payment = Payment::find($this->rejectingId);
+
+        if ($payment === null) {
+            $this->reset('rejectingId', 'rejectNote');
+
+            return;
+        }
+
         if (! Gate::allows('manageSettlements', $payment)) {
             session()->flash('error', 'Only admins can reject cancellations.');
 
@@ -120,15 +129,6 @@ class Index extends Component
 
         if (trim($this->rejectNote) === '') {
             session()->flash('error', 'Rejection note is required.');
-
-            return;
-        }
-
-        /** @var Payment|null $payment */
-        $payment = Payment::find($this->rejectingId);
-
-        if ($payment === null) {
-            $this->reset('rejectingId', 'rejectNote');
 
             return;
         }

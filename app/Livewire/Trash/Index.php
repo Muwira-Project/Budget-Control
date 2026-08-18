@@ -8,6 +8,8 @@ use App\Models\FundTransfer;
 use App\Models\Payable;
 use App\Models\Payment;
 use App\Models\Receivable;
+use App\Services\ActualService;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -64,7 +66,7 @@ class Index extends Component
     }
 
     /**
-     * Restore a soft-deleted row.
+     * Restore a soft-deleted row and reverse the side effects of its deletion.
      */
     public function restore(int $id): void
     {
@@ -72,12 +74,28 @@ class Index extends Component
 
         $model = $this->modelClass()::onlyTrashed()->findOrFail($id);
 
-        // Restore the linked cashflow entries together with the payment.
-        if ($model instanceof Payment) {
-            Cashflow::onlyTrashed()->where('payment_id', $model->id)->restore();
-        }
+        DB::transaction(function () use ($model): void {
+            if ($model instanceof Payment) {
+                // Restore the linked cashflow entries.
+                Cashflow::onlyTrashed()->where('payment_id', $model->id)->restore();
 
-        $model->restore();
+                // Restore the paid amount that was decremented on delete.
+                if ($model->receivable_id !== null) {
+                    Receivable::whereKey($model->receivable_id)->increment('nominal_dibayar', $model->nominal);
+                }
+
+                if ($model->payable_id !== null) {
+                    Payable::whereKey($model->payable_id)->increment('nominal_dibayar', $model->nominal);
+                }
+
+                // Restore the actual (Realisasi) row for AP payments.
+                if ($model->payable_id !== null) {
+                    app(ActualService::class)->recordFromPayablePayment($model);
+                }
+            }
+
+            $model->restore();
+        });
 
         session()->flash('status', 'Data berhasil dikembalikan.');
     }

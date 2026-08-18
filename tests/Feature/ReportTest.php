@@ -11,6 +11,9 @@ use App\Models\Realisasi;
 use App\Models\Receivable;
 use App\Models\User;
 use App\Services\CashflowService;
+use App\Services\PayableService;
+use App\Services\PaymentService;
+use App\Services\ReceivableService;
 use App\Services\ReportService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -201,6 +204,36 @@ class ReportTest extends TestCase
         $this->assertSame(10000000.0, (float) $report['ar_totals']['over_90']);
         $this->assertSame(5000000.0, (float) $report['ar_totals']['current']);
         $this->assertSame(2, count($report['ar_rows']));
+    }
+
+    public function test_delete_receivable_with_payment_removes_payment(): void
+    {
+        $receivable = Receivable::factory()->create(['nominal' => 100000000, 'nominal_dibayar' => 0]);
+        $payment = app(PaymentService::class)->createForReceivable($receivable, [
+            'tanggal' => '2026-07-20',
+            'nominal' => 40000000,
+        ]);
+
+        app(ReceivableService::class)->delete($receivable);
+
+        $this->assertSoftDeleted('receivables', ['id' => $receivable->id]);
+        $this->assertSoftDeleted('payments', ['id' => $payment->id]);
+        $this->assertSoftDeleted('cashflows', ['payment_id' => $payment->id]);
+    }
+
+    public function test_delete_payable_with_payment_removes_payment(): void
+    {
+        $payable = Payable::factory()->create(['nominal' => 50000000, 'nominal_dibayar' => 0]);
+        $payment = app(PaymentService::class)->createForPayable($payable, [
+            'tanggal' => '2026-07-20',
+            'nominal' => 20000000,
+        ]);
+
+        app(PayableService::class)->delete($payable);
+
+        $this->assertSoftDeleted('payables', ['id' => $payable->id]);
+        $this->assertSoftDeleted('payments', ['id' => $payment->id]);
+        $this->assertSoftDeleted('cashflows', ['payment_id' => $payment->id]);
     }
 
     public function test_aging_ap_uses_party_and_sisa(): void

@@ -89,7 +89,6 @@ class Payable extends Model
     }
 
     /**
-    /**
      * Get the master akun.
      */
     public function akun(): BelongsTo

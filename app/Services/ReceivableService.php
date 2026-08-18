@@ -2,9 +2,11 @@
 
 namespace App\Services;
 
+use App\Models\Payment;
 use App\Models\Project;
 use App\Models\Receivable;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class ReceivableService
@@ -83,11 +85,17 @@ class ReceivableService
     }
 
     /**
-     * Delete a receivable (payments are removed by the database cascade).
+     * Delete a receivable. Any payments linked to it are removed as well so the
+     * AR balance stays consistent (the FK cascade no longer applies because
+     * payments use soft deletes).
      */
     public function delete(Receivable $receivable): void
     {
-        $receivable->delete();
+        DB::transaction(function () use ($receivable): void {
+            Payment::where('receivable_id', $receivable->id)->get()->each(fn (Payment $payment) => app(PaymentService::class)->delete($payment));
+
+            $receivable->delete();
+        });
     }
 
     /**
