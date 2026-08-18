@@ -116,13 +116,28 @@ class PayableTest extends TestCase
 
     public function test_payable_can_be_deleted(): void
     {
-        $user = User::factory()->create();
+        $admin = User::factory()->admin()->create();
         $payable = Payable::factory()->create();
 
-        Livewire::actingAs($user)
+        Livewire::actingAs($admin)
             ->test(IndexPayable::class)
             ->call('delete', $payable->id);
 
         $this->assertSoftDeleted('payables', ['id' => $payable->id]);
+    }
+
+    public function test_payable_aging_filter_1_30(): void
+    {
+        $user = User::factory()->create();
+        $old = Payable::factory()->create(['jatuh_tempo' => now()->subDays(120), 'nominal' => 100000, 'nominal_dibayar' => 0]);
+        $recent = Payable::factory()->create(['jatuh_tempo' => now()->subDays(10), 'nominal' => 100000, 'nominal_dibayar' => 0]);
+
+        $component = Livewire::actingAs($user)
+            ->test(IndexPayable::class)
+            ->set('agingFilter', '1_30');
+
+        $ids = collect($component->instance()->payables->items())->pluck('id');
+        $this->assertFalse($ids->contains($old->id));
+        $this->assertTrue($ids->contains($recent->id));
     }
 }

@@ -36,12 +36,21 @@
                                 @endforeach
                             </select>
                         </div>
+                        <div>
+                            <x-input-label for="aging_filter" :value="__('Filter Aging')" />
+                            <select id="aging_filter" wire:model.live="agingFilter" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                <option value="">All Ages</option>
+                                @foreach ($this->agingBuckets as $value => $label)
+                                    <option value="{{ $value }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
                     </div>
                 </div>
 
                 @if ($this->payables->isEmpty())
                     <p class="p-6 text-sm text-gray-500">
-                        {{ $this->projectId !== null || $this->statusFilter !== '' ? 'No payables match the filter.' : 'No payables yet. Payables are created automatically from actuals, or click "Add Payable".' }}
+                        {{ $this->projectId !== null || $this->statusFilter !== '' || $this->agingFilter !== '' ? 'No payables match the filter.' : 'No payables yet. Payables are created automatically from actuals, or click "Add Payable".' }}
                     </p>
                 @else
                     <div class="overflow-x-auto">
@@ -98,7 +107,7 @@
                                             </span>
                                         </td>
                                         <td class="px-6 py-4 text-right whitespace-nowrap">
-                                            <x-action-buttons :edit-href="route('payables.edit', $payable)" :delete-id="$payable->id">
+                                            <x-action-buttons :edit-href="auth()->user()->isAdmin() ? route('payables.edit', $payable) : null" :delete-id="auth()->user()->isAdmin() ? $payable->id : null">
                                                 <a href="{{ route('payables.pay', $payable) }}" wire:navigate title="Pay"
                                                     class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-green-300 hover:bg-green-50 hover:text-green-600">
                                                     <x-icon name="banknotes" class="h-4 w-4" />

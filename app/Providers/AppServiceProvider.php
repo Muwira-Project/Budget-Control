@@ -37,6 +37,9 @@ class AppServiceProvider extends ServiceProvider
             View::share('companyName', $settings->company_name);
             View::share('companyAddress', $settings->company_address);
             View::share('companyLogoUrl', $settings->logo_url);
+            View::share('companyLoginIllustrationUrl', $settings->login_illustration_url);
+            View::share('companyIllustrationFit', $settings->illustration_fit ?? 'cover');
+            View::share('companyIllustrationPosition', $settings->illustration_position ?? 'center');
         }
 
         if (Schema::hasTable('master_types')) {

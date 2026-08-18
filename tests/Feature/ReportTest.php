@@ -27,7 +27,7 @@ class ReportTest extends TestCase
         $staff = User::factory()->create();
         $admin = User::factory()->admin()->create();
 
-        foreach (['reports.profit-loss', 'reports.cash-flow', 'reports.aging'] as $route) {
+        foreach (['reports.profit-loss', 'reports.cash-flow'] as $route) {
             $this->actingAs($staff)->get(route($route))->assertForbidden();
             $this->actingAs($admin)->get(route($route))->assertOk();
         }

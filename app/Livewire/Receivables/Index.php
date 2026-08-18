@@ -23,6 +23,8 @@ class Index extends Component
 
     public string $statusFilter = '';
 
+    public string $agingFilter = '';
+
     public ?int $holdingId = null;
 
     public string $holdReason = '';
@@ -32,6 +34,12 @@ class Index extends Component
      */
     public function delete(Receivable $receivable, ReceivableService $service): void
     {
+        if (! auth()->user()->isAdmin()) {
+            session()->flash('error', 'Only admins can delete receivables.');
+
+            return;
+        }
+
         $service->delete($receivable);
 
         session()->flash('status', 'Receivable deleted successfully.');
@@ -110,6 +118,14 @@ class Index extends Component
     }
 
     /**
+     * Reset the pagination when the aging filter changes.
+     */
+    public function updatedAgingFilter(): void
+    {
+        $this->resetPage();
+    }
+
+    /**
      * The paginated list of receivables.
      */
     #[Computed]
@@ -117,7 +133,7 @@ class Index extends Component
     {
         $project = $this->projectId ? Project::find($this->projectId) : null;
 
-        return app(ReceivableService::class)->paginate($project, $this->statusFilter !== '' ? $this->statusFilter : null, $this->perPage);
+        return app(ReceivableService::class)->paginate($project, $this->statusFilter !== '' ? $this->statusFilter : null, $this->agingFilter !== '' ? $this->agingFilter : null, $this->perPage);
     }
 
     /**
@@ -141,6 +157,23 @@ class Index extends Component
             'belum_dibayar' => 'Unpaid',
             'sebagian' => 'Partial',
             'lunas' => 'Paid',
+        ];
+    }
+
+    /**
+     * The aging buckets available for filtering.
+     *
+     * @return array<string, string>
+     */
+    #[Computed]
+    public function agingBuckets(): array
+    {
+        return [
+            'current' => 'Current (not due)',
+            '1_30' => '1-30 days overdue',
+            '31_60' => '31-60 days overdue',
+            '61_90' => '61-90 days overdue',
+            'over_90' => 'Over 90 days',
         ];
     }
 

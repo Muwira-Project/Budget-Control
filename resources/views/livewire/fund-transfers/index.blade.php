@@ -64,6 +64,11 @@
                                                     </button>
                                                 @endif
                                             </x-action-buttons>
+                                            @if ($transfer->status->value === 'posted')
+                                                <button type="button" onclick="openPrintPreview('{{ route('fund-transfers.print', $transfer) }}')" title="Cetak Voucher" class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600">
+                                                    <x-icon name="printer" class="h-4 w-4" />
+                                                </button>
+                                            @endif
                                         </td>
                                     </tr>
                                 @endforeach
@@ -78,3 +83,16 @@
         </x-confirm-modal>
     </div>
 </div>
+
+@push('scripts')
+<script>
+    function openPrintPreview(url) {
+        const win = window.open(url, '_blank', 'width=800,height=900');
+        if (win) {
+            win.onload = function() {
+                win.print();
+            };
+        }
+    }
+</script>
+@endpush

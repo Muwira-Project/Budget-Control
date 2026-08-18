@@ -17,15 +17,24 @@ class CompanySettingService
     }
 
     /**
-     * Update the company settings and replace the logo when a new file is uploaded.
+     * Update the company settings and replace the logo/illustration when new files are uploaded.
      *
      * @param  array<string, mixed>  $data
      */
-    public function update(CompanySetting $settings, array $data, ?UploadedFile $logo = null): CompanySetting
+    public function update(CompanySetting $settings, array $data, ?UploadedFile $logo = null, ?UploadedFile $illustration = null): CompanySetting
     {
         if ($logo) {
             $oldPath = $settings->logo_path;
             $data['logo_path'] = $logo->store('logos', 'public');
+
+            if ($oldPath) {
+                Storage::disk('public')->delete($oldPath);
+            }
+        }
+
+        if ($illustration) {
+            $oldPath = $settings->login_illustration_path;
+            $data['login_illustration_path'] = $illustration->store('illustrations', 'public');
 
             if ($oldPath) {
                 Storage::disk('public')->delete($oldPath);

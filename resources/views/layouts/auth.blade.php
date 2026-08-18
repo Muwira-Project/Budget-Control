@@ -34,7 +34,16 @@
 
             {{-- Finance illustration merged with background (no card frame, no heavy shadow) --}}
             <div class="relative flex w-full items-center justify-center">
-                <img src="{{ asset('images/hero-finance.svg') }}" alt="" aria-hidden="true" class="h-full w-full object-cover" />
+                @if (isset($companyLoginIllustrationUrl) && $companyLoginIllustrationUrl)
+                    @php
+                        $illustrationFit = $companyIllustrationFit ?? 'cover';
+                        $illustrationPosition = $companyIllustrationPosition ?? 'center';
+                    @endphp
+                    <img src="{{ $companyLoginIllustrationUrl }}" alt="" aria-hidden="true" class="h-full w-full"
+                         style="object-fit: {{ $illustrationFit }}; object-position: {{ $illustrationPosition }};" />
+                @else
+                    <img src="{{ asset('images/hero-finance.svg') }}" alt="" aria-hidden="true" class="h-full w-full object-cover" />
+                @endif
             </div>
         </div>
 

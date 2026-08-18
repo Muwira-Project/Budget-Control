@@ -9,6 +9,7 @@ use App\Models\CashAccount;
 use App\Models\Cashflow;
 use App\Services\CashflowService;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -29,30 +30,17 @@ class Index extends Component
 
     public ?int $cashAccountId = null;
 
-    public ?int $voucherId = null;
-
     /**
-     * Reset pagination when the active tab changes.
+     * Reset pagination when the active tab changes and prevent staff from
+     * switching to admin-only tabs.
      */
-    public function updatedTab(): void
+    public function updatedTab(string $value): void
     {
         $this->resetPage();
-    }
 
-    /**
-     * Show the voucher for a posted cash entry.
-     */
-    public function viewVoucher(int $id): void
-    {
-        $this->voucherId = $id;
-    }
-
-    /**
-     * Close the voucher modal.
-     */
-    public function closeVoucher(): void
-    {
-        $this->voucherId = null;
+        if (! auth()->user()->isAdmin() && in_array($value, ['fund-transfer', 'cash-account'], true)) {
+            $this->tab = 'cash-in';
+        }
     }
 
     /**
@@ -62,6 +50,12 @@ class Index extends Component
     {
         if (! $cashflow->isManual()) {
             session()->flash('error', 'Records created automatically cannot be submitted.');
+
+            return;
+        }
+
+        if (! Gate::allows('manageDraft', $cashflow)) {
+            session()->flash('error', 'Staff can only submit their own draft cash entries.');
 
             return;
         }
@@ -81,6 +75,12 @@ class Index extends Component
     {
         if (! $cashflow->isManual()) {
             session()->flash('error', 'Records created automatically from settlements cannot be deleted.');
+
+            return;
+        }
+
+        if (! Gate::allows('manageDraft', $cashflow)) {
+            session()->flash('error', 'Staff can only delete their own draft cash entries.');
 
             return;
         }
@@ -219,6 +219,9 @@ class Index extends Component
                 continue;
             }
             if (! $cashflow->isManual() || $cashflow->isPosted()) {
+                continue;
+            }
+            if (! Gate::allows('manageDraft', $cashflow)) {
                 continue;
             }
             $service->delete($cashflow);

@@ -102,13 +102,28 @@ class ReceivableTest extends TestCase
 
     public function test_receivable_can_be_deleted(): void
     {
-        $user = User::factory()->create();
+        $admin = User::factory()->admin()->create();
         $receivable = Receivable::factory()->create();
 
-        Livewire::actingAs($user)
+        Livewire::actingAs($admin)
             ->test(IndexReceivable::class)
             ->call('delete', $receivable->id);
 
         $this->assertSoftDeleted('receivables', ['id' => $receivable->id]);
+    }
+
+    public function test_receivable_aging_filter_over_90(): void
+    {
+        $user = User::factory()->create();
+        $old = Receivable::factory()->create(['jatuh_tempo' => now()->subDays(120), 'nominal' => 100000, 'nominal_dibayar' => 0]);
+        $recent = Receivable::factory()->create(['jatuh_tempo' => now()->subDays(10), 'nominal' => 100000, 'nominal_dibayar' => 0]);
+
+        $component = Livewire::actingAs($user)
+            ->test(IndexReceivable::class)
+            ->set('agingFilter', 'over_90');
+
+        $ids = collect($component->instance()->receivables->items())->pluck('id');
+        $this->assertTrue($ids->contains($old->id));
+        $this->assertFalse($ids->contains($recent->id));
     }
 }

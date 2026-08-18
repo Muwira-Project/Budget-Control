@@ -2,8 +2,10 @@
 
 namespace App\Providers;
 
+use App\Models\Cashflow;
 use App\Models\ProjectAkun;
 use App\Models\User;
+use App\Policies\CashflowPolicy;
 use App\Policies\ProjectAkunPolicy;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
@@ -17,6 +19,7 @@ class AuthServiceProvider extends ServiceProvider
      */
     protected $policies = [
         ProjectAkun::class => ProjectAkunPolicy::class,
+        Cashflow::class => CashflowPolicy::class,
     ];
 
     /**

@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Storage;
 
-#[Fillable(['company_name', 'company_address', 'logo_path'])]
+#[Fillable(['company_name', 'company_address', 'logo_path', 'login_illustration_path', 'illustration_fit', 'illustration_position'])]
 class CompanySetting extends Model
 {
     /**
@@ -31,6 +31,16 @@ class CompanySetting extends Model
     {
         return $this->logo_path
             ? asset('storage/'.ltrim($this->logo_path, '/'))
+            : null;
+    }
+
+    /**
+     * Public URL of the uploaded login illustration, if any.
+     */
+    public function getLoginIllustrationUrlAttribute(): ?string
+    {
+        return $this->login_illustration_path
+            ? asset('storage/'.ltrim($this->login_illustration_path, '/'))
             : null;
     }
 }

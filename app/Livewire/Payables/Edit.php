@@ -53,6 +53,8 @@ class Edit extends Component
      */
     public function mount(Payable $payable): void
     {
+        abort_unless(auth()->user()->isAdmin(), 403, 'Only admins can edit payables.');
+
         $this->payable = $payable;
         $this->projectId = $payable->project_id;
         $this->akunId = $payable->akun_id;

@@ -213,4 +213,38 @@ Catatan:
   - Perbaikan error 500 sementara (referensi `$period` di closure `accountBreakdown`).
 - Audit aman tanpa perubahan: query batch (tanpa N+1), validasi lengkap, route/middleware admin-only, PSR-12 bersih.
 - Status: `php artisan test` = **284 lulus** (726 assertions); Pint lulus seluruh repo.
-- Item 4-5 tetap DITAHAN. Semua keputusan final (item 1-3) selesai.
+
+## 8. Notulensi sesi 2026-08-18 (diskusi struktur menu & role)
+
+> Status: **DIIMPLEMENTASIKAN (2026-08-18).** Seluruh keputusan 8.1 & 8.2 dieksekusi pada branch `feature/review-16-aug-2026`; detail per poin di bawah.
+
+### 8.1 Keputusan struktur menu (final)
+
+| # | Poin | Keputusan |
+|---|------|-----------|
+| 1 | Menu Account | **TETAP "Account"** (tidak diubah jadi "Chart of Accounts") |
+| 2 | Budget + Budget Allocation | **Digabung jadi satu menu "Budgeting"** dengan 2 tab: Budget Plan (admin) + Allocation (staff & admin) |
+| 3 | Actual (Realisasi) | **Tetap halaman mandiri** (hubungan ringkasan↔detail dengan Monitoring); untuk **staff = angka agregat saja**, admin = detail transaksi |
+| 4 | Monitoring | Tetap = agregat budget vs actual per proyek (semua role bisa lihat) |
+| 5 | Aging AR/AP | **Bukan laporan terpisah** — jadi filter umur (30/60/90) di halaman AR & AP |
+| 6 | Reports | Ramping: **Profit & Loss + Cash Flow** saja |
+| 7 | Vendor/Supplier/Mandor/Investor | **Tetap entitas terpisah** (keputusan bisnis, tidak digabung jadi Counterparty) |
+| 8 | Realisasi | **Bukan jalur input** — tetap auto-generated (hindari fungsi ganda dengan Cashflow) |
+
+### 8.2 Keputusan role (Opsi D — staff sebagai operator)
+
+| Role | Input | Approve | Kelola |
+|------|-------|---------|--------|
+| **Staff** | Cash Activity (draft) + AR & AP (buat receivable/payable/payment) | — | — |
+| **Admin** | — | Cashflow, Fund Transfer, Void, Settlement | Master, User, Backup, Laporan |
+
+### 8.3 Dampak implementasi (sudah dikerjakan 2026-08-18)
+
+- **Fitur baru**: permission staff untuk input Cashflow draft + AR/AP (create + pay; edit/delete tetap admin-only) + Approval Center tetap admin-only menangani approval draft staff (draft → waiting → approved → posted).
+- **Actual agregat untuk staff**: route `/realisasi` redirect berdasar role — admin → `realisasi.detail` (list transaksi), staff → `realisasi.summary` (agregat per proyek-akun).
+- **Sidebar**: gabung Budget+Allocation jadi "Budgeting" (2 tab via `livewire:budgeting.index`, route `budgeting.index`); Aging dihapus dari Reports (sidebar + route `reports.aging`); menu Actual kini tampil untuk semua role (staff lihat agregat).
+- **Aging jadi filter**: halaman AR & AP (Receivables & Payables) punya dropdown "Filter Aging" (Current / 1-30 / 31-60 / 61-90 / Over 90) berbasis `jatuh_tempo`; laporan Aging terpisah dihapus.
+- **Role staff**: middleware `EnsureDraftStaffAccess` diperluas (dashboard, profile, monitoring.*, budgeting.*, allokasis.*, cashflows.index/create, ar-ap.*, receivables.index/create/pay, payables.index/create/pay, payments.index, realisasi.index/summary); admin tetap satu-satunya akses edit/delete AR-AP, fund-transfer, cash-account, reports, master, backup, trash, approvals.
+- Guard tambahan: `User::isStaff()`, `CashflowPolicy::manageDraft` (admin atau pemilik draft), tab fund-transfer/cash-account disembunyikan dari staff, tombol edit/delete AR-AP disembunyikan untuk staff.
+- Vendor/Supplier/Mandor/Investor tetap entitas terpisah — Master tidak berubah struktur.
+- Test: `StaffDraftAccessTest`, `RealisasiTest`, `ReceivableTest`, `PayableTest`, `ReportTest` diperbarui + test baru aging filter; `php artisan test` = **303 lulus** (estimasi setelah penambahan test aging & staff).

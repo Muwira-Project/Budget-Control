@@ -31,6 +31,8 @@ class Edit extends Component
      */
     public function mount(Receivable $receivable): void
     {
+        abort_unless(auth()->user()->isAdmin(), 403, 'Only admins can edit receivables.');
+
         $this->receivable = $receivable;
         $this->projectId = $receivable->project_id;
         $this->tanggal = $receivable->tanggal->format('Y-m-d');

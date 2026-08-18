@@ -12,6 +12,7 @@ use App\Livewire\Approvals\Index as ApprovalsIndex;
 use App\Livewire\ArAp\Index as IndexArAp;
 use App\Livewire\AuditLog\Index as AuditLogIndex;
 use App\Livewire\Backups\Index as IndexBackup;
+use App\Livewire\Budgeting\Index as IndexBudgeting;
 use App\Livewire\BudgetPlans\Create as CreateBudgetPlan;
 use App\Livewire\BudgetPlans\Edit as EditBudgetPlan;
 use App\Livewire\BudgetPlans\Index as IndexBudgetPlan;
@@ -20,6 +21,7 @@ use App\Livewire\CashAccounts\Edit as EditCashAccount;
 use App\Livewire\CashAccounts\Index as IndexCashAccount;
 use App\Livewire\Cashflows\Create as CreateCashflow;
 use App\Livewire\Cashflows\Index as IndexCashflow;
+use App\Livewire\CompanySettings\Index as IndexCompanySettings;
 use App\Livewire\Dashboard;
 use App\Livewire\Exports\Index as ExportIndex;
 use App\Livewire\FundTransfers\Create as CreateFundTransfer;
@@ -54,11 +56,11 @@ use App\Livewire\Projects\Edit as EditProject;
 use App\Livewire\Projects\Index as IndexProject;
 use App\Livewire\Realisasi\Index as IndexRealisasi;
 use App\Livewire\Realisasi\Show as ShowRealisasi;
+use App\Livewire\Realisasi\Summary as SummaryRealisasi;
 use App\Livewire\Receivables\Create as CreateReceivable;
 use App\Livewire\Receivables\Edit as EditReceivable;
 use App\Livewire\Receivables\Index as IndexReceivable;
 use App\Livewire\Receivables\Pay as PayReceivable;
-use App\Livewire\Reports\Aging as AgingReport;
 use App\Livewire\Reports\CashFlow as CashFlowReport;
 use App\Livewire\Reports\ProfitLoss as ProfitLossReport;
 use App\Livewire\Suppliers\Create as CreateSupplier;
@@ -72,6 +74,8 @@ use App\Livewire\Vendors\Create as CreateVendor;
 use App\Livewire\Vendors\Edit as EditVendor;
 use App\Livewire\Vendors\Index as IndexVendor;
 use App\Livewire\Vouchers\Index as IndexVoucher;
+use App\Models\Cashflow;
+use App\Models\FundTransfer;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => redirect()->route('dashboard'))
@@ -89,6 +93,8 @@ Route::middleware(['auth', 'verified', 'draft-staff'])->group(function () {
     Route::get('/akuns/create', CreateAkun::class)->name('akuns.create');
     Route::get('/akuns/{akun}/edit', EditAkun::class)->name('akuns.edit');
 
+    Route::get('/budgeting', IndexBudgeting::class)->name('budgeting.index');
+
     Route::get('/budget-plans', IndexBudgetPlan::class)->name('budget-plans.index');
     Route::get('/budget-plans/create', CreateBudgetPlan::class)->name('budget-plans.create');
     Route::get('/budget-plans/{budgetPlan}/edit', EditBudgetPlan::class)->name('budget-plans.edit');
@@ -105,6 +111,9 @@ Route::middleware(['auth', 'verified', 'draft-staff'])->group(function () {
 
     Route::get('/cashflows', IndexCashflow::class)->name('cashflows.index');
     Route::get('/cashflows/create', CreateCashflow::class)->name('cashflows.create');
+    Route::get('/cashflows/{cashflow}/print', function (Cashflow $cashflow) {
+        return view('cashflows.print', ['cashflow' => $cashflow->load(['cashAccount', 'voucher', 'createdBy', 'project', 'akun', 'vendor', 'supplier', 'mandor', 'investor'])]);
+    })->name('cashflows.print');
 
     Route::get('/cash-accounts', IndexCashAccount::class)->name('cash-accounts.index');
     Route::get('/cash-accounts/create', CreateCashAccount::class)->name('cash-accounts.create');
@@ -112,6 +121,9 @@ Route::middleware(['auth', 'verified', 'draft-staff'])->group(function () {
 
     Route::get('/fund-transfers', IndexFundTransfer::class)->name('fund-transfers.index');
     Route::get('/fund-transfers/create', CreateFundTransfer::class)->name('fund-transfers.create');
+    Route::get('/fund-transfers/{fundTransfer}/print', function (FundTransfer $fundTransfer) {
+        return view('fund-transfers.print', ['transfer' => $fundTransfer->load(['dariCashAccount', 'keCashAccount', 'voucher', 'createdBy', 'project', 'akun', 'vendor', 'supplier', 'mandor', 'investor'])]);
+    })->name('fund-transfers.print');
 
     Route::get('/vouchers', IndexVoucher::class)->name('vouchers.index');
 
@@ -127,11 +139,16 @@ Route::middleware(['auth', 'verified', 'draft-staff'])->group(function () {
 
     Route::get('/payments', IndexPayment::class)->name('payments.index');
 
-    Route::get('/realisasi', IndexRealisasi::class)->name('realisasi.index');
+    Route::get('/realisasi', function () {
+        return auth()->user()->isAdmin()
+            ? redirect()->route('realisasi.detail')
+            : redirect()->route('realisasi.summary');
+    })->name('realisasi.index');
+    Route::get('/realisasi/detail', IndexRealisasi::class)->name('realisasi.detail');
+    Route::get('/realisasi/summary', SummaryRealisasi::class)->name('realisasi.summary');
 
     Route::get('/reports/profit-loss', ProfitLossReport::class)->name('reports.profit-loss');
     Route::get('/reports/cash-flow', CashFlowReport::class)->name('reports.cash-flow');
-    Route::get('/reports/aging', AgingReport::class)->name('reports.aging');
     Route::get('/realisasi/{realisasi}', ShowRealisasi::class)->name('realisasi.show');
 
     Route::get('/vendors', IndexVendor::class)->name('vendors.index');
@@ -168,6 +185,8 @@ Route::middleware(['auth', 'verified', 'draft-staff'])->group(function () {
     Route::get('/audit-log', AuditLogIndex::class)->name('audit-log.index');
 
     Route::get('/trash', IndexTrash::class)->name('trash.index');
+
+    Route::get('/company-settings', IndexCompanySettings::class)->name('company-settings.index');
 
     Route::get('/approvals', ApprovalsIndex::class)->name('approvals.index');
 

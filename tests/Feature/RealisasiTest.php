@@ -48,6 +48,10 @@ class RealisasiTest extends TestCase
 
         $this->actingAs($user)
             ->get(route('realisasi.index'))
+            ->assertRedirect(route('realisasi.detail'));
+
+        $this->actingAs($user)
+            ->get(route('realisasi.detail'))
             ->assertOk()
             ->assertDontSee('Add Actual');
     }
@@ -76,6 +80,10 @@ class RealisasiTest extends TestCase
 
         $this->actingAs($user)
             ->get(route('realisasi.index'))
+            ->assertRedirect(route('realisasi.detail'));
+
+        $this->actingAs($user)
+            ->get(route('realisasi.detail'))
             ->assertOk();
 
         $queryCount = count(DB::getQueryLog());

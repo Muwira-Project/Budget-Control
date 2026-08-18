@@ -9,10 +9,6 @@
                 <a href="{{ route('cashflows.create', ['mode' => $this->tab === 'cash-in' ? 'masuk' : 'keluar']) }}" wire:navigate class="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
                     + {{ $this->tab === 'cash-in' ? 'Add Cash In' : 'Add Cash Out' }}
                 </a>
-            @elseif ($this->tab === 'fund-transfer')
-                <a href="{{ route('fund-transfers.create') }}" wire:navigate class="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                    + Add Fund Transfer
-                </a>
             @endif
         </div>
 
@@ -31,6 +27,9 @@
                 'fund-transfer' => 'Fund Transfer',
                 'cash-account' => 'Cash Account',
             ] as $key => $label)
+                @if (in_array($key, ['fund-transfer', 'cash-account'], true) && ! auth()->user()->isAdmin())
+                    @continue
+                @endif
                 <button type="button" wire:click="$set('tab', '{{ $key }}')"
                     class="inline-flex items-center rounded-lg px-4 py-2 text-sm font-semibold transition {{ $this->tab === $key ? 'bg-brand-600 text-white shadow-sm' : 'bg-white text-gray-600 ring-1 ring-gray-200 hover:bg-gray-50' }}">
                     {{ $label }}
@@ -110,7 +109,6 @@
                                 <tr>
                                     <th class="w-8 px-6 py-3"><input type="checkbox" disabled class="rounded border-gray-300 text-blue-600 cursor-not-allowed" aria-hidden="true" /></th>
                                     <th class="px-6 py-3">Date</th>
-                                    <th class="px-6 py-3">Voucher</th>
                                     <th class="px-6 py-3">Type</th>
                                     <th class="px-6 py-3">Source</th>
                                     <th class="px-6 py-3">Account</th>
@@ -126,16 +124,6 @@
 <td class="w-8 px-6 py-4"><input type="checkbox" wire:click="toggleSelected({{ $entry->id }})" @checked(in_array($entry->id, $this->selectedIds, true)) class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" /></td>
 
                                         <td class="px-6 py-4 text-gray-700 whitespace-nowrap">{{ $entry->tanggal->format('d M Y') }}</td>
-                                        <td class="px-6 py-4 text-gray-500 whitespace-nowrap">
-                                            @if ($entry->voucher)
-                                                <button type="button" wire:click="viewVoucher({{ $entry->id }})" title="View Voucher" class="inline-flex items-center gap-1 rounded border border-gray-200 bg-white px-2 py-0.5 text-xs font-medium text-gray-600 transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600">
-                                                    <x-icon name="document" class="h-3.5 w-3.5" />
-                                                    {{ $entry->voucher->nomor }}
-                                                </button>
-                                            @else
-                                                -
-                                            @endif
-                                        </td>
                                         <td class="px-6 py-4">
                                             <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $entry->jenis->value === 'masuk' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }}">
                                                 {{ $entry->jenis->label() }}
@@ -169,6 +157,11 @@
                                                     @endif
                                                 </x-action-buttons>
                                             @endif
+                                            @if ($entry->status->value === 'posted')
+                                                <button type="button" onclick="openPrintPreview('{{ route('cashflows.print', $entry) }}')" title="Cetak Voucher" class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600">
+                                                    <x-icon name="printer" class="h-4 w-4" />
+                                                </button>
+                                            @endif
                                         </td>
                                     </tr>
                                 @endforeach
@@ -191,33 +184,16 @@
         @endif
     </div>
 
-    @if ($this->voucherId !== null)
-        @php $voucherEntry = \App\Models\Cashflow::with('voucher')->find($this->voucherId); @endphp
-        @if ($voucherEntry && $voucherEntry->voucher)
-            <div class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
-                <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-                    <div class="fixed inset-0 bg-gray-500/75 transition-opacity" aria-hidden="true" wire:click="closeVoucher"></div>
-                    <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-md">
-                        <div class="border-b border-gray-100 px-6 py-4">
-                            <h3 class="text-base font-semibold text-gray-900">Voucher</h3>
-                        </div>
-                        <div class="px-6 py-4">
-                            <dl class="space-y-2 text-sm">
-                                <div class="flex justify-between gap-4"><dt class="text-gray-500">Number</dt><dd class="font-medium text-gray-900">{{ $voucherEntry->voucher->nomor }}</dd></div>
-                                <div class="flex justify-between gap-4"><dt class="text-gray-500">Date</dt><dd class="font-medium text-gray-900">{{ $voucherEntry->voucher->tanggal->format('d M Y') }}</dd></div>
-                                <div class="flex justify-between gap-4"><dt class="text-gray-500">Type</dt><dd class="font-medium text-gray-900">{{ ucfirst($voucherEntry->voucher->jenis) }}</dd></div>
-                                <div class="flex justify-between gap-4"><dt class="text-gray-500">Amount</dt><dd class="font-medium text-gray-900">{{ format_idr($voucherEntry->nominal) }}</dd></div>
-                                @if ($voucherEntry->voucher->keterangan)
-                                <div class="flex justify-between gap-4"><dt class="text-gray-500">Description</dt><dd class="text-gray-900">{{ $voucherEntry->voucher->keterangan }}</dd></div>
-                                @endif
-                            </dl>
-                        </div>
-                        <div class="flex justify-end gap-3 bg-gray-50 px-6 py-4">
-                            <button type="button" wire:click="closeVoucher" class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">Close</button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        @endif
-    @endif
+@push('scripts')
+<script>
+    function openPrintPreview(url) {
+        const win = window.open(url, '_blank', 'width=800,height=900');
+        if (win) {
+            win.onload = function() {
+                win.print();
+            };
+        }
+    }
+</script>
+@endpush
 </div>

@@ -78,15 +78,35 @@ class PayableService
     /**
      * List payables, optionally filtered by project and status.
      */
-    public function paginate(?Project $project = null, ?string $status = null, int $perPage = 10): LengthAwarePaginator
+    public function paginate(?Project $project = null, ?string $status = null, ?string $aging = null, int $perPage = 10): LengthAwarePaginator
     {
         return Payable::query()
             ->with(['project', 'akun', 'vendor', 'supplier', 'mandor', 'investor'])
             ->when($project, fn ($query) => $query->where('project_id', $project->id))
             ->when($status, fn ($query) => $this->applyStatusFilter($query, $status))
+            ->when($aging, fn ($query) => $this->applyAgingFilter($query, $aging))
             ->orderByDesc('tanggal')
             ->paginate($perPage)
             ->withQueryString();
+    }
+
+    /**
+     * Apply the aging bucket filter to the query (based on due date).
+     *
+     * Buckets: current (not due yet), 1_30, 31_60, 61_90, over_90.
+     */
+    protected function applyAgingFilter($query, string $aging)
+    {
+        $today = now()->startOfDay();
+
+        return match ($aging) {
+            'current' => $query->where(fn ($q) => $q->whereNull('jatuh_tempo')->orWhereDate('jatuh_tempo', '>=', $today)),
+            '1_30' => $query->whereDate('jatuh_tempo', '>=', $today->copy()->subDays(30))->whereDate('jatuh_tempo', '<', $today),
+            '31_60' => $query->whereDate('jatuh_tempo', '<', $today->copy()->subDays(30))->whereDate('jatuh_tempo', '>=', $today->copy()->subDays(60)),
+            '61_90' => $query->whereDate('jatuh_tempo', '<', $today->copy()->subDays(60))->whereDate('jatuh_tempo', '>=', $today->copy()->subDays(90)),
+            'over_90' => $query->whereDate('jatuh_tempo', '<', $today->copy()->subDays(90)),
+            default => $query,
+        };
     }
 
     /**
