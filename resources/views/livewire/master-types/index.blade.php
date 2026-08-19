@@ -29,6 +29,7 @@
                                 <tr>
                                     <th class="px-6 py-3">Code</th>
                                     <th class="px-6 py-3">Name</th>
+                                    <th class="px-6 py-3">AR / AP</th>
                                     <th class="px-6 py-3 text-right">Fields</th>
                                     <th class="px-6 py-3 text-right">Items</th>
                                     <th class="px-6 py-3">Status</th>
@@ -40,6 +41,20 @@
                                     <tr class="hover:bg-gray-50">
                                         <td class="px-6 py-4 font-medium text-gray-900">{{ $type->kode }}</td>
                                         <td class="px-6 py-4 text-gray-700">{{ $type->nama }}</td>
+                                        <td class="px-6 py-4">
+                                            @if ($type->flag_ar || $type->flag_ap)
+                                                <span class="inline-flex items-center gap-1">
+                                                    @if ($type->flag_ar)
+                                                        <span class="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">AR</span>
+                                                    @endif
+                                                    @if ($type->flag_ap)
+                                                        <span class="inline-flex items-center rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">AP</span>
+                                                    @endif
+                                                </span>
+                                            @else
+                                                <span class="text-xs text-gray-400">—</span>
+                                            @endif
+                                        </td>
                                         <td class="px-6 py-4 text-right text-gray-700">{{ $type->fields_count }}</td>
                                         <td class="px-6 py-4 text-right text-gray-700">{{ $type->items_count }}</td>
                                         <td class="px-6 py-4">

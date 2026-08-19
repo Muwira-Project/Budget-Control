@@ -2,12 +2,13 @@
     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
         <div>
             <x-input-label for="project_id" :value="__('Project')" />
-            <select id="project_id" wire:model.live="projectId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
-                <option value="">-- Select Project --</option>
+            <select id="project_id" wire:model.live="projectId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                <option value="">-- Non-Project (Operational) --</option>
                 @foreach ($this->projects as $project)
                     <option value="{{ $project->id }}">{{ $project->kode }} - {{ $project->nama }}</option>
                 @endforeach
             </select>
+            <p class="mt-1 text-xs text-gray-500">Pilih proyek untuk alokasi per proyek, atau biarkan kosong untuk budget non-proyek (operasional).</p>
             <x-input-error :messages="$errors->get('project_id')" class="mt-2" />
         </div>
 

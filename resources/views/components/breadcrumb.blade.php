@@ -77,7 +77,7 @@
 @endphp
 
 <nav aria-label="Breadcrumb">
-    <ol class="flex flex-wrap items-center gap-1.5 text-[13px] text-slate-500">
+    <ol class="flex min-w-0 flex-wrap items-center gap-1.5 text-[13px] text-slate-500">
         @foreach ($labels as $index => $label)
             @if ($index > 0)
                 <li aria-hidden="true">
@@ -88,7 +88,7 @@
                 @if ($index === 0)
                     <a href="{{ route('dashboard') }}" wire:navigate class="font-medium text-slate-500 transition hover:text-brand-600">{{ $label }}</a>
                 @elseif ($index === count($labels) - 1)
-                    <span class="font-semibold text-slate-800">{{ $label }}</span>
+                    <span class="block max-w-[220px] truncate font-semibold text-slate-800">{{ $label }}</span>
                 @else
                     <span class="text-slate-500">{{ $label }}</span>
                 @endif

@@ -87,6 +87,10 @@ class ProjectAkun extends Model
 
     /**
      * Get the realisasi for this project-akun.
+     *
+     * Plain hasMany keyed on project_id (NULL matches non-project rows).
+     * Consumers filter by akun_id where needed — instance-based constraint
+     * on the relation breaks eager loading for mixed result sets.
      */
     public function realisasi(): HasMany
     {
@@ -95,12 +99,20 @@ class ProjectAkun extends Model
 
     /**
      * Total realized amount for this project-akun.
+     *
+     * Filters by akun_id explicitly since the relation only keys on
+     * project_id (NULL = non-project rows).
      */
     public function getTotalRealisasiAttribute(?string $value = null): float
     {
-        return $value !== null
-            ? (float) $value
-            : (float) $this->realisasi()->where('akun_id', $this->akun_id)->sum('nominal');
+        if ($value !== null) {
+            return (float) $value;
+        }
+
+        return (float) Realisasi::query()
+            ->where('project_id', $this->project_id)
+            ->where('akun_id', $this->akun_id)
+            ->sum('nominal');
     }
 
     /**

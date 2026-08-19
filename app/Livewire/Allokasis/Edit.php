@@ -84,6 +84,15 @@ class Edit extends Component
                     ->exists()) {
                 $validator->errors()->add('akun_id', 'This account is already allocated to this project.');
             }
+
+            if ($this->projectId === null
+                && $this->akunId !== null
+                && ProjectAkun::whereNull('project_id')
+                    ->where('akun_id', $this->akunId)
+                    ->where('id', '!=', $this->allocation->id)
+                    ->exists()) {
+                $validator->errors()->add('akun_id', 'This account is already allocated as a non-project allocation.');
+            }
         });
 
         $validated = $validator->validate();

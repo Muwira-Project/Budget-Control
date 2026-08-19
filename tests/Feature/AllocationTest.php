@@ -8,10 +8,13 @@ use App\Livewire\Allokasis\Index as IndexAllokasi;
 use App\Models\Akun;
 use App\Models\BudgetPlan;
 use App\Models\BudgetPlanItem;
+use App\Models\Cashflow;
 use App\Models\Project;
 use App\Models\ProjectAkun;
 use App\Models\User;
+use App\Services\CashflowService;
 use App\Services\DashboardService;
+use App\Services\ProjectAkunService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -295,6 +298,93 @@ class AllocationTest extends TestCase
                 ->where('status', 'approved')
                 ->doesntExist()
         );
+    }
+
+    public function test_staff_can_create_non_project_allocation(): void
+    {
+        $user = User::factory()->create();
+        $akun = Akun::factory()->create();
+
+        Livewire::actingAs($user)
+            ->test(CreateAllokasi::class)
+            ->set('projectId', null)
+            ->set('akunId', $akun->id)
+            ->set('budget', '50000000')
+            ->set('allocationNominal', '50000000')
+            ->call('save')
+            ->assertHasNoErrors()
+            ->assertRedirect(route('allokasis.index'));
+
+        $this->assertDatabaseHas('project_akuns', [
+            'project_id' => null,
+            'akun_id' => $akun->id,
+            'budget' => 50000000,
+            'allocation' => 50000000,
+            'status' => 'draft',
+        ]);
+    }
+
+    public function test_approving_non_project_allocation_creates_cashflow_draft(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $akun = Akun::factory()->create();
+        $allocation = ProjectAkun::create([
+            'project_id' => null,
+            'akun_id' => $akun->id,
+            'budget' => 50000000,
+            'allocation' => 50000000,
+            'status' => 'waiting',
+            'created_by' => $admin->id,
+        ]);
+
+        Livewire::actingAs($admin)
+            ->test(IndexAllokasi::class)
+            ->call('approve', $allocation->id);
+
+        $fresh = $allocation->fresh();
+        $this->assertSame('approved', $fresh->status->value);
+
+        $this->assertDatabaseHas('cashflows', [
+            'jenis' => 'keluar',
+            'sumber' => 'pengeluaran_lain',
+            'akun_id' => $akun->id,
+            'nominal' => 50000000,
+            'status' => 'draft',
+        ]);
+    }
+
+    public function test_non_project_cashflow_follows_full_approval_flow(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $akun = Akun::factory()->create();
+        $allocation = ProjectAkun::create([
+            'project_id' => null,
+            'akun_id' => $akun->id,
+            'budget' => 50000000,
+            'allocation' => 50000000,
+            'status' => 'waiting',
+            'created_by' => $admin->id,
+        ]);
+
+        // Approve allocation -> cashflow draft dibuat.
+        app(ProjectAkunService::class)->approve($allocation);
+
+        $cashflow = Cashflow::where('sumber', 'pengeluaran_lain')->where('akun_id', $akun->id)->first();
+        $this->assertNotNull($cashflow);
+        $this->assertSame('draft', $cashflow->status->value);
+
+        // Submit -> waiting.
+        app(CashflowService::class)->submit($cashflow);
+        $this->assertSame('waiting', $cashflow->fresh()->status->value);
+
+        // Approve -> approved.
+        app(CashflowService::class)->approve($cashflow->fresh());
+        $this->assertSame('approved', $cashflow->fresh()->status->value);
+
+        // Post -> posted + voucher.
+        app(CashflowService::class)->post($cashflow->fresh());
+        $this->assertSame('posted', $cashflow->fresh()->status->value);
+        $this->assertDatabaseHas('vouchers', ['cashflow_id' => $cashflow->id]);
     }
 
     /**

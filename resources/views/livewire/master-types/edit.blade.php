@@ -21,6 +21,16 @@
                         Active (tampil di sidebar)
                     </label>
                 </div>
+                <div class="sm:col-span-2 flex items-center gap-6">
+                    <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+                        <input type="checkbox" wire:model="flagAr" class="rounded border-gray-300 text-green-600 focus:ring-green-500" />
+                        AR (Piutang)
+                    </label>
+                    <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+                        <input type="checkbox" wire:model="flagAp" class="rounded border-gray-300 text-red-600 focus:ring-red-500" />
+                        AP (Hutang)
+                    </label>
+                </div>
                 <div class="sm:col-span-2">
                     <x-input-label for="deskripsi" :value="__('Description')" />
                     <textarea id="deskripsi" wire:model="deskripsi" rows="2" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"></textarea>

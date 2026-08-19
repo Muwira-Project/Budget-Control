@@ -83,6 +83,12 @@ class Create extends Component
                 && ProjectAkun::where('project_id', $this->projectId)->where('akun_id', $this->akunId)->exists()) {
                 $validator->errors()->add('akun_id', 'This account is already allocated to this project.');
             }
+
+            if ($this->projectId === null
+                && $this->akunId !== null
+                && ProjectAkun::whereNull('project_id')->where('akun_id', $this->akunId)->exists()) {
+                $validator->errors()->add('akun_id', 'This account is already allocated as a non-project allocation.');
+            }
         });
 
         $validated = $validator->validate();
@@ -104,13 +110,15 @@ class Create extends Component
     }
 
     /**
-     * The master akuns not yet allocated to the selected project.
+     * The master akuns not yet allocated to the selected project,
+     * or all akuns when a non-project allocation is being created.
      */
     #[Computed]
     public function akuns()
     {
         return Akun::query()
             ->when($this->projectId, fn ($query) => $query->whereNotIn('id', ProjectAkun::where('project_id', $this->projectId)->pluck('akun_id')))
+            ->when($this->projectId === null, fn ($query) => $query->whereNotIn('id', ProjectAkun::whereNull('project_id')->pluck('akun_id')))
             ->orderBy('kode_akun')
             ->get();
     }

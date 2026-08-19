@@ -68,7 +68,13 @@
                                     <tr class="hover:bg-gray-50">
 <td class="w-8 px-6 py-4"><input type="checkbox" wire:click="toggleSelected({{ $allocation->id }})" @checked(in_array($allocation->id, $this->selectedIds, true)) class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" /></td>
                                             
-                                        <td class="px-6 py-4 text-gray-700">{{ $allocation->project->kode }} - {{ $allocation->project->nama }}</td>
+                                        <td class="px-6 py-4 text-gray-700">
+                                            @if ($allocation->project_id === null)
+                                                <span class="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-700">Non-Project</span>
+                                            @else
+                                                {{ $allocation->project->kode }} - {{ $allocation->project->nama }}
+                                            @endif
+                                        </td>
                                         <td class="px-6 py-4 text-gray-700">{{ $allocation->akun->kode_akun }} - {{ $allocation->akun->nama_akun }}</td>
                                         <td class="px-6 py-4 text-right text-gray-700">{{ format_idr($allocation->budget) }}</td>
                                         <td class="px-6 py-4 text-right text-gray-700">{{ format_idr($allocation->allocation) }}</td>

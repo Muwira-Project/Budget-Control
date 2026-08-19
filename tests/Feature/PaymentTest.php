@@ -7,6 +7,7 @@ use App\Livewire\Receivables\Pay as PayReceivable;
 use App\Models\Cashflow;
 use App\Models\Payable;
 use App\Models\Payment;
+use App\Models\Realisasi;
 use App\Models\Receivable;
 use App\Models\User;
 use App\Services\PaymentService;
@@ -68,6 +69,27 @@ class PaymentTest extends TestCase
         $this->assertDatabaseHas('payments', ['payable_id' => $payable->id, 'jenis' => 'keluar', 'nominal' => 50000000]);
         $this->assertDatabaseHas('cashflows', ['jenis' => 'keluar', 'sumber' => 'pelunasan_ap', 'nominal' => 50000000]);
         $this->assertDatabaseHas('realisasi', ['sumber' => 'pelunasan_ap', 'sumber_id' => $payment->id]);
+    }
+
+    public function test_paying_payable_from_manual_realisasi_does_not_double_count_actual(): void
+    {
+        // Sebuah realisasi manual otomatis membuat payable (realisasi_id terhubung).
+        $realisasi = Realisasi::factory()->create(['nominal' => 75000000]);
+        $payable = Payable::where('realisasi_id', $realisasi->id)->first();
+
+        $this->assertNotNull($payable);
+
+        // Payable tersebut dilunasi.
+        $payment = app(PaymentService::class)->createForPayable($payable, [
+            'tanggal' => '2026-07-22',
+            'nominal' => 75000000,
+            'keterangan' => 'Lunas',
+        ]);
+
+        // Konsolidasi: total realisasi tetap 1 baris (baris manual asal),
+        // TIDAK dibuat baris realisasi kedua dari AP settlement.
+        $this->assertSame(1, Realisasi::count());
+        $this->assertNull(Realisasi::where('sumber', Realisasi::SUMBER_AP_PAYMENT)->first());
     }
 
     public function test_payment_delete_reverses_amount_and_cashflow(): void
