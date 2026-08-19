@@ -35,6 +35,8 @@ class Create extends Component
 
     public string $tanggal = '';
 
+    public string $nomorInvoice = '';
+
     public string $jatuhTempo = '';
 
     public string $nominal = '';
@@ -67,6 +69,7 @@ class Create extends Component
                 'mandor_id' => $this->mandorId,
                 'investor_id' => $this->investorId,
                 'tanggal' => $this->tanggal,
+                'nomor_invoice' => $this->nomorInvoice !== '' ? $this->nomorInvoice : null,
                 'jatuh_tempo' => $this->jatuhTempo !== '' ? $this->jatuhTempo : null,
                 'nominal' => $this->nominal,
                 'jenis_pajak' => $this->jenisPajak !== '' ? $this->jenisPajak : null,
@@ -141,6 +144,40 @@ class Create extends Component
             ->when($this->projectId, fn ($query) => $query->whereIn('id', ProjectAkun::where('project_id', $this->projectId)->where('status', 'approved')->pluck('akun_id')))
             ->orderBy('kode_akun')
             ->get();
+    }
+
+    /**
+     * Budget context for the selected project+akun: allocation, realized,
+     * remaining allocation, and available budget — shown as a hint in the form.
+     *
+     * @return array<string, float|string>|null
+     */
+    #[Computed]
+    public function budgetInfo(): ?array
+    {
+        if ($this->projectId === null || $this->akunId === null) {
+            return null;
+        }
+
+        $allocation = ProjectAkun::query()
+            ->where('project_id', $this->projectId)
+            ->where('akun_id', $this->akunId)
+            ->where('status', 'approved')
+            ->first();
+
+        if (! $allocation) {
+            return null;
+        }
+
+        $remaining = (float) $allocation->remaining_allocation;
+
+        return [
+            'allocation' => (float) $allocation->allocation,
+            'realized' => (float) $allocation->total_realisasi,
+            'remaining' => $remaining,
+            'available' => (float) $allocation->available_budget,
+            'over' => $remaining < 0,
+        ];
     }
 
     /**

@@ -36,6 +36,10 @@ class BudgetPlanService
     /**
      * Update an existing budget plan together with its rincian per akun.
      *
+     * When the project already has approved allocations, the rincian is
+     * rebuilt from those allocations (single source of truth: allocations
+     * win), so the plan can never diverge from the approved budget.
+     *
      * @param  array<string, mixed>  $data
      */
     public function update(BudgetPlan $plan, array $data): BudgetPlan
@@ -49,7 +53,16 @@ class BudgetPlanService
                 'target_laba' => $data['target_laba'] ?? 0,
             ]);
 
-            $this->syncItems($plan, $data['items']);
+            $hasApprovedAllocations = ProjectAkun::query()
+                ->where('project_id', $plan->project_id)
+                ->where('status', AllocationStatus::Approved)
+                ->exists();
+
+            if ($hasApprovedAllocations) {
+                $this->syncFromApprovedAllocations($plan->project);
+            } else {
+                $this->syncItems($plan, $data['items']);
+            }
 
             return $plan->refresh();
         });

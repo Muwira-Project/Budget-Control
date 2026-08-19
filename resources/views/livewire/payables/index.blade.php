@@ -61,6 +61,7 @@
                                     <th class="px-6 py-3">Project</th>
                                     <th class="px-6 py-3">Item Account</th>
                                     <th class="px-6 py-3">Party</th>
+                                    <th class="px-6 py-3">Invoice No.</th>
                                     <th class="px-6 py-3">Date</th>
                                     <th class="px-6 py-3">Due Date</th>
                                     <th class="px-6 py-3 text-right">Amount</th>
@@ -92,6 +93,7 @@
                                                 {{ $payable->investor?->nama }}
                                             @endif
                                         </td>
+                                        <td class="px-6 py-4 text-gray-500 whitespace-nowrap">{{ $payable->nomor_invoice ?? '-' }}</td>
                                         <td class="px-6 py-4 text-gray-700 whitespace-nowrap">{{ $payable->tanggal->format('d M Y') }}</td>
                                         <td class="px-6 py-4 text-gray-500 whitespace-nowrap">{{ $payable->jatuh_tempo?->format('d M Y') }}</td>
                                         <td class="px-6 py-4 text-right text-gray-900 font-medium">{{ format_idr($payable->nominal) }}</td>

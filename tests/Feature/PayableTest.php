@@ -11,7 +11,9 @@ use App\Models\ProjectAkun;
 use App\Models\Realisasi;
 use App\Models\User;
 use App\Models\Vendor;
+use App\Services\PayableService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -124,6 +126,45 @@ class PayableTest extends TestCase
             ->call('delete', $payable->id);
 
         $this->assertSoftDeleted('payables', ['id' => $payable->id]);
+    }
+
+    public function test_payable_nominal_cannot_be_reduced_below_paid_amount(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $payable = Payable::factory()->create(['nominal' => 100000000, 'nominal_dibayar' => 80000000]);
+
+        $this->expectException(ValidationException::class);
+
+        app(PayableService::class)->update($payable, [
+            'project_id' => $payable->project_id,
+            'akun_id' => $payable->akun_id,
+            'vendor_id' => $payable->vendor_id,
+            'tanggal' => $payable->tanggal->format('Y-m-d'),
+            'nominal' => 50000000,
+            'keterangan' => null,
+        ]);
+    }
+
+    public function test_payable_rejects_duplicate_invoice_number(): void
+    {
+        $user = User::factory()->create();
+        $project = Project::factory()->create();
+        $akun = Akun::factory()->create();
+        $vendor = Vendor::factory()->create();
+        ProjectAkun::create(['project_id' => $project->id, 'akun_id' => $akun->id, 'budget' => 100000000, 'allocation' => 100000000, 'status' => 'approved']);
+
+        Payable::factory()->create(['nomor_invoice' => 'INV-2026-001']);
+
+        Livewire::actingAs($user)
+            ->test(CreatePayable::class)
+            ->set('projectId', $project->id)
+            ->set('akunId', $akun->id)
+            ->set('vendorId', $vendor->id)
+            ->set('tanggal', '2026-07-01')
+            ->set('nomorInvoice', 'inv-2026-001')
+            ->set('nominal', '50000000')
+            ->call('save')
+            ->assertHasErrors(['nomor_invoice']);
     }
 
     public function test_payable_aging_filter_1_30(): void

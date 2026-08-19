@@ -18,6 +18,8 @@ class Create extends Component
 
     public string $tanggal = '';
 
+    public string $nomorInvoice = '';
+
     public string $jatuhTempo = '';
 
     public string $nominal = '';
@@ -53,6 +55,7 @@ class Create extends Component
             [
                 'project_id' => $this->projectId,
                 'tanggal' => $this->tanggal,
+                'nomor_invoice' => $this->nomorInvoice !== '' ? $this->nomorInvoice : null,
                 'jatuh_tempo' => $this->jatuhTempo !== '' ? $this->jatuhTempo : null,
                 'nominal' => $this->nominal,
                 'keterangan' => $this->keterangan,

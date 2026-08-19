@@ -38,6 +38,8 @@ class Edit extends Component
 
     public string $tanggal = '';
 
+    public string $nomorInvoice = '';
+
     public string $jatuhTempo = '';
 
     public string $nominal = '';
@@ -70,6 +72,7 @@ class Edit extends Component
             default => 'vendor',
         };
         $this->tanggal = $payable->tanggal->format('Y-m-d');
+        $this->nomorInvoice = $payable->nomor_invoice ?? '';
         $this->jatuhTempo = $payable->jatuh_tempo?->format('Y-m-d') ?? '';
         $this->nominal = $payable->nominal ?? '';
         $this->jenisPajak = $payable->jenis_pajak?->value ?? '';
@@ -91,6 +94,7 @@ class Edit extends Component
                 'mandor_id' => $this->mandorId,
                 'investor_id' => $this->investorId,
                 'tanggal' => $this->tanggal,
+                'nomor_invoice' => $this->nomorInvoice !== '' ? $this->nomorInvoice : null,
                 'jatuh_tempo' => $this->jatuhTempo !== '' ? $this->jatuhTempo : null,
                 'nominal' => $this->nominal,
                 'jenis_pajak' => $this->jenisPajak !== '' ? $this->jenisPajak : null,
@@ -123,6 +127,11 @@ class Edit extends Component
                     ->where('status', 'approved')
                     ->doesntExist()) {
                 $validator->errors()->add('akun_id', 'Account must be allocated (approved) to the selected project.');
+            }
+
+            if ($this->nominal !== ''
+                && (float) $this->nominal < (float) $this->payable->nominal_dibayar) {
+                $validator->errors()->add('nominal', 'Nominal cannot be lower than the amount already paid ('.number_format((float) $this->payable->nominal_dibayar, 0, ',', '.').').');
             }
         });
 
@@ -165,6 +174,39 @@ class Edit extends Component
             ->when($this->projectId, fn ($query) => $query->whereIn('id', ProjectAkun::where('project_id', $this->projectId)->where('status', 'approved')->pluck('akun_id')))
             ->orderBy('kode_akun')
             ->get();
+    }
+
+    /**
+     * Budget context for the selected project+akun (same helper as Create).
+     *
+     * @return array<string, float|string>|null
+     */
+    #[Computed]
+    public function budgetInfo(): ?array
+    {
+        if ($this->projectId === null || $this->akunId === null) {
+            return null;
+        }
+
+        $allocation = ProjectAkun::query()
+            ->where('project_id', $this->projectId)
+            ->where('akun_id', $this->akunId)
+            ->where('status', 'approved')
+            ->first();
+
+        if (! $allocation) {
+            return null;
+        }
+
+        $remaining = (float) $allocation->remaining_allocation;
+
+        return [
+            'allocation' => (float) $allocation->allocation,
+            'realized' => (float) $allocation->total_realisasi,
+            'remaining' => $remaining,
+            'available' => (float) $allocation->available_budget,
+            'over' => $remaining < 0,
+        ];
     }
 
     /**

@@ -30,6 +30,7 @@ class UpdatePayableRequest extends FormRequest
             'mandor_id' => ['nullable', 'exists:mandors,id'],
             'investor_id' => ['nullable', 'exists:investors,id'],
             'tanggal' => ['required', 'date'],
+            'nomor_invoice' => ['nullable', 'string', 'max:100'],
             'jatuh_tempo' => ['nullable', 'date', 'after_or_equal:tanggal'],
             'nominal' => ['required', 'numeric', 'min:0'],
             'jenis_pajak' => ['nullable', Rule::in(['ppn', 'pph'])],

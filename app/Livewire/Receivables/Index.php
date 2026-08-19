@@ -187,6 +187,12 @@ class Index extends Component
 
     public function deleteSelected(ReceivableService $service): void
     {
+        if (! auth()->user()->isAdmin()) {
+            session()->flash('error', 'Only admins can delete receivables.');
+
+            return;
+        }
+
         $count = 0;
         foreach ($this->selectedIds as $id) {
             if ($receivable = Receivable::find($id)) {

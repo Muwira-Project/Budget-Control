@@ -8,9 +8,32 @@ use App\Models\Project;
 use App\Models\Realisasi;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class PayableService
 {
+    /**
+     * Guard: reject a duplicate active invoice number (case-insensitive).
+     * Soft-deleted rows are ignored so a trashed record can be re-entered.
+     */
+    private function ensureUniqueInvoiceNumber(?string $nomorInvoice, ?int $ignoreId = null): void
+    {
+        if ($nomorInvoice === null || trim($nomorInvoice) === '') {
+            return;
+        }
+
+        $exists = Payable::query()
+            ->whereRaw('LOWER(TRIM(nomor_invoice)) = ?', [mb_strtolower(trim($nomorInvoice))])
+            ->when($ignoreId, fn ($query) => $query->where('id', '!=', $ignoreId))
+            ->exists();
+
+        if ($exists) {
+            throw ValidationException::withMessages([
+                'nomor_invoice' => 'Nomor invoice sudah digunakan pada payable lain.',
+            ]);
+        }
+    }
+
     /**
      * Create a payable.
      *
@@ -18,7 +41,9 @@ class PayableService
      */
     public function create(array $data): Payable
     {
-        return Payable::create([
+        $this->ensureUniqueInvoiceNumber($data['nomor_invoice'] ?? null);
+
+        $payable = Payable::create([
             'project_id' => $data['project_id'],
             'realisasi_id' => $data['realisasi_id'] ?? null,
             'akun_id' => $data['akun_id'],
@@ -27,6 +52,7 @@ class PayableService
             'mandor_id' => $data['mandor_id'] ?? null,
             'investor_id' => $data['investor_id'] ?? null,
             'tanggal' => $data['tanggal'],
+            'nomor_invoice' => $data['nomor_invoice'] ?? null,
             'jatuh_tempo' => $data['jatuh_tempo'] ?? null,
             'nominal' => $data['nominal'],
             'jenis_pajak' => $data['jenis_pajak'] ?? null,
@@ -34,6 +60,10 @@ class PayableService
             'nominal_dibayar' => 0,
             'keterangan' => $data['keterangan'] ?? null,
         ]);
+
+        app(NotificationService::class)->notifyIfPayableOverBudget($payable);
+
+        return $payable;
     }
 
     /**
@@ -43,6 +73,19 @@ class PayableService
      */
     public function update(Payable $payable, array $data): Payable
     {
+        // Guard: the nominal can never drop below the amount already paid,
+        // otherwise the outstanding balance (sisa) turns negative and the
+        // AP aging/reporting silently corrupts.
+        $newNominal = (float) ($data['nominal'] ?? $payable->nominal);
+
+        if ($newNominal < (float) $payable->nominal_dibayar) {
+            throw ValidationException::withMessages([
+                'nominal' => 'Nominal cannot be lower than the amount already paid ('.number_format((float) $payable->nominal_dibayar, 0, ',', '.').').',
+            ]);
+        }
+
+        $this->ensureUniqueInvoiceNumber($data['nomor_invoice'] ?? $payable->nomor_invoice, $payable->id);
+
         $payable->update([
             'project_id' => $data['project_id'],
             'akun_id' => $data['akun_id'],
@@ -51,12 +94,15 @@ class PayableService
             'mandor_id' => $data['mandor_id'] ?? null,
             'investor_id' => $data['investor_id'] ?? null,
             'tanggal' => $data['tanggal'],
+            'nomor_invoice' => $data['nomor_invoice'] ?? $payable->nomor_invoice,
             'jatuh_tempo' => $data['jatuh_tempo'] ?? null,
             'nominal' => $data['nominal'],
             'jenis_pajak' => $data['jenis_pajak'] ?? null,
             'pajak_include' => $data['pajak_include'] ?? true,
             'keterangan' => $data['keterangan'] ?? null,
         ]);
+
+        app(NotificationService::class)->notifyIfPayableOverBudget($payable->refresh());
 
         return $payable->refresh();
     }

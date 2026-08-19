@@ -59,6 +59,7 @@
                                 <tr>
                                     <th class="w-8 px-6 py-3"><input type="checkbox" disabled class="rounded border-gray-300 text-blue-600 cursor-not-allowed" aria-hidden="true" /></th>
                                     <th class="px-6 py-3">Project</th>
+                                    <th class="px-6 py-3">Invoice No.</th>
                                     <th class="px-6 py-3">Date</th>
                                     <th class="px-6 py-3">Jatuh Tempo</th>
                                     <th class="px-6 py-3 text-right">Amount</th>
@@ -74,6 +75,7 @@
 <td class="w-8 px-6 py-4"><input type="checkbox" wire:click="toggleSelected({{ $receivable->id }})" @checked(in_array($receivable->id, $this->selectedIds, true)) class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" /></td>
                                             
                                         <td class="px-6 py-4 text-gray-700">{{ $receivable->project->kode }} - {{ $receivable->project->nama }}</td>
+                                        <td class="px-6 py-4 text-gray-500 whitespace-nowrap">{{ $receivable->nomor_invoice ?? '-' }}</td>
                                         <td class="px-6 py-4 text-gray-700 whitespace-nowrap">{{ $receivable->tanggal->format('d M Y') }}</td>
                                         <td class="px-6 py-4 text-gray-500 whitespace-nowrap">{{ $receivable->jatuh_tempo?->format('d M Y') }}</td>
                                         <td class="px-6 py-4 text-right text-gray-900 font-medium">{{ format_idr($receivable->nominal) }}</td>

@@ -23,6 +23,20 @@
         </div>
     </div>
 
+    @if ($this->budgetInfo)
+        <div class="rounded-lg border px-4 py-3 text-sm {{ $this->budgetInfo['over'] ? 'border-red-300 bg-red-50 text-red-800' : 'border-blue-200 bg-blue-50 text-blue-800' }}">
+            <p class="font-semibold">Budget context for this account</p>
+            <p class="mt-1">
+                Allocation: <strong>Rp {{ number_format((float) $this->budgetInfo['allocation'], 0, ',', '.') }}</strong>
+                &middot; Realized: <strong>Rp {{ number_format((float) $this->budgetInfo['realized'], 0, ',', '.') }}</strong>
+                &middot; Remaining: <strong>Rp {{ number_format((float) $this->budgetInfo['remaining'], 0, ',', '.') }}</strong>
+            </p>
+            @if ($this->budgetInfo['over'])
+                <p class="mt-1 font-semibold">Warning: this account is already over its approved allocation.</p>
+            @endif
+        </div>
+    @endif
+
     <div>
         <x-input-label for="pihak_jenis" :value="__('Party Type')" />
         <div class="mt-1 flex gap-4">
@@ -99,11 +113,18 @@
         </div>
 
         <div>
+            <x-input-label for="nomor_invoice" :value="__('Invoice No. (optional)')" />
+            <x-text-input id="nomor_invoice" class="mt-1 block w-full" type="text" wire:model="nomorInvoice" placeholder="e.g. INV-2026-001" />
+            <x-input-error :messages="$errors->get('nomor_invoice')" class="mt-2" />
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+        <div>
             <x-input-label for="jatuh_tempo" :value="__('Due Date (optional)')" />
             <x-text-input id="jatuh_tempo" class="mt-1 block w-full" type="date" wire:model="jatuhTempo" />
             <x-input-error :messages="$errors->get('jatuh_tempo')" class="mt-2" />
         </div>
-    </div>
 
     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
         <div>

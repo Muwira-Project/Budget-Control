@@ -7,7 +7,9 @@ use App\Livewire\Receivables\Index as IndexReceivable;
 use App\Models\Project;
 use App\Models\Receivable;
 use App\Models\User;
+use App\Services\ReceivableService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Validation\ValidationException;
 use Livewire\Livewire;
 use Tests\TestCase;
 
@@ -110,6 +112,37 @@ class ReceivableTest extends TestCase
             ->call('delete', $receivable->id);
 
         $this->assertSoftDeleted('receivables', ['id' => $receivable->id]);
+    }
+
+    public function test_receivable_nominal_cannot_be_reduced_below_paid_amount(): void
+    {
+        $receivable = Receivable::factory()->create(['nominal' => 100000000, 'nominal_dibayar' => 80000000]);
+
+        $this->expectException(ValidationException::class);
+
+        app(ReceivableService::class)->update($receivable, [
+            'project_id' => $receivable->project_id,
+            'tanggal' => $receivable->tanggal->format('Y-m-d'),
+            'nominal' => 50000000,
+            'keterangan' => null,
+        ]);
+    }
+
+    public function test_receivable_rejects_duplicate_invoice_number(): void
+    {
+        $user = User::factory()->create();
+        $project = Project::factory()->create();
+
+        Receivable::factory()->create(['nomor_invoice' => 'INV-2026-100']);
+
+        Livewire::actingAs($user)
+            ->test(CreateReceivable::class)
+            ->set('projectId', $project->id)
+            ->set('tanggal', '2026-07-01')
+            ->set('nomorInvoice', 'inv-2026-100')
+            ->set('nominal', '100000000')
+            ->call('save')
+            ->assertHasErrors(['nomor_invoice']);
     }
 
     public function test_receivable_aging_filter_over_90(): void

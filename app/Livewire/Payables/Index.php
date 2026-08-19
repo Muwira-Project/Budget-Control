@@ -126,6 +126,12 @@ class Index extends Component
 
     public function deleteSelected(PayableService $service): void
     {
+        if (! auth()->user()->isAdmin()) {
+            session()->flash('error', 'Only admins can delete payables.');
+
+            return;
+        }
+
         $count = 0;
         foreach ($this->selectedIds as $id) {
             if ($payable = Payable::find($id)) {

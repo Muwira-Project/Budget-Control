@@ -12,6 +12,28 @@ use Illuminate\Validation\ValidationException;
 class ReceivableService
 {
     /**
+     * Guard: reject a duplicate active invoice number (case-insensitive).
+     * Soft-deleted rows are ignored so a trashed record can be re-entered.
+     */
+    private function ensureUniqueInvoiceNumber(?string $nomorInvoice, ?int $ignoreId = null): void
+    {
+        if ($nomorInvoice === null || trim($nomorInvoice) === '') {
+            return;
+        }
+
+        $exists = Receivable::query()
+            ->whereRaw('LOWER(TRIM(nomor_invoice)) = ?', [mb_strtolower(trim($nomorInvoice))])
+            ->when($ignoreId, fn ($query) => $query->where('id', '!=', $ignoreId))
+            ->exists();
+
+        if ($exists) {
+            throw ValidationException::withMessages([
+                'nomor_invoice' => 'Nomor invoice sudah digunakan pada receivable lain.',
+            ]);
+        }
+    }
+
+    /**
      * Create a receivable.
      *
      * @param  array<string, mixed>  $data
@@ -24,14 +46,21 @@ class ReceivableService
             throw ValidationException::withMessages(['project_id' => 'Project ini sudah memiliki piutang.']);
         }
 
-        return Receivable::create([
+        $this->ensureUniqueInvoiceNumber($data['nomor_invoice'] ?? null);
+
+        $receivable = Receivable::create([
             'project_id' => $data['project_id'],
             'tanggal' => $data['tanggal'],
+            'nomor_invoice' => $data['nomor_invoice'] ?? null,
             'jatuh_tempo' => $data['jatuh_tempo'] ?? null,
             'nominal' => $data['nominal'],
             'nominal_dibayar' => 0,
             'keterangan' => $data['keterangan'] ?? null,
         ]);
+
+        app(NotificationService::class)->notifyReceivableChanged($receivable, 'created');
+
+        return $receivable;
     }
 
     /**
@@ -41,13 +70,29 @@ class ReceivableService
      */
     public function update(Receivable $receivable, array $data): Receivable
     {
+        // Guard: the nominal can never drop below the amount already paid,
+        // otherwise the outstanding balance (sisa) turns negative and the
+        // AR aging/reporting silently corrupts.
+        $newNominal = (float) ($data['nominal'] ?? $receivable->nominal);
+
+        if ($newNominal < (float) $receivable->nominal_dibayar) {
+            throw ValidationException::withMessages([
+                'nominal' => 'Nominal cannot be lower than the amount already paid ('.number_format((float) $receivable->nominal_dibayar, 0, ',', '.').').',
+            ]);
+        }
+
+        $this->ensureUniqueInvoiceNumber($data['nomor_invoice'] ?? $receivable->nomor_invoice, $receivable->id);
+
         $receivable->update([
             'project_id' => $data['project_id'],
             'tanggal' => $data['tanggal'],
+            'nomor_invoice' => $data['nomor_invoice'] ?? $receivable->nomor_invoice,
             'jatuh_tempo' => $data['jatuh_tempo'] ?? null,
             'nominal' => $data['nominal'],
             'keterangan' => $data['keterangan'] ?? null,
         ]);
+
+        app(NotificationService::class)->notifyReceivableChanged($receivable->refresh(), 'updated');
 
         return $receivable->refresh();
     }

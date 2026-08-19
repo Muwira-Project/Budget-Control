@@ -20,6 +20,8 @@ class Edit extends Component
 
     public string $tanggal = '';
 
+    public string $nomorInvoice = '';
+
     public string $jatuhTempo = '';
 
     public string $nominal = '';
@@ -36,6 +38,7 @@ class Edit extends Component
         $this->receivable = $receivable;
         $this->projectId = $receivable->project_id;
         $this->tanggal = $receivable->tanggal->format('Y-m-d');
+        $this->nomorInvoice = $receivable->nomor_invoice ?? '';
         $this->jatuhTempo = $receivable->jatuh_tempo?->format('Y-m-d') ?? '';
         $this->nominal = $receivable->nominal ?? '';
         $this->keterangan = $receivable->keterangan;
@@ -50,6 +53,7 @@ class Edit extends Component
             [
                 'project_id' => $this->projectId,
                 'tanggal' => $this->tanggal,
+                'nomor_invoice' => $this->nomorInvoice !== '' ? $this->nomorInvoice : null,
                 'jatuh_tempo' => $this->jatuhTempo !== '' ? $this->jatuhTempo : null,
                 'nominal' => $this->nominal,
                 'keterangan' => $this->keterangan,
@@ -63,6 +67,11 @@ class Edit extends Component
                     ->where('id', '!=', $this->receivable->id)
                     ->exists()) {
                 $validator->errors()->add('project_id', 'This project already has a receivable.');
+            }
+
+            if ($this->nominal !== ''
+                && (float) $this->nominal < (float) $this->receivable->nominal_dibayar) {
+                $validator->errors()->add('nominal', 'Nominal cannot be lower than the amount already paid ('.number_format((float) $this->receivable->nominal_dibayar, 0, ',', '.').').');
             }
         });
 

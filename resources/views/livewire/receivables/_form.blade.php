@@ -18,17 +18,25 @@
         </div>
 
         <div>
+            <x-input-label for="nomor_invoice" :value="__('Invoice No. (optional)')" />
+            <x-text-input id="nomor_invoice" class="mt-1 block w-full" type="text" wire:model="nomorInvoice" placeholder="e.g. INV-2026-001" />
+            <x-input-error :messages="$errors->get('nomor_invoice')" class="mt-2" />
+        </div>
+    </div>
+
+    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+        <div>
             <x-input-label for="jatuh_tempo" :value="__('Due Date (optional)')" />
             <x-text-input id="jatuh_tempo" class="mt-1 block w-full" type="date" wire:model="jatuhTempo" />
             <x-input-error :messages="$errors->get('jatuh_tempo')" class="mt-2" />
         </div>
-    </div>
 
-    <div>
-        <x-input-label for="nominal" :value="__('Amount (Rp)')" />
-        <x-text-input id="nominal" class="mt-1 block w-full" type="text" wire:model="nominal" placeholder="e.g. 500000000" required />
-        <p class="mt-1 text-xs text-gray-500">Defaults to the project contract value (tax included).</p>
-        <x-input-error :messages="$errors->get('nominal')" class="mt-2" />
+        <div>
+            <x-input-label for="nominal" :value="__('Amount (Rp)')" />
+            <x-text-input id="nominal" class="mt-1 block w-full" type="text" wire:model="nominal" placeholder="e.g. 500000000" required />
+            <p class="mt-1 text-xs text-gray-500">Defaults to the project contract value (tax included).</p>
+            <x-input-error :messages="$errors->get('nominal')" class="mt-2" />
+        </div>
     </div>
 
     <div>

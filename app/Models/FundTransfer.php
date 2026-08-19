@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\KasStatus;
 use App\Models\Concerns\LogsActivity;
+use App\Services\DashboardService;
 use Database\Factories\FundTransferFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -32,6 +33,11 @@ class FundTransfer extends Model
                 throw new \InvalidArgumentException('Source and destination accounts must be different.');
             }
         });
+
+        static::created(fn ($model) => DashboardService::clearCache());
+        static::updated(fn ($model) => DashboardService::clearCache());
+        static::deleted(fn ($model) => DashboardService::clearCache());
+        static::restored(fn ($model) => DashboardService::clearCache());
     }
 
     /**
