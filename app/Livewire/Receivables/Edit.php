@@ -3,6 +3,8 @@
 namespace App\Livewire\Receivables;
 
 use App\Http\Requests\Receivable\UpdateReceivableRequest;
+use App\Models\MasterItem;
+use App\Models\MasterType;
 use App\Models\Project;
 use App\Models\Receivable;
 use App\Services\ReceivableService;
@@ -17,6 +19,10 @@ class Edit extends Component
     public Receivable $receivable;
 
     public ?int $projectId = null;
+
+    public ?int $pihakTypeId = null;
+
+    public ?int $pihakItemId = null;
 
     public string $tanggal = '';
 
@@ -37,6 +43,8 @@ class Edit extends Component
 
         $this->receivable = $receivable;
         $this->projectId = $receivable->project_id;
+        $this->pihakTypeId = $receivable->pihak_type_id;
+        $this->pihakItemId = $receivable->pihak_item_id;
         $this->tanggal = $receivable->tanggal->format('Y-m-d');
         $this->nomorInvoice = $receivable->nomor_invoice ?? '';
         $this->jatuhTempo = $receivable->jatuh_tempo?->format('Y-m-d') ?? '';
@@ -52,6 +60,8 @@ class Edit extends Component
         $validator = Validator::make(
             [
                 'project_id' => $this->projectId,
+                'pihak_type_id' => $this->pihakTypeId,
+                'pihak_item_id' => $this->pihakItemId,
                 'tanggal' => $this->tanggal,
                 'nomor_invoice' => $this->nomorInvoice !== '' ? $this->nomorInvoice : null,
                 'jatuh_tempo' => $this->jatuhTempo !== '' ? $this->jatuhTempo : null,
@@ -67,6 +77,10 @@ class Edit extends Component
                     ->where('id', '!=', $this->receivable->id)
                     ->exists()) {
                 $validator->errors()->add('project_id', 'This project already has a receivable.');
+            }
+
+            if (($this->pihakTypeId === null) !== ($this->pihakItemId === null)) {
+                $validator->errors()->add('pihak_item_id', 'Pilih pihak (type + item) atau kosongkan keduanya.');
             }
 
             if ($this->nominal !== ''
@@ -85,6 +99,14 @@ class Edit extends Component
     }
 
     /**
+     * Reset the party selection when the party type changes.
+     */
+    public function updatedPihakTypeId(): void
+    {
+        $this->pihakItemId = null;
+    }
+
+    /**
      * The projects that do not have a receivable yet (excluding this one).
      */
     #[Computed]
@@ -92,6 +114,38 @@ class Edit extends Component
     {
         return Project::whereDoesntHave('receivable')
             ->orWhereHas('receivable', fn ($query) => $query->where('id', $this->receivable->id))
+            ->orderBy('nama')
+            ->get();
+    }
+
+    /**
+     * Party types flagged as AR (piutang) — available for the receivable party.
+     */
+    #[Computed]
+    public function partyTypes()
+    {
+        return MasterType::query()
+            ->where('aktif', true)
+            ->where(fn ($query) => $query->where('flag_ar', true)->orWhereNull('flag_ar'))
+            ->orderBy('nama')
+            ->get();
+    }
+
+    /**
+     * Party items under the selected type that may be picked as an AR party
+     * (flag_ar null/true) and are active.
+     */
+    #[Computed]
+    public function partyItems()
+    {
+        if ($this->pihakTypeId === null) {
+            return collect();
+        }
+
+        return MasterItem::query()
+            ->where('master_type_id', $this->pihakTypeId)
+            ->where('aktif', true)
+            ->where(fn ($query) => $query->where('flag_ar', true)->orWhereNull('flag_ar'))
             ->orderBy('nama')
             ->get();
     }

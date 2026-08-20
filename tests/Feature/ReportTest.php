@@ -249,6 +249,6 @@ class ReportTest extends TestCase
         $report = app(ReportService::class)->aging('2026-08-16');
 
         $this->assertSame(7000000.0, (float) $report['ap_totals']['61_90']);
-        $this->assertSame($payable->vendor->nama, $report['ap_rows'][0]['label']);
+        $this->assertSame($payable->pihak, $report['ap_rows'][0]['label']);
     }
 }

@@ -198,10 +198,8 @@ class CashModuleTest extends TestCase
         app(PayableService::class)->update($payable, [
             'project_id' => $payable->project_id,
             'akun_id' => $payable->akun_id,
-            'vendor_id' => $payable->vendor_id,
-            'supplier_id' => null,
-            'mandor_id' => null,
-            'investor_id' => null,
+            'pihak_type_id' => $payable->pihak_type_id,
+            'pihak_item_id' => $payable->pihak_item_id,
             'tanggal' => $payable->tanggal->format('Y-m-d'),
             'jatuh_tempo' => $payable->jatuh_tempo?->format('Y-m-d'),
             'nominal' => 12000000,

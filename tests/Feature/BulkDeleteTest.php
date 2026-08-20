@@ -4,13 +4,14 @@ namespace Tests\Feature;
 
 use App\Livewire\Akuns\Index as AkunIndex;
 use App\Livewire\Allokasis\Index as AllokasiIndex;
-use App\Livewire\Vendors\Index as VendorIndex;
+use App\Livewire\MasterItems\Index as MasterItemIndex;
 use App\Models\Akun;
+use App\Models\MasterItem;
+use App\Models\MasterType;
 use App\Models\Project;
 use App\Models\ProjectAkun;
 use App\Models\Realisasi;
 use App\Models\User;
-use App\Models\Vendor;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -69,15 +70,24 @@ class BulkDeleteTest extends TestCase
         $user = User::factory()->create();
         $project = Project::factory()->create();
         $akun = Akun::factory()->create();
-        $used = Vendor::factory()->create();
-        $free = Vendor::factory()->create();
-        Realisasi::factory()->create(['project_id' => $project->id, 'akun_id' => $akun->id, 'vendor_id' => $used->id]);
+        $vendorType = MasterType::firstOrCreate(
+            ['kode' => 'VENDOR'],
+            ['nama' => 'Vendor', 'flag_ar' => true, 'flag_ap' => true, 'aktif' => true, 'is_system' => true],
+        );
+        $used = MasterItem::factory()->create(['master_type_id' => $vendorType->id]);
+        $free = MasterItem::factory()->create(['master_type_id' => $vendorType->id]);
+        Realisasi::factory()->create([
+            'project_id' => $project->id,
+            'akun_id' => $akun->id,
+            'pihak_type_id' => $vendorType->id,
+            'pihak_item_id' => $used->id,
+        ]);
 
-        $component = Livewire::actingAs($user)->test(VendorIndex::class);
+        $component = Livewire::actingAs($user)->test(MasterItemIndex::class, ['masterType' => $vendorType]);
         $component->set('selectedIds', [$used->id, $free->id]);
         $component->call('deleteSelected');
 
-        $this->assertDatabaseHas('vendors', ['id' => $used->id]);
-        $this->assertDatabaseMissing('vendors', ['id' => $free->id]);
+        $this->assertDatabaseHas('master_items', ['id' => $used->id]);
+        $this->assertDatabaseMissing('master_items', ['id' => $free->id]);
     }
 }

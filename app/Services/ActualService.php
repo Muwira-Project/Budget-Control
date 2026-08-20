@@ -46,10 +46,8 @@ class ActualService
             [
                 'project_id' => $payable->project_id,
                 'akun_id' => $payable->akun_id,
-                'vendor_id' => $payable->vendor_id,
-                'supplier_id' => $payable->supplier_id,
-                'mandor_id' => $payable->mandor_id,
-                'investor_id' => $payable->investor_id,
+                'pihak_type_id' => $payable->pihak_type_id,
+                'pihak_item_id' => $payable->pihak_item_id,
                 'tanggal' => $payment->tanggal->toDateString(),
                 'nominal' => $payment->nominal,
                 'keterangan' => 'AP settlement #'.$payment->id,

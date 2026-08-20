@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['project_id', 'tanggal', 'nomor_invoice', 'jatuh_tempo', 'nominal', 'nominal_dibayar', 'keterangan', 'hold_reason', 'held_by', 'held_at'])]
+#[Fillable(['project_id', 'pihak_type_id', 'pihak_item_id', 'tanggal', 'nomor_invoice', 'jatuh_tempo', 'nominal', 'nominal_dibayar', 'keterangan', 'hold_reason', 'held_by', 'held_at'])]
 class Receivable extends Model
 {
     /**
@@ -74,6 +74,22 @@ class Receivable extends Model
     }
 
     /**
+     * Get the party type (Vendor/Supplier/Mandor/Investor) of the receivable.
+     */
+    public function pihakType(): BelongsTo
+    {
+        return $this->belongsTo(MasterType::class, 'pihak_type_id');
+    }
+
+    /**
+     * Get the party item (the concrete vendor/supplier/… record).
+     */
+    public function pihakItem(): BelongsTo
+    {
+        return $this->belongsTo(MasterItem::class, 'pihak_item_id');
+    }
+
+    /**
      * Get the payments made against this receivable.
      */
     public function payments(): HasMany
@@ -117,6 +133,14 @@ class Receivable extends Model
         return (float) $this->nominal_dibayar > 0
             ? ReceivableStatus::Sebagian
             : ReceivableStatus::BelumDibayar;
+    }
+
+    /**
+     * Display label of the party (vendor, supplier, mandor, investor).
+     */
+    public function getPihakAttribute(): ?string
+    {
+        return $this->pihakItem?->nama;
     }
 
     /**

@@ -124,7 +124,7 @@ class Dashboard extends Component
         }
 
         return Realisasi::query()
-            ->with(['akun', 'kategori', 'vendor', 'supplier', 'mandor', 'investor'])
+            ->with(['akun', 'kategori', 'pihakType', 'pihakItem'])
             ->where('project_id', $this->selectedProjectId)
             ->when($this->startDate, fn ($query) => $query->whereDate('tanggal', '>=', $this->startDate))
             ->when($this->endDate, fn ($query) => $query->whereDate('tanggal', '<=', $this->endDate))
@@ -143,7 +143,7 @@ class Dashboard extends Component
         }
 
         return Realisasi::query()
-            ->with(['akun', 'project', 'vendor', 'supplier', 'mandor', 'investor'])
+            ->with(['akun', 'project', 'pihakType', 'pihakItem'])
             ->whereHas('kategori', fn ($query) => $query->where('nama', $this->selectedCategoryName))
             ->when($this->startDate, fn ($query) => $query->whereDate('tanggal', '>=', $this->startDate))
             ->when($this->endDate, fn ($query) => $query->whereDate('tanggal', '<=', $this->endDate))

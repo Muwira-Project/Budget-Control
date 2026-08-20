@@ -4,8 +4,8 @@ namespace Tests\Feature;
 
 use App\Livewire\Akuns\Index as AkunIndex;
 use App\Models\Akun;
+use App\Models\MasterType;
 use App\Models\User;
-use App\Models\Vendor;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -62,10 +62,10 @@ class PaginationTest extends TestCase
     public function test_footer_is_rendered_on_index_pages(): void
     {
         $user = User::factory()->admin()->create();
-        Vendor::factory()->count(12)->create();
+        MasterType::factory()->count(12)->create();
 
         $this->actingAs($user)
-            ->get(route('vendors.index'))
+            ->get(route('master-types.index'))
             ->assertOk()
             ->assertSee('Rows');
     }

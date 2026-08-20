@@ -2,6 +2,7 @@
 
 namespace App\Livewire\MasterItems;
 
+use App\Exceptions\ItemInUseException;
 use App\Livewire\Concerns\BulkSelection;
 use App\Livewire\Concerns\PerPagePagination;
 use App\Models\MasterItem;
@@ -26,7 +27,28 @@ class Index extends Component
     {
         $masterType->load('fields');
 
+        if ($masterType->kode === null) {
+            $masterType->kode = 'MANUAL-'.$masterType->id;
+        }
+
         $this->masterType = $masterType;
+    }
+
+    /**
+     * Minimal guard: an item flagged as AR-only must not slip into an AP
+     * dropdown, and vice versa.
+     */
+    public function canBePickedAs(?string $side): bool
+    {
+        if ($side === 'ar') {
+            return $this->flag_ar === null || $this->flag_ar === true;
+        }
+
+        if ($side === 'ap') {
+            return $this->flag_ap === null || $this->flag_ap === true;
+        }
+
+        return true;
     }
 
     /**
@@ -61,14 +83,27 @@ class Index extends Component
     public function deleteSelected(MasterItemService $service): void
     {
         $deleted = 0;
+        $skipped = 0;
+
         foreach ($this->selectedIds as $id) {
             if ($item = MasterItem::find($id)) {
-                $service->delete($item);
-                $deleted++;
+                try {
+                    $service->delete($item);
+                    $deleted++;
+                } catch (ItemInUseException) {
+                    $skipped++;
+                }
             }
         }
+
         $this->selectedIds = [];
-        session()->flash('status', $deleted.' master item(s) deleted.');
+
+        $message = $deleted.' master item(s) deleted.';
+        if ($skipped > 0) {
+            $message .= ' '.$skipped.' item(s) skipped (still in use by transactions).';
+        }
+
+        session()->flash('status', $message);
     }
 
     public function render()

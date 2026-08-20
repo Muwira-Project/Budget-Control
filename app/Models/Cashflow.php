@@ -16,6 +16,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
 #[Fillable(['tanggal', 'jenis', 'sumber', 'payment_id', 'cash_account_id', 'akun_id', 'nominal', 'keterangan', 'status', 'submitted_by', 'approved_by', 'approved_at', 'posted_by', 'posted_at', 'rejected_by', 'rejected_at', 'rejection_reason', 'created_by'])]
@@ -95,6 +96,86 @@ class Cashflow extends Model
     public function payment(): BelongsTo
     {
         return $this->belongsTo(Payment::class);
+    }
+
+    /**
+     * The project behind this entry (via the settled AP/AR record), or null
+     * for manual cash entries.
+     */
+    public function getProjectAttribute(): ?Project
+    {
+        $payment = $this->relationLoaded('payment') ? $this->payment : $this->payment()->first();
+
+        if ($payment === null) {
+            return null;
+        }
+
+        return $payment->payable?->project ?? $payment->receivable?->project;
+    }
+
+    /**
+     * Get the party master item (vendor/supplier/mandor/investor) behind this
+     * entry, resolved through the settled AP/AR record.
+     */
+    public function pihakItem(): HasOneThrough
+    {
+        return $this->hasOneThrough(
+            MasterItem::class,
+            Payment::class,
+            'id',
+            'id',
+            'payment_id',
+            'pihak_item_id',
+        );
+    }
+
+    /**
+     * Get the party master type behind this entry, resolved through the
+     * settled AP/AR record.
+     */
+    public function pihakType(): HasOneThrough
+    {
+        return $this->hasOneThrough(
+            MasterType::class,
+            Payment::class,
+            'id',
+            'id',
+            'payment_id',
+            'pihak_type_id',
+        );
+    }
+
+    /**
+     * Display label of the party (vendor, supplier, mandor, or investor).
+     * Manual cash entries and settlements without a party resolve to null.
+     */
+    public function getPihakAttribute(): ?string
+    {
+        $payment = $this->relationLoaded('payment') ? $this->payment : $this->payment()->first();
+
+        if ($payment === null) {
+            return null;
+        }
+
+        $party = $payment->payable?->pihakItem ?? $payment->receivable?->pihakItem;
+
+        return $party?->nama;
+    }
+
+    /**
+     * Display label of the party type: vendor, supplier, mandor, or investor.
+     */
+    public function getPihakJenisAttribute(): ?string
+    {
+        $payment = $this->relationLoaded('payment') ? $this->payment : $this->payment()->first();
+
+        if ($payment === null) {
+            return null;
+        }
+
+        $type = $payment->payable?->pihakType ?? $payment->receivable?->pihakType;
+
+        return $type?->kode !== null ? strtolower((string) $type->kode) : null;
     }
 
     /**

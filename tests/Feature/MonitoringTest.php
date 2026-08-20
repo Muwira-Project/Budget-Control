@@ -8,12 +8,13 @@ use App\Livewire\Monitoring\Index as IndexMonitoring;
 use App\Models\Akun;
 use App\Models\BudgetPlan;
 use App\Models\BudgetPlanItem;
+use App\Models\MasterItem;
+use App\Models\MasterType;
 use App\Models\MonitoringPeriod;
 use App\Models\Project;
 use App\Models\ProjectAkun;
 use App\Models\Realisasi;
 use App\Models\User;
-use App\Models\Vendor;
 use App\Services\MonitoringPeriodService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -147,11 +148,17 @@ class MonitoringTest extends TestCase
             'tanggal_selesai' => '2026-03-31',
         ]);
 
+        $vendorType = MasterType::firstOrCreate(
+            ['kode' => 'VENDOR'],
+            ['nama' => 'Vendor', 'flag_ar' => true, 'flag_ap' => true, 'aktif' => true, 'is_system' => true],
+        );
+        $vendor = MasterItem::factory()->create(['master_type_id' => $vendorType->id]);
+
         Realisasi::factory()->create([
             'project_id' => $project->id,
             'akun_id' => $akun->id,
-            'vendor_id' => Vendor::factory()->create()->id,
-            'supplier_id' => null,
+            'pihak_type_id' => $vendorType->id,
+            'pihak_item_id' => $vendor->id,
             'tanggal' => '2026-03-05',
             'nominal' => 30000000,
         ]);

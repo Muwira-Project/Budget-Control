@@ -25,7 +25,7 @@ class Pay extends Component
      */
     public function mount(Payable $payable): void
     {
-        $this->payable = $payable->load(['project', 'vendor', 'supplier']);
+        $this->payable = $payable->load(['project', 'pihakType', 'pihakItem']);
         $this->tanggal = now()->format('Y-m-d');
     }
 

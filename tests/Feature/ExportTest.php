@@ -7,10 +7,11 @@ use App\Exports\AkunVsRealisasiExport;
 use App\Exports\RealisasiExport;
 use App\Models\Akun;
 use App\Models\Kategori;
+use App\Models\MasterItem;
+use App\Models\MasterType;
 use App\Models\Project;
 use App\Models\ProjectAkun;
 use App\Models\Realisasi;
-use App\Models\Supplier;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -156,12 +157,21 @@ class ExportTest extends TestCase
         $user = User::factory()->create();
         $project = Project::factory()->create(['kode' => 'PRJ-001', 'nama' => 'Gedung Kantor']);
         $akun = Akun::factory()->create(['kode_akun' => 'AKN-001', 'nama_akun' => 'Biaya Material']);
-        $supplier = Supplier::factory()->create(['nama' => 'PT Toko Barang']);
+        $supplierType = MasterType::firstOrCreate(
+            ['kode' => 'SUPPLIER'],
+            ['nama' => 'Supplier', 'flag_ar' => true, 'flag_ap' => true, 'aktif' => true, 'is_system' => true],
+        );
+        $supplier = MasterItem::factory()->create([
+            'master_type_id' => $supplierType->id,
+            'nama' => 'PT Toko Barang',
+            'flag_ar' => true,
+            'flag_ap' => true,
+        ]);
         Realisasi::factory()->create([
             'project_id' => $project->id,
             'akun_id' => $akun->id,
-            'vendor_id' => null,
-            'supplier_id' => $supplier->id,
+            'pihak_type_id' => $supplierType->id,
+            'pihak_item_id' => $supplier->id,
             'kategori_id' => null,
             'tanggal' => '2026-07-01',
             'nominal' => 30000000,
@@ -172,7 +182,7 @@ class ExportTest extends TestCase
         $row = $export->query()->get()->first();
 
         $this->assertSame(
-            ['PRJ-001 - Gedung Kantor', 'AKN-001 - Biaya Material', null, '2026-07-01', null, 'PT Toko Barang', null, null, 30000000.0, 'Pembayaran'],
+            ['PRJ-001 - Gedung Kantor', 'AKN-001 - Biaya Material', null, '2026-07-01', 'PT Toko Barang', 30000000.0, 'Pembayaran'],
             $export->map($row),
         );
     }

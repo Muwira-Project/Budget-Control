@@ -2,9 +2,11 @@
 
 namespace App\Services;
 
+use App\Exceptions\ItemInUseException;
 use App\Models\MasterItem;
 use App\Models\MasterType;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 
 class MasterItemService
 {
@@ -22,6 +24,8 @@ class MasterItemService
             'keterangan' => $data['keterangan'] ?? null,
             'data' => $data['data'] ?? null,
             'aktif' => $data['aktif'] ?? true,
+            'flag_ar' => $data['flag_ar'] ?? null,
+            'flag_ap' => $data['flag_ap'] ?? null,
         ]);
     }
 
@@ -38,6 +42,8 @@ class MasterItemService
             'keterangan' => $data['keterangan'] ?? null,
             'data' => $data['data'] ?? null,
             'aktif' => $data['aktif'] ?? true,
+            'flag_ar' => $data['flag_ar'] ?? $item->flag_ar,
+            'flag_ap' => $data['flag_ap'] ?? $item->flag_ap,
         ]);
 
         return $item->refresh();
@@ -48,6 +54,19 @@ class MasterItemService
      */
     public function delete(MasterItem $item): void
     {
+        $inUse = DB::table('realisasi')
+            ->where('pihak_item_id', $item->id)
+            ->whereNull('deleted_at')
+            ->exists()
+            || DB::table('payables')
+                ->where('pihak_item_id', $item->id)
+                ->whereNull('deleted_at')
+                ->exists();
+
+        if ($inUse) {
+            throw new ItemInUseException("Item #{$item->id} is in use by transactions.");
+        }
+
         $item->delete();
     }
 

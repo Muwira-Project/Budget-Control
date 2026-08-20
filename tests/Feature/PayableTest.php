@@ -5,12 +5,13 @@ namespace Tests\Feature;
 use App\Livewire\Payables\Create as CreatePayable;
 use App\Livewire\Payables\Index as IndexPayable;
 use App\Models\Akun;
+use App\Models\MasterItem;
+use App\Models\MasterType;
 use App\Models\Payable;
 use App\Models\Project;
 use App\Models\ProjectAkun;
 use App\Models\Realisasi;
 use App\Models\User;
-use App\Models\Vendor;
 use App\Services\PayableService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
@@ -41,20 +42,25 @@ class PayableTest extends TestCase
         $user = User::factory()->create();
         $project = Project::factory()->create();
         $akun = Akun::factory()->create();
-        $vendor = Vendor::factory()->create();
+        $vendorType = MasterType::firstOrCreate(
+            ['kode' => 'VENDOR'],
+            ['nama' => 'Vendor', 'flag_ar' => true, 'flag_ap' => true, 'aktif' => true, 'is_system' => true],
+        );
+        $vendor = MasterItem::factory()->create(['master_type_id' => $vendorType->id]);
 
         $realisasi = Realisasi::factory()->create([
             'project_id' => $project->id,
             'akun_id' => $akun->id,
-            'vendor_id' => $vendor->id,
-            'supplier_id' => null,
+            'pihak_type_id' => $vendorType->id,
+            'pihak_item_id' => $vendor->id,
             'nominal' => 25000000,
         ]);
 
         $this->assertDatabaseHas('payables', [
             'realisasi_id' => $realisasi->id,
             'project_id' => $project->id,
-            'vendor_id' => $vendor->id,
+            'pihak_type_id' => $vendorType->id,
+            'pihak_item_id' => $vendor->id,
             'nominal' => 25000000,
         ]);
     }
@@ -65,13 +71,18 @@ class PayableTest extends TestCase
         $project = Project::factory()->create();
         $akun = Akun::factory()->create();
         ProjectAkun::create(['project_id' => $project->id, 'akun_id' => $akun->id, 'budget' => 100000000, 'allocation' => 100000000, 'status' => 'approved']);
-        $vendor = Vendor::factory()->create();
+        $vendorType = MasterType::firstOrCreate(
+            ['kode' => 'VENDOR'],
+            ['nama' => 'Vendor', 'flag_ar' => true, 'flag_ap' => true, 'aktif' => true, 'is_system' => true],
+        );
+        $vendor = MasterItem::factory()->create(['master_type_id' => $vendorType->id]);
 
         Livewire::actingAs($user)
             ->test(CreatePayable::class)
             ->set('projectId', $project->id)
             ->set('akunId', $akun->id)
-            ->set('vendorId', $vendor->id)
+            ->set('pihakTypeId', $vendorType->id)
+            ->set('pihakItemId', $vendor->id)
             ->set('tanggal', '2026-07-01')
             ->set('nominal', '50000000')
             ->set('jenisPajak', 'ppn')
@@ -82,7 +93,8 @@ class PayableTest extends TestCase
         $this->assertDatabaseHas('payables', [
             'project_id' => $project->id,
             'akun_id' => $akun->id,
-            'vendor_id' => $vendor->id,
+            'pihak_type_id' => $vendorType->id,
+            'pihak_item_id' => $vendor->id,
             'nominal' => 50000000,
             'jenis_pajak' => 'ppn',
         ]);
@@ -102,7 +114,7 @@ class PayableTest extends TestCase
             ->set('tanggal', '2026-07-01')
             ->set('nominal', '50000000')
             ->call('save')
-            ->assertHasErrors(['vendor_id']);
+            ->assertHasErrors(['pihak_item_id']);
     }
 
     public function test_payable_status_tracks_payments(): void
@@ -138,7 +150,8 @@ class PayableTest extends TestCase
         app(PayableService::class)->update($payable, [
             'project_id' => $payable->project_id,
             'akun_id' => $payable->akun_id,
-            'vendor_id' => $payable->vendor_id,
+            'pihak_type_id' => $payable->pihak_type_id,
+            'pihak_item_id' => $payable->pihak_item_id,
             'tanggal' => $payable->tanggal->format('Y-m-d'),
             'nominal' => 50000000,
             'keterangan' => null,
@@ -150,7 +163,11 @@ class PayableTest extends TestCase
         $user = User::factory()->create();
         $project = Project::factory()->create();
         $akun = Akun::factory()->create();
-        $vendor = Vendor::factory()->create();
+        $vendorType = MasterType::firstOrCreate(
+            ['kode' => 'VENDOR'],
+            ['nama' => 'Vendor', 'flag_ar' => true, 'flag_ap' => true, 'aktif' => true, 'is_system' => true],
+        );
+        $vendor = MasterItem::factory()->create(['master_type_id' => $vendorType->id]);
         ProjectAkun::create(['project_id' => $project->id, 'akun_id' => $akun->id, 'budget' => 100000000, 'allocation' => 100000000, 'status' => 'approved']);
 
         Payable::factory()->create(['nomor_invoice' => 'INV-2026-001']);
@@ -159,7 +176,8 @@ class PayableTest extends TestCase
             ->test(CreatePayable::class)
             ->set('projectId', $project->id)
             ->set('akunId', $akun->id)
-            ->set('vendorId', $vendor->id)
+            ->set('pihakTypeId', $vendorType->id)
+            ->set('pihakItemId', $vendor->id)
             ->set('tanggal', '2026-07-01')
             ->set('nomorInvoice', 'inv-2026-001')
             ->set('nominal', '50000000')

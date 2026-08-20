@@ -50,6 +50,8 @@ class ReceivableService
 
         $receivable = Receivable::create([
             'project_id' => $data['project_id'],
+            'pihak_type_id' => $data['pihak_type_id'] ?? null,
+            'pihak_item_id' => $data['pihak_item_id'] ?? null,
             'tanggal' => $data['tanggal'],
             'nomor_invoice' => $data['nomor_invoice'] ?? null,
             'jatuh_tempo' => $data['jatuh_tempo'] ?? null,
@@ -85,6 +87,8 @@ class ReceivableService
 
         $receivable->update([
             'project_id' => $data['project_id'],
+            'pihak_type_id' => $data['pihak_type_id'] ?? $receivable->pihak_type_id,
+            'pihak_item_id' => $data['pihak_item_id'] ?? $receivable->pihak_item_id,
             'tanggal' => $data['tanggal'],
             'nomor_invoice' => $data['nomor_invoice'] ?? $receivable->nomor_invoice,
             'jatuh_tempo' => $data['jatuh_tempo'] ?? null,
@@ -149,7 +153,7 @@ class ReceivableService
     public function paginate(?Project $project = null, ?string $status = null, ?string $aging = null, int $perPage = 10): LengthAwarePaginator
     {
         return Receivable::query()
-            ->with('project')
+            ->with(['project', 'pihakType', 'pihakItem'])
             ->when($project, fn ($query) => $query->where('project_id', $project->id))
             ->when($status, fn ($query) => $this->applyStatusFilter($query, $status))
             ->when($aging, fn ($query) => $this->applyAgingFilter($query, $aging))

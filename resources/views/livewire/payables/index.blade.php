@@ -79,18 +79,11 @@
                                         <td class="px-6 py-4 text-gray-700">{{ $payable->project->kode }} - {{ $payable->project->nama }}</td>
                                         <td class="px-6 py-4 text-gray-700">{{ $payable->akun->kode_akun }} - {{ $payable->akun->nama_akun }}</td>
                                         <td class="px-6 py-4 text-gray-700">
-                                            @if ($payable->pihakJenis === 'vendor')
-                                                <span class="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-700">Vendor</span>
-                                                {{ $payable->vendor?->nama }}
-                                            @elseif ($payable->pihakJenis === 'supplier')
-                                                <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-700">Supplier</span>
-                                                {{ $payable->supplier?->nama }}
-                                            @elseif ($payable->pihakJenis === 'mandor')
-                                                <span class="inline-flex items-center rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-medium text-indigo-700">Mandor</span>
-                                                {{ $payable->mandor?->nama }}
-                                            @elseif ($payable->pihakJenis === 'investor')
-                                                <span class="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-700">Investor</span>
-                                                {{ $payable->investor?->nama }}
+                                            @if ($payable->pihakJenis && $payable->pihak)
+                                                <span class="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-700">{{ ucfirst($payable->pihakJenis) }}</span>
+                                                {{ $payable->pihak }}
+                                            @else
+                                                <span class="text-gray-400">-</span>
                                             @endif
                                         </td>
                                         <td class="px-6 py-4 text-gray-500 whitespace-nowrap">{{ $payable->nomor_invoice ?? '-' }}</td>

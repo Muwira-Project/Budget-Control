@@ -37,6 +37,23 @@
                         Active
                     </label>
                 </div>
+
+                @if ($this->masterItem->masterType->flag_ar || $this->masterItem->masterType->flag_ap)
+                    <div class="sm:col-span-2 rounded-lg border border-gray-200 bg-gray-50 p-4">
+                        <p class="text-sm font-medium text-gray-700">AR / AP Grouping</p>
+                        <p class="mt-0.5 text-xs text-gray-500">Tentukan di sisi mana item ini boleh dipilih sebagai pihak transaksi. Kosongkan keduanya = netral.</p>
+                        <div class="mt-3 flex flex-wrap gap-6">
+                            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+                                <input type="checkbox" wire:model="flagAr" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                                AR (Piutang / Receivable)
+                            </label>
+                            <label class="inline-flex items-center gap-2 text-sm text-gray-700">
+                                <input type="checkbox" wire:model="flagAp" class="rounded border-gray-300 text-emerald-600 focus:ring-emerald-500" />
+                                AP (Hutang / Payable)
+                            </label>
+                        </div>
+                    </div>
+                @endif
             </div>
 
             <div class="mt-6 flex items-center gap-3">

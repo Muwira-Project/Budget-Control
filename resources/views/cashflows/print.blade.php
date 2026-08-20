@@ -71,23 +71,12 @@
         </div>
 
         <!-- Pihak Terkait (jika ada) -->
-        @if ($cashflow->vendor || $cashflow->supplier || $cashflow->mandor || $cashflow->investor)
-        <div class="mb-6 text-sm">
-            <p class="text-gray-500">Pihak Terkait</p>
-            @if ($cashflow->vendor)
-            <p class="font-medium">Vendor: {{ $cashflow->vendor->nama }}</p>
-            @endif
-            @if ($cashflow->supplier)
-            <p class="font-medium">Supplier: {{ $cashflow->supplier->nama }}</p>
-            @endif
-            @if ($cashflow->mandor)
-            <p class="font-medium">Mandor: {{ $cashflow->mandor->nama }}</p>
-            @endif
-            @if ($cashflow->investor)
-            <p class="font-medium">Investor: {{ $cashflow->investor->nama }}</p>
-            @endif
-        </div>
-        @endif
+        @if ($cashflow->pihak)
+                    <div class="mt-4">
+                        <p class="text-sm font-semibold text-gray-800">{{ ucfirst((string) $cashflow->pihakJenis) }}</p>
+                        <p class="font-medium">{{ $cashflow->pihak }}</p>
+                    </div>
+                @endif
 
         <!-- Nominal -->
         <div class="border-t-2 border-gray-300 pt-4 mb-6">

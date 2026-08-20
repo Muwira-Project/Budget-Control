@@ -7,6 +7,7 @@ use App\Models\FundTransfer;
 use App\Models\NumberSequence;
 use App\Models\Voucher;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 
 class VoucherService
 {
@@ -21,14 +22,18 @@ class VoucherService
 
         $year = $cashflow->tanggal?->format('Y') ?? (string) now()->year;
 
-        return Voucher::create([
-            'nomor' => $this->nextNomor($year),
-            'tanggal' => $cashflow->tanggal?->format('Y-m-d') ?? now()->format('Y-m-d'),
-            'jenis' => $cashflow->jenis->value,
-            'cashflow_id' => $cashflow->id,
-            'keterangan' => $cashflow->keterangan,
-            'created_by' => auth()->id(),
-        ]);
+        return DB::transaction(function () use ($cashflow, $year): Voucher {
+            $voucher = Voucher::create([
+                'nomor' => $this->nextNomor($year),
+                'tanggal' => $cashflow->tanggal?->format('Y-m-d') ?? now()->format('Y-m-d'),
+                'jenis' => $cashflow->jenis->value,
+                'cashflow_id' => $cashflow->id,
+                'keterangan' => $cashflow->keterangan,
+                'created_by' => auth()->id(),
+            ]);
+
+            return $voucher;
+        });
     }
 
     /**
@@ -42,14 +47,18 @@ class VoucherService
 
         $year = $fundTransfer->tanggal?->format('Y') ?? (string) now()->year;
 
-        return Voucher::create([
-            'nomor' => $this->nextNomor($year),
-            'tanggal' => $fundTransfer->tanggal?->format('Y-m-d') ?? now()->format('Y-m-d'),
-            'jenis' => 'transfer',
-            'fund_transfer_id' => $fundTransfer->id,
-            'keterangan' => $fundTransfer->keterangan,
-            'created_by' => auth()->id(),
-        ]);
+        return DB::transaction(function () use ($fundTransfer, $year): Voucher {
+            $voucher = Voucher::create([
+                'nomor' => $this->nextNomor($year),
+                'tanggal' => $fundTransfer->tanggal?->format('Y-m-d') ?? now()->format('Y-m-d'),
+                'jenis' => 'transfer',
+                'fund_transfer_id' => $fundTransfer->id,
+                'keterangan' => $fundTransfer->keterangan,
+                'created_by' => auth()->id(),
+            ]);
+
+            return $voucher;
+        });
     }
 
     /**

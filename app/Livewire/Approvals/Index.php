@@ -187,7 +187,7 @@ class Index extends Component
     public function pendingVoids(): Collection
     {
         return Payment::query()
-            ->with(['receivable.project', 'payable.project', 'payable.vendor', 'payable.supplier', 'voidRequestedBy'])
+            ->with(['receivable.project', 'payable.project', 'payable.pihakItem', 'payable.pihakType', 'voidRequestedBy'])
             ->where('status', 'pending_cancel')
             ->orderByDesc('tanggal')
             ->get();

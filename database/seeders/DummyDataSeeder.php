@@ -11,6 +11,8 @@ use App\Models\Cashflow;
 use App\Models\Investor;
 use App\Models\Kategori;
 use App\Models\Mandor;
+use App\Models\MasterItem;
+use App\Models\MasterType;
 use App\Models\MonitoringPeriod;
 use App\Models\NumberSequence;
 use App\Models\Payable;
@@ -46,6 +48,7 @@ class DummyDataSeeder extends Seeder
     {
         $this->seedKategoris();
         $this->seedMasterAkuns();
+        $this->seedPartyMasterTypes();
         $this->seedVendors();
         $this->seedSuppliers();
         $this->seedMandors();
@@ -94,6 +97,31 @@ class DummyDataSeeder extends Seeder
     }
 
     /**
+     * Ensure the 4 party master types exist (flag AR + AP) so the party
+     * dropdowns and filters keep working on a fresh (or migrated) DB.
+     * The migration itself creates them; this is a safety net for repeated seeds.
+     */
+    protected function seedPartyMasterTypes(): void
+    {
+        $types = ['VENDOR' => 'Vendor', 'SUPPLIER' => 'Supplier', 'MANDOR' => 'Mandor', 'INVESTOR' => 'Investor'];
+
+        foreach ($types as $kode => $nama) {
+            MasterType::firstOrCreate(
+                ['kode' => $kode],
+                [
+                    'nama' => $nama,
+                    'deskripsi' => $nama.' - pihak transaksi',
+                    'flag_ar' => true,
+                    'flag_ap' => true,
+                    'aktif' => true,
+                    'is_system' => true,
+                    'sort' => 10,
+                ],
+            );
+        }
+    }
+
+    /**
      * Seed the vendor master data (jasa).
      */
     protected function seedVendors(): void
@@ -106,14 +134,7 @@ class DummyDataSeeder extends Seeder
         ];
 
         foreach ($vendors as $vendorData) {
-            Vendor::firstOrCreate(
-                ['kode' => $vendorData['kode']],
-                [
-                    'nama' => $vendorData['nama'],
-                    'telepon' => $vendorData['telepon'],
-                    'alamat' => $vendorData['alamat'],
-                ],
-            );
+            $this->partyItem('VENDOR', $vendorData['kode'], $vendorData);
         }
     }
 
@@ -130,14 +151,7 @@ class DummyDataSeeder extends Seeder
         ];
 
         foreach ($suppliers as $supplierData) {
-            Supplier::firstOrCreate(
-                ['kode' => $supplierData['kode']],
-                [
-                    'nama' => $supplierData['nama'],
-                    'telepon' => $supplierData['telepon'],
-                    'alamat' => $supplierData['alamat'],
-                ],
-            );
+            $this->partyItem('SUPPLIER', $supplierData['kode'], $supplierData);
         }
     }
 
@@ -152,14 +166,7 @@ class DummyDataSeeder extends Seeder
         ];
 
         foreach ($mandors as $mandorData) {
-            Mandor::firstOrCreate(
-                ['kode' => $mandorData['kode']],
-                [
-                    'nama' => $mandorData['nama'],
-                    'telepon' => $mandorData['telepon'],
-                    'alamat' => $mandorData['alamat'],
-                ],
-            );
+            $this->partyItem('MANDOR', $mandorData['kode'], $mandorData);
         }
     }
 
@@ -174,15 +181,34 @@ class DummyDataSeeder extends Seeder
         ];
 
         foreach ($investors as $investorData) {
-            Investor::firstOrCreate(
-                ['kode' => $investorData['kode']],
-                [
-                    'nama' => $investorData['nama'],
-                    'telepon' => $investorData['telepon'],
-                    'alamat' => $investorData['alamat'],
-                ],
-            );
+            $this->partyItem('INVESTOR', $investorData['kode'], $investorData);
         }
+    }
+
+    /**
+     * Create (or fetch) a party master item under the given type kode.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    protected function partyItem(string $typeKode, string $kode, array $data): MasterItem
+    {
+        $type = MasterType::where('kode', $typeKode)->first();
+
+        if ($type === null) {
+            throw new \RuntimeException("Master type {$typeKode} is missing.");
+        }
+
+        return MasterItem::firstOrCreate(
+            ['master_type_id' => $type->id, 'kode' => $kode],
+            [
+                'nama' => $data['nama'] ?? $kode,
+                'aktif' => true,
+                'data' => [
+                    'telepon' => $data['telepon'] ?? null,
+                    'alamat' => $data['alamat'] ?? null,
+                ],
+            ],
+        );
     }
 
     /**
@@ -208,30 +234,19 @@ class DummyDataSeeder extends Seeder
     }
 
     /**
-     * Seed the default chart of accounts (19 fixed akun).
+     * Seed the master akun (COA).
      */
     protected function seedMasterAkuns(): void
     {
         $akuns = [
-            ['kode_akun' => '4-100', 'nama_akun' => 'Maintenance', 'jenis_akun' => 'pendapatan', 'kategori' => 'Biaya Umum'],
-            ['kode_akun' => '4-101', 'nama_akun' => 'Renovation', 'jenis_akun' => 'pendapatan', 'kategori' => 'Biaya Umum'],
-            ['kode_akun' => '4-102', 'nama_akun' => 'Lainnya', 'jenis_akun' => 'pendapatan', 'kategori' => 'Biaya Umum'],
-            ['kode_akun' => '5-100', 'nama_akun' => 'Bahan Baku dan Gudang', 'jenis_akun' => 'pengeluaran', 'kategori' => 'Material'],
-            ['kode_akun' => '5-101', 'nama_akun' => 'Upah', 'jenis_akun' => 'pengeluaran', 'kategori' => 'Vendor/Jasa'],
-            ['kode_akun' => '5-102', 'nama_akun' => 'Subkontraktor', 'jenis_akun' => 'pengeluaran', 'kategori' => 'Vendor/Jasa'],
-            ['kode_akun' => '5-103', 'nama_akun' => 'Proyek Lainnya', 'jenis_akun' => 'pengeluaran', 'kategori' => 'Biaya Umum'],
-            ['kode_akun' => '5-104', 'nama_akun' => 'Bonus dan Komisi', 'jenis_akun' => 'pengeluaran', 'kategori' => 'Biaya Umum'],
-            ['kode_akun' => '5-105', 'nama_akun' => 'Iklan dan Promosi', 'jenis_akun' => 'pengeluaran', 'kategori' => 'Biaya Umum'],
-            ['kode_akun' => '5-106', 'nama_akun' => 'Gaji dan Bonus', 'jenis_akun' => 'pengeluaran', 'kategori' => 'Biaya Umum'],
-            ['kode_akun' => '5-107', 'nama_akun' => 'BPJS Kesehatan dan Ketenagakerjaan', 'jenis_akun' => 'pengeluaran', 'kategori' => 'Biaya Umum'],
-            ['kode_akun' => '5-108', 'nama_akun' => 'Sewa', 'jenis_akun' => 'pengeluaran', 'kategori' => 'Biaya Umum'],
-            ['kode_akun' => '5-109', 'nama_akun' => 'Konsumsi Kantor dan ATK', 'jenis_akun' => 'pengeluaran', 'kategori' => 'Biaya Umum'],
-            ['kode_akun' => '5-110', 'nama_akun' => 'Penambahan/Pemeliharaan/Perawatan', 'jenis_akun' => 'pengeluaran', 'kategori' => 'Biaya Umum'],
-            ['kode_akun' => '5-111', 'nama_akun' => 'Telekomunikasi dan Perjalanan Dinas', 'jenis_akun' => 'pengeluaran', 'kategori' => 'Biaya Umum'],
-            ['kode_akun' => '5-112', 'nama_akun' => 'Listrik/Kebersihan/Keamanan', 'jenis_akun' => 'pengeluaran', 'kategori' => 'Biaya Umum'],
-            ['kode_akun' => '5-113', 'nama_akun' => 'Perbankan', 'jenis_akun' => 'pengeluaran', 'kategori' => 'Biaya Umum'],
-            ['kode_akun' => '5-114', 'nama_akun' => 'Pajak', 'jenis_akun' => 'pengeluaran', 'kategori' => 'Pajak'],
-            ['kode_akun' => '5-115', 'nama_akun' => 'Lainnya', 'jenis_akun' => 'pengeluaran', 'kategori' => 'Biaya Umum'],
+            ['kode_akun' => '1-001', 'nama_akun' => 'Kas Besar', 'jenis_akun' => 'pengeluaran'],
+            ['kode_akun' => '4-001', 'nama_akun' => 'Pendapatan Jasa', 'jenis_akun' => 'pendapatan'],
+            ['kode_akun' => '5-001', 'nama_akun' => 'Biaya Material', 'jenis_akun' => 'pengeluaran'],
+            ['kode_akun' => '5-002', 'nama_akun' => 'Biaya Tenaga Kerja', 'jenis_akun' => 'pengeluaran'],
+            ['kode_akun' => '5-003', 'nama_akun' => 'Biaya Peralatan', 'jenis_akun' => 'pengeluaran'],
+            ['kode_akun' => '5-101', 'nama_akun' => 'Biaya Operasional', 'jenis_akun' => 'pengeluaran'],
+            ['kode_akun' => '5-102', 'nama_akun' => 'Biaya Listrik', 'jenis_akun' => 'pengeluaran'],
+            ['kode_akun' => '5-103', 'nama_akun' => 'Biaya ATK', 'jenis_akun' => 'pengeluaran'],
         ];
 
         foreach ($akuns as $akunData) {
@@ -240,98 +255,76 @@ class DummyDataSeeder extends Seeder
                 [
                     'nama_akun' => $akunData['nama_akun'],
                     'jenis_akun' => $akunData['jenis_akun'],
-                    'kategori_id' => Kategori::where('nama', $akunData['kategori'])->first()?->id,
+                    'kategori_id' => Kategori::where('nama', 'Biaya Umum')->first()?->id,
                 ],
             );
         }
     }
 
     /**
-     * Seed the two demo projects with budgets and realisasi.
+     * Seed the demo projects (2 active + progress) and their accounts.
      */
     protected function seedProjects(): void
     {
         $projects = [
             [
                 'kode' => 'PRJ-2025-001',
-                'nama' => 'Pembangunan Gedung Kantor Muwira',
-                'lokasi' => 'Jakarta Selatan',
-                'status' => ProjectStatus::InProgress,
-                'jenis' => ProjectJenis::Jasa,
+                'nama' => 'Pembangunan Gedung Kantor',
+                'lokasi' => 'Jakarta',
+                'pic' => 'Arian',
+                'jenis' => ProjectJenis::Jasa->value,
                 'qty' => 1,
-                'satuan' => 'paket',
-                'harga_satuan' => 525000000,
-                'pajak' => 2,
-                'akuns' => [
-                    [
-                        'kode_akun' => 'AKN-001', 'nama_akun' => 'Biaya Material', 'nominal' => 250000000,
-                        'realisasi' => [
-                            ['tanggal' => '2025-08-15', 'supplier' => 'PT Sumber Material', 'nominal' => 120000000, 'keterangan' => 'Pembelian besi dan semen tahap 1'],
-                            ['tanggal' => '2025-11-20', 'supplier' => 'PT Sumber Material', 'nominal' => 85000000, 'keterangan' => 'Pembelian material tahap 2'],
-                        ],
-                    ],
-                    [
-                        'kode_akun' => 'AKN-002', 'nama_akun' => 'Biaya Tenaga Kerja', 'nominal' => 180000000,
-                        'realisasi' => [
-                            ['tanggal' => '2025-09-05', 'vendor' => 'CV Karya Bangun', 'nominal' => 60000000, 'keterangan' => 'Upah pekerja bulan September'],
-                            ['tanggal' => '2025-10-05', 'vendor' => 'CV Karya Bangun', 'nominal' => 60000000, 'keterangan' => 'Upah pekerja bulan Oktober'],
-                        ],
-                    ],
-                    [
-                        'kode_akun' => 'AKN-003', 'nama_akun' => 'Biaya Peralatan', 'nominal' => 95000000,
-                        'realisasi' => [
-                            ['tanggal' => '2025-08-01', 'vendor' => 'PT Sinergi Sukses', 'nominal' => 45000000, 'keterangan' => 'Sewa crane 3 bulan'],
-                        ],
-                    ],
+                'satuan' => 'unit',
+                'harga_satuan' => 1000000000,
+                'pajak' => 11,
+                'tanggal_mulai' => '2025-03-01',
+                'target_selesai' => '2026-12-31',
+                'status' => ProjectStatus::InProgress->value,
+                'akun' => [
+                    ['nama_akun' => 'Biaya Material', 'nominal' => 400000000, 'realisasi' => [
+                        ['vendor' => 'PT Sumber Material', 'tanggal' => '2026-01-10', 'nominal' => 25000000, 'keterangan' => 'Beli material tahap 1'],
+                        ['vendor' => 'PT Sumber Material', 'tanggal' => '2026-02-10', 'nominal' => 15000000, 'keterangan' => 'Beli material tahap 2'],
+                    ]],
+                    ['nama_akun' => 'Biaya Tenaga Kerja', 'nominal' => 300000000, 'realisasi' => [
+                        ['vendor' => 'PT Maju Jaya', 'tanggal' => '2026-01-15', 'nominal' => 50000000, 'keterangan' => 'Upah tukang Januari'],
+                        ['vendor' => 'PT Maju Jaya', 'tanggal' => '2026-02-15', 'nominal' => 50000000, 'keterangan' => 'Upah tukang Februari'],
+                    ]],
                 ],
             ],
             [
                 'kode' => 'PRJ-2025-002',
-                'nama' => 'Renovasi Ruang Rapat Lantai 3',
-                'lokasi' => 'Jakarta Pusat',
-                'status' => ProjectStatus::Done,
-                'jenis' => ProjectJenis::Jasa,
+                'nama' => 'Renovasi Ruang Rapat',
+                'lokasi' => 'Jakarta',
+                'pic' => 'Budi',
+                'jenis' => ProjectJenis::Jasa->value,
                 'qty' => 1,
-                'satuan' => 'paket',
-                'harga_satuan' => 125000000,
-                'pajak' => 2,
-                'akuns' => [
-                    [
-                        'kode_akun' => 'AKN-001', 'nama_akun' => 'Biaya Material', 'nominal' => 60000000,
-                        'realisasi' => [
-                            ['tanggal' => '2025-04-10', 'supplier' => 'CV Bahan Bangunan', 'nominal' => 50000000, 'keterangan' => 'Material interior'],
-                        ],
-                    ],
-                    [
-                        'kode_akun' => 'AKN-002', 'nama_akun' => 'Biaya Tenaga Kerja', 'nominal' => 40000000,
-                        'realisasi' => [
-                            ['tanggal' => '2025-04-20', 'vendor' => 'CV Karya Bangun', 'nominal' => 40000000, 'keterangan' => 'Upah pekerja renovasi'],
-                        ],
-                    ],
+                'satuan' => 'unit',
+                'harga_satuan' => 200000000,
+                'pajak' => 11,
+                'tanggal_mulai' => '2025-09-01',
+                'target_selesai' => '2026-06-30',
+                'status' => ProjectStatus::Done->value,
+                'akun' => [
+                    ['nama_akun' => 'Biaya Material', 'nominal' => 100000000, 'realisasi' => [
+                        ['vendor' => 'CV Bahan Bangunan', 'tanggal' => '2026-03-05', 'nominal' => 40000000, 'keterangan' => 'Beli cat & plafon'],
+                    ]],
+                    ['nama_akun' => 'Biaya Tenaga Kerja', 'nominal' => 60000000, 'realisasi' => [
+                        ['vendor' => 'CV Karya Bangun', 'tanggal' => '2026-03-10', 'nominal' => 30000000, 'keterangan' => 'Upah tukang renovasi'],
+                    ]],
                 ],
             ],
         ];
 
         foreach ($projects as $projectData) {
+            $akunList = $projectData['akun'];
+            unset($projectData['akun']);
+
             $project = Project::firstOrCreate(
                 ['kode' => $projectData['kode']],
-                [
-                    'nama' => $projectData['nama'],
-                    'lokasi' => $projectData['lokasi'],
-                    'jenis' => $projectData['jenis'],
-                    'qty' => $projectData['qty'],
-                    'satuan' => $projectData['satuan'],
-                    'harga_satuan' => $projectData['harga_satuan'],
-                    'pajak' => $projectData['pajak'],
-                    'status' => $projectData['status'],
-                ],
+                $projectData,
             );
 
-            if (! $project->wasRecentlyCreated) {
-                continue;
-            }
-
-            foreach ($projectData['akuns'] as $akunData) {
+            foreach ($akunList as $akunData) {
                 $this->createAkun($project, $akunData);
             }
         }
@@ -359,13 +352,13 @@ class DummyDataSeeder extends Seeder
         );
 
         foreach ($akunData['realisasi'] as $realisasiData) {
-            $vendor = isset($realisasiData['vendor'])
-                ? Vendor::where('nama', $realisasiData['vendor'])->first()
-                : null;
-
-            $supplier = isset($realisasiData['supplier'])
-                ? Supplier::where('nama', $realisasiData['supplier'])->first()
-                : null;
+            // Data lama memakai vendor/supplier; sekarang pihak (party) adalah
+            // master item dengan tipe VENDOR/SUPPLIER/MANDOR/INVESTOR.
+            $party = $this->partyItem(
+                $this->partyTypeKodeFor($realisasiData['vendor'] ?? null, $realisasiData['supplier'] ?? null),
+                $this->partyKodeFor($realisasiData['vendor'] ?? null, $realisasiData['supplier'] ?? null),
+                $realisasiData,
+            );
 
             $kategori = Kategori::where('nama', $this->kategoriFor($akunData['nama_akun']))->first();
 
@@ -373,8 +366,8 @@ class DummyDataSeeder extends Seeder
                 [
                     'project_id' => $project->id,
                     'akun_id' => $akun->id,
-                    'vendor_id' => $vendor?->id,
-                    'supplier_id' => $supplier?->id,
+                    'pihak_type_id' => $party->master_type_id,
+                    'pihak_item_id' => $party->id,
                     'kategori_id' => $kategori?->id,
                     'tanggal' => $realisasiData['tanggal'],
                     'nominal' => $realisasiData['nominal'],
@@ -382,6 +375,38 @@ class DummyDataSeeder extends Seeder
                 ],
             );
         }
+    }
+
+    /**
+     * Resolve the party master type kode for a realisasi seed row.
+     */
+    protected function partyTypeKodeFor(?string $vendorNama, ?string $supplierNama): string
+    {
+        if ($supplierNama !== null) {
+            return 'SUPPLIER';
+        }
+
+        return $vendorNama !== null ? 'VENDOR' : 'VENDOR';
+    }
+
+    /**
+     * Resolve the party kode for a realisasi seed row (lookup by name).
+     */
+    protected function partyKodeFor(?string $vendorNama, ?string $supplierNama): string
+    {
+        if ($supplierNama !== null) {
+            $item = MasterItem::whereHas('masterType', fn ($query) => $query->where('kode', 'SUPPLIER'))
+                ->where('nama', $supplierNama)
+                ->first();
+
+            return $item?->kode ?? 'SPL-001';
+        }
+
+        $item = MasterItem::whereHas('masterType', fn ($query) => $query->where('kode', 'VENDOR'))
+            ->where('nama', $vendorNama)
+            ->first();
+
+        return $item?->kode ?? 'VND-001';
     }
 
     /**
@@ -481,10 +506,6 @@ class DummyDataSeeder extends Seeder
     }
 
     /**
-     * Seed receivables for completed projects, payables from realisasi, and sample payments.
-     */
-
-    /**
      * Seed cashflow entries (manual cash in and cash out).
      */
     protected function seedCashflows(): void
@@ -548,7 +569,8 @@ class DummyDataSeeder extends Seeder
             ]);
         }
 
-        $payable = Payable::whereNotNull('supplier_id')->orderBy('id')->first();
+        $payable = Payable::whereNotNull('supplier_id')->orderBy('id')->first()
+            ?? Payable::whereHas('pihakItem.masterType', fn ($query) => $query->where('kode', 'SUPPLIER'))->orderBy('id')->first();
 
         if ($payable && Payment::where('keterangan', 'Pelunasan penuh material')->doesntExist()) {
             app(PaymentService::class)->createForPayable($payable, [

@@ -3,10 +3,10 @@
 namespace Database\Factories;
 
 use App\Models\Akun;
+use App\Models\MasterItem;
+use App\Models\MasterType;
 use App\Models\Payable;
 use App\Models\Project;
-use App\Models\Supplier;
-use App\Models\Vendor;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -21,12 +21,21 @@ class PayableFactory extends Factory
      */
     public function definition(): array
     {
+        $vendorType = MasterType::firstOrCreate(
+            ['kode' => 'VENDOR'],
+            ['nama' => 'Vendor', 'flag_ar' => true, 'flag_ap' => true, 'aktif' => true, 'is_system' => true],
+        );
+
         return [
             'project_id' => Project::factory(),
             'realisasi_id' => null,
             'akun_id' => Akun::factory(),
-            'vendor_id' => Vendor::factory(),
-            'supplier_id' => null,
+            'pihak_type_id' => $vendorType->id,
+            'pihak_item_id' => MasterItem::factory()->create([
+                'master_type_id' => $vendorType->id,
+                'flag_ar' => false,
+                'flag_ap' => true,
+            ])->id,
             'tanggal' => fake()->dateTimeBetween('-3 months', 'now'),
             'jatuh_tempo' => fake()->optional()->dateTimeBetween('now', '+3 months'),
             'nominal' => fake()->numberBetween(1_000_000, 100_000_000),
@@ -43,8 +52,15 @@ class PayableFactory extends Factory
     public function forSupplier(): static
     {
         return $this->state(fn () => [
-            'vendor_id' => null,
-            'supplier_id' => Supplier::factory(),
+            'pihak_type_id' => MasterType::firstOrCreate(
+                ['kode' => 'SUPPLIER'],
+                ['nama' => 'Supplier', 'flag_ar' => true, 'flag_ap' => true, 'aktif' => true, 'is_system' => true],
+            )->id,
+            'pihak_item_id' => MasterItem::factory()->create([
+                'master_type_id' => MasterType::where('kode', 'SUPPLIER')->firstOrFail()->id,
+                'flag_ar' => false,
+                'flag_ap' => true,
+            ])->id,
         ]);
     }
 }

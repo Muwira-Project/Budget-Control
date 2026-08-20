@@ -203,7 +203,7 @@ class ReportService
             ->values();
 
         $apRows = Payable::query()
-            ->with(['vendor', 'supplier', 'mandor', 'investor'])
+            ->with(['pihakType', 'pihakItem'])
             ->get()
             ->filter(fn (Payable $payable) => $payable->sisa > 0)
             ->map(fn (Payable $payable) => [

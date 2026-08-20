@@ -19,6 +19,10 @@ class Create extends Component
 
     public bool $aktif = true;
 
+    public bool $flagAr = false;
+
+    public bool $flagAp = false;
+
     /** @var array<string, mixed> */
     public array $data = [];
 
@@ -68,6 +72,8 @@ class Create extends Component
             'nama' => $validated['nama'],
             'aktif' => $validated['aktif'],
             'data' => $payload['data'],
+            'flag_ar' => $this->flagAr ? true : null,
+            'flag_ap' => $this->flagAp ? true : null,
         ]);
 
         session()->flash('status', 'Master item created.');

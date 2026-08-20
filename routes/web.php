@@ -27,15 +27,9 @@ use App\Livewire\Exports\Index as ExportIndex;
 use App\Livewire\FundTransfers\Create as CreateFundTransfer;
 use App\Livewire\FundTransfers\Index as IndexFundTransfer;
 use App\Livewire\Imports\ImportAkuns;
-use App\Livewire\Investors\Create as CreateInvestor;
-use App\Livewire\Investors\Edit as EditInvestor;
-use App\Livewire\Investors\Index as IndexInvestor;
 use App\Livewire\Kategoris\Create as CreateKategori;
 use App\Livewire\Kategoris\Edit as EditKategori;
 use App\Livewire\Kategoris\Index as IndexKategori;
-use App\Livewire\Mandors\Create as CreateMandor;
-use App\Livewire\Mandors\Edit as EditMandor;
-use App\Livewire\Mandors\Index as IndexMandor;
 use App\Livewire\MasterItems\Create as CreateMasterItem;
 use App\Livewire\MasterItems\Edit as EditMasterItem;
 use App\Livewire\MasterItems\Index as IndexMasterItem;
@@ -63,16 +57,10 @@ use App\Livewire\Receivables\Index as IndexReceivable;
 use App\Livewire\Receivables\Pay as PayReceivable;
 use App\Livewire\Reports\CashFlow as CashFlowReport;
 use App\Livewire\Reports\ProfitLoss as ProfitLossReport;
-use App\Livewire\Suppliers\Create as CreateSupplier;
-use App\Livewire\Suppliers\Edit as EditSupplier;
-use App\Livewire\Suppliers\Index as IndexSupplier;
 use App\Livewire\Trash\Index as IndexTrash;
 use App\Livewire\Users\Create as CreateUser;
 use App\Livewire\Users\Edit as EditUser;
 use App\Livewire\Users\Index as IndexUser;
-use App\Livewire\Vendors\Create as CreateVendor;
-use App\Livewire\Vendors\Edit as EditVendor;
-use App\Livewire\Vendors\Index as IndexVendor;
 use App\Livewire\Vouchers\Index as IndexVoucher;
 use App\Models\Cashflow;
 use App\Models\FundTransfer;
@@ -112,7 +100,7 @@ Route::middleware(['auth', 'verified', 'draft-staff'])->group(function () {
     Route::get('/cashflows', IndexCashflow::class)->name('cashflows.index');
     Route::get('/cashflows/create', CreateCashflow::class)->name('cashflows.create');
     Route::get('/cashflows/{cashflow}/print', function (Cashflow $cashflow) {
-        return view('cashflows.print', ['cashflow' => $cashflow->load(['cashAccount', 'voucher', 'createdBy', 'project', 'akun', 'vendor', 'supplier', 'mandor', 'investor'])]);
+        return view('cashflows.print', ['cashflow' => $cashflow->load(['cashAccount', 'voucher', 'createdBy', 'akun', 'payment.payable.pihakItem', 'payment.receivable.pihakItem'])]);
     })->name('cashflows.print');
 
     Route::get('/cash-accounts', IndexCashAccount::class)->name('cash-accounts.index');
@@ -122,7 +110,7 @@ Route::middleware(['auth', 'verified', 'draft-staff'])->group(function () {
     Route::get('/fund-transfers', IndexFundTransfer::class)->name('fund-transfers.index');
     Route::get('/fund-transfers/create', CreateFundTransfer::class)->name('fund-transfers.create');
     Route::get('/fund-transfers/{fundTransfer}/print', function (FundTransfer $fundTransfer) {
-        return view('fund-transfers.print', ['transfer' => $fundTransfer->load(['dariCashAccount', 'keCashAccount', 'voucher', 'createdBy', 'project', 'akun', 'vendor', 'supplier', 'mandor', 'investor'])]);
+        return view('fund-transfers.print', ['transfer' => $fundTransfer->load(['dariCashAccount', 'keCashAccount', 'voucher', 'createdBy'])]);
     })->name('fund-transfers.print');
 
     Route::get('/vouchers', IndexVoucher::class)->name('vouchers.index');
@@ -150,22 +138,6 @@ Route::middleware(['auth', 'verified', 'draft-staff'])->group(function () {
     Route::get('/reports/profit-loss', ProfitLossReport::class)->name('reports.profit-loss');
     Route::get('/reports/cash-flow', CashFlowReport::class)->name('reports.cash-flow');
     Route::get('/realisasi/{realisasi}', ShowRealisasi::class)->name('realisasi.show');
-
-    Route::get('/vendors', IndexVendor::class)->name('vendors.index');
-    Route::get('/vendors/create', CreateVendor::class)->name('vendors.create');
-    Route::get('/vendors/{vendor}/edit', EditVendor::class)->name('vendors.edit');
-
-    Route::get('/suppliers', IndexSupplier::class)->name('suppliers.index');
-    Route::get('/suppliers/create', CreateSupplier::class)->name('suppliers.create');
-    Route::get('/suppliers/{supplier}/edit', EditSupplier::class)->name('suppliers.edit');
-
-    Route::get('/mandors', IndexMandor::class)->name('mandors.index');
-    Route::get('/mandors/create', CreateMandor::class)->name('mandors.create');
-    Route::get('/mandors/{mandor}/edit', EditMandor::class)->name('mandors.edit');
-
-    Route::get('/investors', IndexInvestor::class)->name('investors.index');
-    Route::get('/investors/create', CreateInvestor::class)->name('investors.create');
-    Route::get('/investors/{investor}/edit', EditInvestor::class)->name('investors.edit');
 
     Route::get('/kategoris', IndexKategori::class)->name('kategoris.index');
     Route::get('/kategoris/create', CreateKategori::class)->name('kategoris.create');

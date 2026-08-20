@@ -46,7 +46,6 @@ class AppServiceProvider extends ServiceProvider
             View::composer('components.sidebar-menu', function ($view): void {
                 $view->with('masterMenus', MasterType::query()
                     ->where('aktif', true)
-                    ->where('is_system', false)
                     ->orderBy('sort')
                     ->orderBy('nama')
                     ->get());

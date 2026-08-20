@@ -3,6 +3,8 @@
 namespace App\Livewire\Receivables;
 
 use App\Http\Requests\Receivable\StoreReceivableRequest;
+use App\Models\MasterItem;
+use App\Models\MasterType;
 use App\Models\Project;
 use App\Models\Receivable;
 use App\Services\ReceivableService;
@@ -15,6 +17,10 @@ use Livewire\Component;
 class Create extends Component
 {
     public ?int $projectId = null;
+
+    public ?int $pihakTypeId = null;
+
+    public ?int $pihakItemId = null;
 
     public string $tanggal = '';
 
@@ -46,6 +52,11 @@ class Create extends Component
         }
     }
 
+    public function updatedPihakTypeId(): void
+    {
+        $this->pihakItemId = null;
+    }
+
     /**
      * Store a newly created receivable.
      */
@@ -54,6 +65,8 @@ class Create extends Component
         $validator = Validator::make(
             [
                 'project_id' => $this->projectId,
+                'pihak_type_id' => $this->pihakTypeId,
+                'pihak_item_id' => $this->pihakItemId,
                 'tanggal' => $this->tanggal,
                 'nomor_invoice' => $this->nomorInvoice !== '' ? $this->nomorInvoice : null,
                 'jatuh_tempo' => $this->jatuhTempo !== '' ? $this->jatuhTempo : null,
@@ -67,6 +80,10 @@ class Create extends Component
             if ($this->projectId !== null
                 && Receivable::where('project_id', $this->projectId)->exists()) {
                 $validator->errors()->add('project_id', 'This project already has a receivable.');
+            }
+
+            if (($this->pihakTypeId === null) !== ($this->pihakItemId === null)) {
+                $validator->errors()->add('pihak_item_id', 'Pilih pihak (type + item) atau kosongkan keduanya.');
             }
         });
 
@@ -86,6 +103,38 @@ class Create extends Component
     public function projects()
     {
         return Project::whereDoesntHave('receivable')->orderBy('nama')->get();
+    }
+
+    /**
+     * Party types flagged as AR (piutang) — available for the receivable party.
+     */
+    #[Computed]
+    public function partyTypes()
+    {
+        return MasterType::query()
+            ->where('aktif', true)
+            ->where(fn ($query) => $query->where('flag_ar', true)->orWhereNull('flag_ar'))
+            ->orderBy('nama')
+            ->get();
+    }
+
+    /**
+     * Party items under the selected type that may be picked as an AR party
+     * (flag_ar null/true) and are active.
+     */
+    #[Computed]
+    public function partyItems()
+    {
+        if ($this->pihakTypeId === null) {
+            return collect();
+        }
+
+        return MasterItem::query()
+            ->where('master_type_id', $this->pihakTypeId)
+            ->where('aktif', true)
+            ->where(fn ($query) => $query->where('flag_ar', true)->orWhereNull('flag_ar'))
+            ->orderBy('nama')
+            ->get();
     }
 
     /**

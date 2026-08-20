@@ -60,7 +60,7 @@ class Index extends Component
             'cashflows' => Cashflow::onlyTrashed()->with(['cashAccount', 'akun'])->orderByDesc('deleted_at')->get(),
             'fund_transfers' => FundTransfer::onlyTrashed()->with(['dariCashAccount', 'keCashAccount'])->orderByDesc('deleted_at')->get(),
             'receivables' => Receivable::onlyTrashed()->with('project')->orderByDesc('deleted_at')->get(),
-            'payables' => Payable::onlyTrashed()->with(['vendor', 'supplier', 'project'])->orderByDesc('deleted_at')->get(),
+            'payables' => Payable::onlyTrashed()->with(['pihakItem', 'pihakType', 'project'])->orderByDesc('deleted_at')->get(),
             default => CashAccount::onlyTrashed()->orderByDesc('deleted_at')->get(),
         };
     }
@@ -146,7 +146,7 @@ class Index extends Component
             $row instanceof Cashflow => ($row->cashAccount?->nama ?? 'No account').' • '.$row->jenis?->label().' • '.number_format((float) $row->nominal, 0, ',', '.'),
             $row instanceof FundTransfer => ($row->dariCashAccount?->kode ?? '?').' → '.($row->keCashAccount?->kode ?? '?'),
             $row instanceof Receivable => ($row->project?->kode ?? '-').' • '.number_format((float) $row->nominal, 0, ',', '.'),
-            $row instanceof Payable => ($row->vendor?->nama ?? $row->supplier?->nama ?? $row->project?->kode ?? '-'),
+            $row instanceof Payable => ($row->pihak ?? $row->project?->kode ?? '-'),
             default => '',
         };
     }

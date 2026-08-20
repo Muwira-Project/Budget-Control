@@ -3,7 +3,8 @@
 namespace Tests\Feature;
 
 use App\Models\Akun;
-use App\Models\Investor;
+use App\Models\MasterItem;
+use App\Models\MasterType;
 use App\Models\Payable;
 use App\Models\Project;
 use App\Models\ProjectAkun;
@@ -20,12 +21,22 @@ class PartyIntegrationTest extends TestCase
     {
         $project = Project::factory()->create();
         $akun = $this->allocatedAkun($project);
-        $investor = Investor::factory()->create();
+        $investorType = MasterType::firstOrCreate(
+            ['kode' => 'INVESTOR'],
+            ['nama' => 'Investor', 'flag_ar' => true, 'flag_ap' => true, 'aktif' => true, 'is_system' => true],
+        );
+        $investor = MasterItem::factory()->create([
+            'master_type_id' => $investorType->id,
+            'nama' => 'PT Investor Maju',
+            'flag_ar' => true,
+            'flag_ap' => true,
+        ]);
 
         $payable = Payable::create([
             'project_id' => $project->id,
             'akun_id' => $akun->id,
-            'investor_id' => $investor->id,
+            'pihak_type_id' => $investorType->id,
+            'pihak_item_id' => $investor->id,
             'tanggal' => '2026-08-01',
             'nominal' => 75000000,
             'pajak_include' => true,
@@ -40,7 +51,8 @@ class PartyIntegrationTest extends TestCase
         $this->assertDatabaseHas('realisasi', [
             'sumber' => Realisasi::SUMBER_AP_PAYMENT,
             'sumber_id' => $payment->id,
-            'investor_id' => $investor->id,
+            'pihak_type_id' => $investorType->id,
+            'pihak_item_id' => $investor->id,
             'nominal' => 75000000,
         ]);
     }

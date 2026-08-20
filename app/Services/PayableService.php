@@ -47,10 +47,8 @@ class PayableService
             'project_id' => $data['project_id'],
             'realisasi_id' => $data['realisasi_id'] ?? null,
             'akun_id' => $data['akun_id'],
-            'vendor_id' => $data['vendor_id'] ?? null,
-            'supplier_id' => $data['supplier_id'] ?? null,
-            'mandor_id' => $data['mandor_id'] ?? null,
-            'investor_id' => $data['investor_id'] ?? null,
+            'pihak_type_id' => $data['pihak_type_id'] ?? null,
+            'pihak_item_id' => $data['pihak_item_id'] ?? null,
             'tanggal' => $data['tanggal'],
             'nomor_invoice' => $data['nomor_invoice'] ?? null,
             'jatuh_tempo' => $data['jatuh_tempo'] ?? null,
@@ -89,10 +87,8 @@ class PayableService
         $payable->update([
             'project_id' => $data['project_id'],
             'akun_id' => $data['akun_id'],
-            'vendor_id' => $data['vendor_id'] ?? null,
-            'supplier_id' => $data['supplier_id'] ?? null,
-            'mandor_id' => $data['mandor_id'] ?? null,
-            'investor_id' => $data['investor_id'] ?? null,
+            'pihak_type_id' => $data['pihak_type_id'] ?? null,
+            'pihak_item_id' => $data['pihak_item_id'] ?? null,
             'tanggal' => $data['tanggal'],
             'nomor_invoice' => $data['nomor_invoice'] ?? $payable->nomor_invoice,
             'jatuh_tempo' => $data['jatuh_tempo'] ?? null,
@@ -127,7 +123,7 @@ class PayableService
     public function paginate(?Project $project = null, ?string $status = null, ?string $aging = null, int $perPage = 10): LengthAwarePaginator
     {
         return Payable::query()
-            ->with(['project', 'akun', 'vendor', 'supplier', 'mandor', 'investor'])
+            ->with(['project', 'akun', 'pihakType', 'pihakItem'])
             ->when($project, fn ($query) => $query->where('project_id', $project->id))
             ->when($status, fn ($query) => $this->applyStatusFilter($query, $status))
             ->when($aging, fn ($query) => $this->applyAgingFilter($query, $aging))
@@ -160,20 +156,15 @@ class PayableService
      */
     public function syncFromRealisasi(Realisasi $realisasi): ?Payable
     {
-        if ($realisasi->vendor_id === null
-            && $realisasi->supplier_id === null
-            && $realisasi->mandor_id === null
-            && $realisasi->investor_id === null) {
+        if ($realisasi->pihak_type_id === null || $realisasi->pihak_item_id === null) {
             return null;
         }
 
         $data = [
             'project_id' => $realisasi->project_id,
             'akun_id' => $realisasi->akun_id,
-            'vendor_id' => $realisasi->vendor_id,
-            'supplier_id' => $realisasi->supplier_id,
-            'mandor_id' => $realisasi->mandor_id,
-            'investor_id' => $realisasi->investor_id,
+            'pihak_type_id' => $realisasi->pihak_type_id,
+            'pihak_item_id' => $realisasi->pihak_item_id,
             'tanggal' => $realisasi->tanggal->format('Y-m-d'),
             'nominal' => $realisasi->nominal,
             'jenis_pajak' => null,

@@ -61,9 +61,19 @@
                                             <td class="px-6 py-4 text-gray-500">{{ $item->data[(string) $field->id] ?? '-' }}</td>
                                         @endforeach
                                         <td class="px-6 py-4">
-                                            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $item->aktif ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600' }}">
-                                                {{ $item->aktif ? 'Active' : 'Inactive' }}
-                                            </span>
+                                            <div class="flex flex-wrap items-center gap-1.5">
+                                                @if ($this->masterType->flag_ar || $this->masterType->flag_ap)
+                                                    <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium {{ $item->flag_ar ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-500' }}">
+                                                        AR
+                                                    </span>
+                                                    <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium {{ $item->flag_ap ? 'bg-red-100 text-red-700' : 'bg-gray-200 text-gray-500' }}">
+                                                        AP
+                                                    </span>
+                                                @endif
+                                                <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $item->aktif ? 'bg-green-100 text-green-700' : 'bg-gray-200 text-gray-600' }}">
+                                                    {{ $item->aktif ? 'Active' : 'Inactive' }}
+                                                </span>
+                                            </div>
                                         </td>
                                         <td class="px-6 py-4 text-right whitespace-nowrap">
                                             <x-action-buttons :edit-href="route('master-items.edit', $item)" :delete-id="$item->id" />

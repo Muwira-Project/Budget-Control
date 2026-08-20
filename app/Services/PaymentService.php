@@ -76,13 +76,9 @@ class PaymentService
 
             $payable->increment('nominal_dibayar', $data['nominal']);
 
-            $partyName = match (true) {
-                $payable->vendor_id !== null => $payable->vendor()->value('nama'),
-                $payable->supplier_id !== null => $payable->supplier()->value('nama'),
-                $payable->mandor_id !== null => $payable->mandor()->value('nama'),
-                $payable->investor_id !== null => $payable->investor()->value('nama'),
-                default => null,
-            };
+            $partyName = $payable->pihak_item_id !== null
+                ? $payable->pihakItem()->value('nama')
+                : $payable->project?->kode;
 
             app(CashflowService::class)->create([
                 'tanggal' => $data['tanggal'],
@@ -180,7 +176,7 @@ class PaymentService
     public function paginate(?string $jenis = null, int $perPage = 10, ?string $status = null): LengthAwarePaginator
     {
         return Payment::query()
-            ->with(['receivable.project', 'payable.project', 'payable.vendor', 'payable.supplier', 'payable.mandor', 'payable.investor', 'voidRequestedBy'])
+            ->with(['receivable.project', 'payable.project', 'payable.pihakItem', 'payable.pihakType', 'voidRequestedBy'])
             ->when($jenis, fn ($query) => $query->where('jenis', $jenis))
             ->when($status, fn ($query) => $query->where('status', $status))
             ->orderByDesc('tanggal')

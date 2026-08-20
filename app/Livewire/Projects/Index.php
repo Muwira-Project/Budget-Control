@@ -85,7 +85,7 @@ class Index extends Component
         }
 
         return Realisasi::query()
-            ->with(['akun', 'kategori', 'vendor', 'supplier', 'mandor', 'investor'])
+            ->with(['akun', 'kategori', 'pihakType', 'pihakItem'])
             ->where('project_id', $this->selectedProjectId)
             ->orderByDesc('tanggal')
             ->get();

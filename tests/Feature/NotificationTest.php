@@ -3,11 +3,12 @@
 namespace Tests\Feature;
 
 use App\Models\Akun;
+use App\Models\MasterItem;
+use App\Models\MasterType;
 use App\Models\Project;
 use App\Models\ProjectAkun;
 use App\Models\Realisasi;
 use App\Models\User;
-use App\Models\Vendor;
 use App\Services\UserService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Notifications\DatabaseNotification;
@@ -23,13 +24,17 @@ class NotificationTest extends TestCase
         $project = Project::factory()->create();
         $akun = Akun::factory()->create();
         ProjectAkun::create(['project_id' => $project->id, 'akun_id' => $akun->id, 'budget' => 100000000, 'allocation' => 100000000, 'status' => 'approved']);
-        $vendor = Vendor::factory()->create();
+        $vendorType = MasterType::firstOrCreate(
+            ['kode' => 'VENDOR'],
+            ['nama' => 'Vendor', 'flag_ar' => true, 'flag_ap' => true, 'aktif' => true, 'is_system' => true],
+        );
+        $vendor = MasterItem::factory()->create(['master_type_id' => $vendorType->id]);
 
         Realisasi::factory()->create([
             'project_id' => $project->id,
             'akun_id' => $akun->id,
-            'vendor_id' => $vendor->id,
-            'supplier_id' => null,
+            'pihak_type_id' => $vendorType->id,
+            'pihak_item_id' => $vendor->id,
             'nominal' => 150000000,
         ]);
 

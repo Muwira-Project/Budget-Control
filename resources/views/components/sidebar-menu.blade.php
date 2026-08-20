@@ -29,12 +29,8 @@
         <x-sidebar-link href="{{ route('trash.index') }}" label="Trash" icon="trash" :active="request()->routeIs('trash.index')" />
         <x-sidebar-link href="{{ route('company-settings.index') }}" label="Company Settings" icon="cog-6-tooth" :active="request()->routeIs('company-settings.*')" />
 
-        <x-sidebar-dropdown label="Master" icon="settings" :active="request()->routeIs('kategoris.*') || request()->routeIs('vendors.*') || request()->routeIs('suppliers.*') || request()->routeIs('mandors.*') || request()->routeIs('investors.*') || request()->routeIs('users.*') || request()->routeIs('master-types.*') || request()->routeIs('master-items.*')">
+        <x-sidebar-dropdown label="Master" icon="settings" :active="request()->routeIs('kategoris.*') || request()->routeIs('users.*') || request()->routeIs('master-types.*') || request()->routeIs('master-items.*')">
             <x-sidebar-link href="{{ route('kategoris.index') }}" label="Category" :active="request()->routeIs('kategoris.*')" />
-            <x-sidebar-link href="{{ route('vendors.index') }}" label="Vendor" :active="request()->routeIs('vendors.*')" />
-            <x-sidebar-link href="{{ route('suppliers.index') }}" label="Supplier" :active="request()->routeIs('suppliers.*')" />
-            <x-sidebar-link href="{{ route('mandors.index') }}" label="Mandor" :active="request()->routeIs('mandors.*')" />
-            <x-sidebar-link href="{{ route('investors.index') }}" label="Investor" :active="request()->routeIs('investors.*')" />
             <x-sidebar-link href="{{ route('users.index') }}" label="User" :active="request()->routeIs('users.*')" />
 
             @foreach ($masterMenus ?? [] as $masterMenu)

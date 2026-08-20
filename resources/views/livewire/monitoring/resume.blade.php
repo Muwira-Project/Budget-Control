@@ -115,14 +115,8 @@
                                 <tr class="hover:bg-gray-50">
                                     <td class="px-6 py-4 whitespace-nowrap text-gray-700">{{ $realisasi->tanggal->format('d M Y') }}</td>
                                     <td class="px-6 py-4 text-gray-700">
-                                        @if ($realisasi->pihakJenis === 'vendor' && $realisasi->vendor)
-                                            <span class="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">Vendor</span> {{ $realisasi->vendor->nama }}
-                                        @elseif ($realisasi->pihakJenis === 'supplier' && $realisasi->supplier)
-                                            <span class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">Supplier</span> {{ $realisasi->supplier->nama }}
-                                        @elseif ($realisasi->pihakJenis === 'mandor' && $realisasi->mandor)
-                                            <span class="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">Mandor</span> {{ $realisasi->mandor->nama }}
-                                        @elseif ($realisasi->pihakJenis === 'investor' && $realisasi->investor)
-                                            <span class="rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700">Investor</span> {{ $realisasi->investor->nama }}
+                                        @if ($realisasi->pihakJenis && $realisasi->pihak)
+                                            <span class="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">{{ ucfirst($realisasi->pihakJenis) }}</span> {{ $realisasi->pihak }}
                                         @else
                                             <span class="text-gray-400">-</span>
                                         @endif

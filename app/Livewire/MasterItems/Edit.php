@@ -19,6 +19,10 @@ class Edit extends Component
 
     public bool $aktif = true;
 
+    public bool $flagAr = false;
+
+    public bool $flagAp = false;
+
     /** @var array<string, mixed> */
     public array $data = [];
 
@@ -30,6 +34,8 @@ class Edit extends Component
         $this->kode = $masterItem->kode;
         $this->nama = $masterItem->nama;
         $this->aktif = (bool) $masterItem->aktif;
+        $this->flagAr = (bool) $masterItem->flag_ar;
+        $this->flagAp = (bool) $masterItem->flag_ap;
         $this->data = $masterItem->data ?? [];
     }
 
@@ -71,6 +77,8 @@ class Edit extends Component
             'nama' => $validated['nama'],
             'aktif' => $validated['aktif'],
             'data' => $payload['data'],
+            'flag_ar' => $this->flagAr ? true : null,
+            'flag_ap' => $this->flagAp ? true : null,
         ]);
 
         session()->flash('status', 'Master item updated.');
