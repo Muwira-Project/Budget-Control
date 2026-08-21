@@ -8,7 +8,7 @@
 
                 <div class="mt-6 flex items-center gap-4">
                     <x-primary-button>{{ __('Save Draft') }}</x-primary-button>
-                    <a href="{{ route('allokasis.index') }}" wire:navigate class="text-sm text-gray-600 hover:text-gray-900">Cancel</a>
+                    <a href="{{ route('budgeting.index') }}" wire:navigate class="text-sm text-gray-600 hover:text-gray-900">Cancel</a>
                 </div>
             </form>
         </div>

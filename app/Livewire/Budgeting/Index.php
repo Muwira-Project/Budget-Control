@@ -3,6 +3,7 @@
 namespace App\Livewire\Budgeting;
 
 use App\Enums\AllocationStatus;
+use App\Livewire\Concerns\BulkSelection;
 use App\Livewire\Concerns\PerPagePagination;
 use App\Models\BudgetPlan;
 use App\Models\BudgetPlanItem;
@@ -22,13 +23,16 @@ use Livewire\WithPagination;
 #[Layout('layouts.app')]
 class Index extends Component
 {
-    use PerPagePagination, WithPagination;
+    use BulkSelection, PerPagePagination, WithPagination;
 
     public ?int $projectId = null;
 
     public string $statusFilter = '';
 
     public string $search = '';
+
+    /** @var array<int, int> */
+    public array $selectedIds = [];
 
     /**
      * Delete an allocation request.
@@ -119,6 +123,32 @@ class Index extends Component
     }
 
     /**
+     * Bulk delete selected allocations (skip approved).
+     */
+    public function deleteSelected(ProjectAkunService $service): void
+    {
+        $deleted = 0;
+        $skipped = 0;
+        foreach ($this->selectedIds as $id) {
+            if (! $allocation = ProjectAkun::find($id)) {
+                continue;
+            }
+            if (! Gate::allows('manageDraft', $allocation)) {
+                $skipped++;
+
+                continue;
+            }
+            $service->delete($allocation);
+            $deleted++;
+        }
+        $this->selectedIds = [];
+        session()->flash('status', $deleted.' allocation(s) deleted.');
+        if ($skipped > 0) {
+            session()->flash('error', $skipped.' allocation(s) cannot be deleted in their current state.');
+        }
+    }
+
+    /**
      * Generate draft allocations from a budget plan (admin only).
      */
     public function createAllocations(BudgetPlan $budgetPlan, BudgetPlanService $service): void
@@ -142,6 +172,21 @@ class Index extends Component
         session()->flash('status', $created > 0
             ? $created.' allocation draft(s) created from the Budget. Submit them under Budgeting for admin approval.'
             : 'All accounts in this budget plan have already been allocated to the project.');
+    }
+
+    /**
+     * Create a Non-Project Allocation draft (admin only).
+     */
+    public function createNonProjectAllocation(ProjectAkunService $service): void
+    {
+        if (! auth()->user()->isAdmin()) {
+            session()->flash('error', 'Only admins can create non-project allocations.');
+
+            return;
+        }
+
+        // Redirect to create page with project_id = null (non-project)
+        $this->redirectRoute('allokasis.create', ['project_id' => 'non-project'], navigate: true);
     }
 
     /**
@@ -191,6 +236,14 @@ class Index extends Component
             'approved' => AllocationStatus::Approved->label(),
             'rejected' => AllocationStatus::Rejected->label(),
         ];
+    }
+
+    /**
+     * Required by BulkSelection trait.
+     */
+    protected function bulkCollectionProperty(): string
+    {
+        return 'rows';
     }
 
     /**

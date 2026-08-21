@@ -2,7 +2,7 @@
 
 namespace Tests\Feature;
 
-use App\Livewire\Allokasis\Index as AllocationIndex;
+use App\Livewire\Budgeting\Index as IndexBudgeting;
 use App\Livewire\Cashflows\Index;
 use App\Models\Akun;
 use App\Models\Cashflow;
@@ -58,7 +58,7 @@ class StaffDraftAccessTest extends TestCase
         ]);
 
         Livewire::actingAs($staff)
-            ->test(AllocationIndex::class)
+            ->test(IndexBudgeting::class)
             ->call('submit', $allocation->id);
 
         $this->assertSame('draft', $allocation->fresh()->status->value);

@@ -7,7 +7,6 @@ use App\Livewire\Akuns\Edit as EditAkun;
 use App\Livewire\Akuns\Index as IndexAkun;
 use App\Livewire\Allokasis\Create as CreateAllokasi;
 use App\Livewire\Allokasis\Edit as EditAllokasi;
-use App\Livewire\Allokasis\Index as IndexAllokasi;
 use App\Livewire\Approvals\Index as ApprovalsIndex;
 use App\Livewire\ArAp\Index as IndexArAp;
 use App\Livewire\AuditLog\Index as AuditLogIndex;
@@ -87,7 +86,6 @@ Route::middleware(['auth', 'verified', 'draft-staff'])->group(function () {
     Route::get('/budget-plans/create', CreateBudgetPlan::class)->name('budget-plans.create');
     Route::get('/budget-plans/{budgetPlan}/edit', EditBudgetPlan::class)->name('budget-plans.edit');
 
-    Route::get('/allokasis', IndexAllokasi::class)->name('allokasis.index');
     Route::get('/allokasis/create', CreateAllokasi::class)->name('allokasis.create');
     Route::get('/allokasis/{projectAkun}/edit', EditAllokasi::class)->name('allokasis.edit');
 

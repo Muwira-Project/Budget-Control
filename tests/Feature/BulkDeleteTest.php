@@ -3,7 +3,7 @@
 namespace Tests\Feature;
 
 use App\Livewire\Akuns\Index as AkunIndex;
-use App\Livewire\Allokasis\Index as AllokasiIndex;
+use App\Livewire\Budgeting\Index as IndexBudgeting;
 use App\Livewire\MasterItems\Index as MasterItemIndex;
 use App\Models\Akun;
 use App\Models\MasterItem;
@@ -57,7 +57,7 @@ class BulkDeleteTest extends TestCase
         $approved = ProjectAkun::create(['project_id' => $project->id, 'akun_id' => $akunA->id, 'budget' => 100, 'allocation' => 100, 'status' => 'approved']);
         $draft = ProjectAkun::create(['project_id' => $project->id, 'akun_id' => $akunB->id, 'budget' => 200, 'allocation' => 200, 'status' => 'draft', 'created_by' => $user->id]);
 
-        $component = Livewire::actingAs($user)->test(AllokasiIndex::class);
+        $component = Livewire::actingAs($user)->test(IndexBudgeting::class);
         $component->set('selectedIds', [$approved->id, $draft->id]);
         $component->call('deleteSelected');
 

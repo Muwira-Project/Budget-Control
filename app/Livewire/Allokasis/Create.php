@@ -26,6 +26,16 @@ class Create extends Component
     public string $allocationNominal = '';
 
     /**
+     * Mount with optional project_id parameter (null or 'non-project' for non-project).
+     */
+    public function mount(?string $project_id = null): void
+    {
+        if ($project_id !== null && $project_id !== 'non-project') {
+            $this->projectId = (int) $project_id;
+        }
+    }
+
+    /**
      * Reset the akun selection and prefill when the project changes.
      */
     public function updatedProjectId(): void
@@ -97,7 +107,7 @@ class Create extends Component
 
         session()->flash('status', 'Allocation draft created successfully.');
 
-        $this->redirectRoute('allokasis.index', navigate: true);
+        $this->redirectRoute('budgeting.index', navigate: true);
     }
 
     /**

@@ -7,7 +7,7 @@
         <x-sidebar-link href="{{ route('projects.index') }}" label="Project" icon="folder" :active="request()->routeIs('projects.*')" />
         <x-sidebar-link href="{{ route('akuns.index') }}" label="Account" icon="banknotes" :active="request()->routeIs('akuns.*')" />
     @endif
-    <x-sidebar-link href="{{ route('budgeting.index') }}" label="Budgeting" icon="clipboard" :active="request()->routeIs('budgeting.*') || request()->routeIs('budget-plans.*') || request()->routeIs('allokasis.*')" />
+    <x-sidebar-link href="{{ route('budgeting.index') }}" label="Budgeting" icon="clipboard" :active="request()->routeIs('budgeting.*') || request()->routeIs('budget-plans.*') || request()->routeIs('allokasis.create') || request()->routeIs('allokasis.edit')" />
     <x-sidebar-link href="{{ route('monitoring.index') }}" label="Monitoring" icon="scale" :active="request()->routeIs('monitoring.*')" />
 
     @if (auth()->user()->isAdmin())

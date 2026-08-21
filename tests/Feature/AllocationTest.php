@@ -4,7 +4,7 @@ namespace Tests\Feature;
 
 use App\Livewire\Allokasis\Create as CreateAllokasi;
 use App\Livewire\Allokasis\Edit as EditAllokasi;
-use App\Livewire\Allokasis\Index as IndexAllokasi;
+use App\Livewire\Budgeting\Index as IndexBudgeting;
 use App\Models\Akun;
 use App\Models\BudgetPlan;
 use App\Models\BudgetPlanItem;
@@ -25,7 +25,7 @@ class AllocationTest extends TestCase
 
     public function test_guest_is_redirected_to_login(): void
     {
-        $this->get(route('allokasis.index'))->assertRedirect(route('login'));
+        $this->get(route('budgeting.index'))->assertRedirect(route('login'));
     }
 
     public function test_index_page_renders_for_authenticated_user(): void
@@ -36,7 +36,7 @@ class AllocationTest extends TestCase
         ProjectAkun::create(['project_id' => $project->id, 'akun_id' => $akun->id, 'budget' => 100000000, 'allocation' => 100000000]);
 
         $this->actingAs($user)
-            ->get(route('allokasis.index'))
+            ->get(route('budgeting.index'))
             ->assertOk();
     }
 
@@ -75,7 +75,7 @@ class AllocationTest extends TestCase
             ->set('allocationNominal', '80000000')
             ->call('save')
             ->assertHasNoErrors()
-            ->assertRedirect(route('allokasis.index'));
+            ->assertRedirect(route('budgeting.index'));
 
         $this->assertDatabaseHas('project_akuns', [
             'project_id' => $project->id,
@@ -126,7 +126,7 @@ class AllocationTest extends TestCase
         $allocation->update(['created_by' => $user->id]);
 
         Livewire::actingAs($user)
-            ->test(IndexAllokasi::class)
+            ->test(IndexBudgeting::class)
             ->call('submit', $allocation->id);
 
         $this->assertSame('waiting', $allocation->fresh()->status->value);
@@ -138,7 +138,7 @@ class AllocationTest extends TestCase
         $allocation = $this->makeAllocation('waiting');
 
         Livewire::actingAs($staff)
-            ->test(IndexAllokasi::class)
+            ->test(IndexBudgeting::class)
             ->call('approve', $allocation->id);
 
         $this->assertSame('waiting', $allocation->fresh()->status->value);
@@ -151,7 +151,7 @@ class AllocationTest extends TestCase
         $allocation = $this->makeAllocation('waiting');
 
         Livewire::actingAs($admin)
-            ->test(IndexAllokasi::class)
+            ->test(IndexBudgeting::class)
             ->call('approve', $allocation->id);
 
         $fresh = $allocation->fresh();
@@ -166,7 +166,7 @@ class AllocationTest extends TestCase
         $allocation = $this->makeAllocation('waiting');
 
         Livewire::actingAs($admin)
-            ->test(IndexAllokasi::class)
+            ->test(IndexBudgeting::class)
             ->call('reject', $allocation->id);
 
         $this->assertSame('rejected', $allocation->fresh()->status->value);
@@ -195,7 +195,7 @@ class AllocationTest extends TestCase
         $allocation = ProjectAkun::where('project_id', $project->id)->where('akun_id', $akunA->id)->first();
 
         Livewire::actingAs($admin)
-            ->test(IndexAllokasi::class)
+            ->test(IndexBudgeting::class)
             ->call('approve', $allocation->id);
 
         $fresh = $plan->fresh();
@@ -230,7 +230,7 @@ class AllocationTest extends TestCase
         $allocation = ProjectAkun::where('project_id', $project->id)->where('akun_id', $akunA->id)->first();
 
         Livewire::actingAs($admin)
-            ->test(IndexAllokasi::class)
+            ->test(IndexBudgeting::class)
             ->call('reject', $allocation->id);
 
         $fresh = $plan->fresh();
@@ -248,7 +248,7 @@ class AllocationTest extends TestCase
         $allocation = $this->makeAllocation('approved');
 
         Livewire::actingAs($user)
-            ->test(IndexAllokasi::class)
+            ->test(IndexBudgeting::class)
             ->call('delete', $allocation->id);
 
         $this->assertDatabaseHas('project_akuns', ['id' => $allocation->id]);
@@ -313,7 +313,7 @@ class AllocationTest extends TestCase
             ->set('allocationNominal', '50000000')
             ->call('save')
             ->assertHasNoErrors()
-            ->assertRedirect(route('allokasis.index'));
+            ->assertRedirect(route('budgeting.index'));
 
         $this->assertDatabaseHas('project_akuns', [
             'project_id' => null,
@@ -338,7 +338,7 @@ class AllocationTest extends TestCase
         ]);
 
         Livewire::actingAs($admin)
-            ->test(IndexAllokasi::class)
+            ->test(IndexBudgeting::class)
             ->call('approve', $allocation->id);
 
         $fresh = $allocation->fresh();

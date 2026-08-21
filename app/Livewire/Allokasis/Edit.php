@@ -103,7 +103,7 @@ class Edit extends Component
 
         session()->flash('status', 'Allocation updated successfully.');
 
-        $this->redirectRoute('allokasis.index', navigate: true);
+        $this->redirectRoute('budgeting.index', navigate: true);
     }
 
     /**
