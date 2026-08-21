@@ -11,7 +11,7 @@ Aplikasi web untuk mengelola **budget (alokasi dana)**, **actual (realisasi)**, 
 - **Account (COA)** — master chart of accounts (Pendapatan/Pengeluaran + kategori), filter jenis, dan kolom Actual realtime per periode tanggal.
 - **Budget Plan** — perencanaan per project per periode (YYYY-MM): estimasi pendapatan, estimasi biaya, target laba, dan rincian per akun lengkap dengan rentang tanggal mulai–selesai.
 - **Monitoring** — periode (rentang tanggal), Week & Month otomatis, Budget (dari Budget Plan), Actual In, Actual Out, Variance — berlaku per project dan global; ada halaman resume periode (seluruh akun); export summary CSV/XLS/PDF per periode.
-- **Budget Allocation** — workflow persetujuan (draft → waiting → approved/rejected) sebagai sumber alokasi.
+- **Budget Allocation** — workflow persetujuan (draft → waiting → approved/rejected) sebagai sumber alokasi; **Non-Project Allocation** dapat ditambah via Budgeting page (admin only).
 - **Cash Activity** — menu tersendiri dengan tab **Cash In**, **Cash Out**, **Fund Transfer**, dan **Cash Account**:
   - Cash In: pemasukan manual (mis. dari investor) dan pelunasan AR; **manual entry bisa tag Project + Pihak (Vendor/Supplier/Mandor/Investor)** → otomatis sinkron ke Realisasi saat di-post.
   - Cash Out: pengeluaran lain yang terikat akun/COA (mis. sewa, utility) dan pelunasan AP; **manual entry bisa tag Project + Pihak**.
