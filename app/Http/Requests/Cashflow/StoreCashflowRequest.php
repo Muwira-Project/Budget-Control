@@ -30,6 +30,9 @@ class StoreCashflowRequest extends FormRequest
             'keterangan' => ['nullable', 'string', 'max:1000'],
             'cash_account_id' => ['nullable', 'integer', 'exists:cash_accounts,id'],
             'akun_id' => ['nullable', 'integer', 'exists:akuns,id'],
+            'project_id' => ['nullable', 'integer', 'exists:projects,id'],
+            'pihak_type_id' => ['nullable', 'integer', 'exists:master_types,id'],
+            'pihak_item_id' => ['nullable', 'integer', 'exists:master_items,id'],
             'status' => ['required', Rule::in(['draft'])],
         ];
     }

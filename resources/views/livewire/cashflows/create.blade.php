@@ -1,7 +1,7 @@
 <div class="py-12">
     <div class="mx-auto max-w-2xl px-4 sm:px-6 lg:px-8">
         <h2 class="text-xl font-semibold text-gray-800 leading-tight">{{ __('Add Cash Entry') }}</h2>
-        <p class="mt-1 text-sm text-gray-500">Cash In: pemasukan (mis. investor / piutang project selesai). Cash Out: pengeluaran lain (mis. sewa, utility). Settlement AR/AP dicatat lewat menu AR &amp; AP.</p>
+        <p class="mt-1 text-sm text-gray-500">Cash In: pemasukan (mis. investor / piutang project selesai). Cash Out: pengeluaran lain (mis. sewa, utility). Settlement AR/AP dicatat lewat menu AR & AP.</p>
 
         <form wire:submit="save" class="mt-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
             <div class="mb-4 flex items-center gap-4">
@@ -25,6 +25,36 @@
                     <x-input-label for="nominal" :value="__('Amount')" />
                     <x-text-input id="nominal" class="mt-1 block w-full" type="number" step="0.01" min="0" wire:model="nominal" />
                     <x-input-error :messages="$errors->get('nominal')" class="mt-2" />
+                </div>
+                <div>
+                    <x-input-label for="project_id" :value="__('Project')" />
+                    <select id="project_id" wire:model="projectId" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <option value="">No Project (Non-Project)</option>
+                        @foreach ($this->projects() as $project)
+                            <option value="{{ $project->id }}">{{ $project->kode }} - {{ $project->nama }}</option>
+                        @endforeach
+                    </select>
+                    <x-input-error :messages="$errors->get('project_id')" class="mt-2" />
+                </div>
+                <div>
+                    <x-input-label for="pihak_type_id" :value="__('Pihak (Vendor/Supplier/Mandor/Investor')" />
+                    <select id="pihak_type_id" wire:model="pihakTypeId" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <option value="">-- Pilih Tipe --</option>
+                        @foreach ($this->pihakTypes() as $type)
+                            <option value="{{ $type->id }}">{{ $type->nama }}</option>
+                        @endforeach
+                    </select>
+                    <x-input-error :messages="$errors->get('pihak_type_id')" class="mt-2" />
+                </div>
+                <div>
+                    <x-input-label for="pihak_item_id" :value="__('Nama Pihak')" />
+                    <select id="pihak_item_id" wire:model="pihakItemId" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" @if(!$this->pihakTypeId) disabled @endif>
+                        <option value="">-- Pilih Tipe Terlebih Dahulu --</option>
+                        @foreach ($this->pihakItems() as $item)
+                            <option value="{{ $item->id }}">{{ $item->kode }} - {{ $item->nama }}</option>
+                        @endforeach
+                    </select>
+                    <x-input-error :messages="$errors->get('pihak_item_id')" class="mt-2" />
                 </div>
                 @if ($jenis === 'keluar')
                 <div class="sm:col-span-2">

@@ -42,7 +42,7 @@
                     <img src="{{ $companyLoginIllustrationUrl }}" alt="" aria-hidden="true" class="h-full w-full"
                          style="object-fit: {{ $illustrationFit }}; object-position: {{ $illustrationPosition }};" />
                 @else
-                    <img src="{{ asset('images/hero-finance.svg') }}" alt="" aria-hidden="true" class="h-full w-full object-cover" />
+                    <img src="{{ asset('images/hero-finance.svg') }}" alt="" aria-hidden="true" class="h-full w-full object-contain" />
                 @endif
             </div>
         </div>

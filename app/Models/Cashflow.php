@@ -16,10 +16,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\Relations\HasOneThrough;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['tanggal', 'jenis', 'sumber', 'payment_id', 'cash_account_id', 'akun_id', 'nominal', 'keterangan', 'status', 'submitted_by', 'approved_by', 'approved_at', 'posted_by', 'posted_at', 'rejected_by', 'rejected_at', 'rejection_reason', 'created_by'])]
+#[Fillable(['tanggal', 'jenis', 'sumber', 'payment_id', 'cash_account_id', 'akun_id', 'project_id', 'pihak_type_id', 'pihak_item_id', 'nominal', 'keterangan', 'status', 'submitted_by', 'approved_by', 'approved_at', 'posted_by', 'posted_at', 'rejected_by', 'rejected_at', 'rejection_reason', 'created_by'])]
 class Cashflow extends Model
 {
     /**
@@ -99,11 +98,25 @@ class Cashflow extends Model
     }
 
     /**
+     * Get the project that owns this entry (direct FK for manual entries).
+     */
+    public function project(): BelongsTo
+    {
+        return $this->belongsTo(Project::class);
+    }
+
+    /**
      * The project behind this entry (via the settled AP/AR record), or null
      * for manual cash entries.
      */
     public function getProjectAttribute(): ?Project
     {
+        // Direct FK (manual entry with project tagging)
+        if ($this->project_id !== null) {
+            return $this->project()->first();
+        }
+
+        // Via payment (settlement entry)
         $payment = $this->relationLoaded('payment') ? $this->payment : $this->payment()->first();
 
         if ($payment === null) {
@@ -115,10 +128,16 @@ class Cashflow extends Model
 
     /**
      * Get the party master item (vendor/supplier/mandor/investor) behind this
-     * entry, resolved through the settled AP/AR record.
+     * entry. Checks direct FK first (manual entry), falls back to payment.
      */
-    public function pihakItem(): HasOneThrough
+    public function pihakItem()
     {
+        // Direct FK (manual entry with party tagging)
+        if ($this->pihak_item_id !== null) {
+            return $this->belongsTo(MasterItem::class, 'pihak_item_id');
+        }
+
+        // Via payment (settlement entry)
         return $this->hasOneThrough(
             MasterItem::class,
             Payment::class,
@@ -130,11 +149,17 @@ class Cashflow extends Model
     }
 
     /**
-     * Get the party master type behind this entry, resolved through the
-     * settled AP/AR record.
+     * Get the party master type behind this entry. Checks direct FK first
+     * (manual entry), falls back to payment.
      */
-    public function pihakType(): HasOneThrough
+    public function pihakType()
     {
+        // Direct FK (manual entry with party tagging)
+        if ($this->pihak_type_id !== null) {
+            return $this->belongsTo(MasterType::class, 'pihak_type_id');
+        }
+
+        // Via payment (settlement entry)
         return $this->hasOneThrough(
             MasterType::class,
             Payment::class,
@@ -151,6 +176,12 @@ class Cashflow extends Model
      */
     public function getPihakAttribute(): ?string
     {
+        // Direct FK (manual entry)
+        if ($this->pihak_item_id !== null) {
+            return $this->pihakItem?->nama;
+        }
+
+        // Via payment (settlement entry)
         $payment = $this->relationLoaded('payment') ? $this->payment : $this->payment()->first();
 
         if ($payment === null) {
@@ -167,6 +198,12 @@ class Cashflow extends Model
      */
     public function getPihakJenisAttribute(): ?string
     {
+        // Direct FK (manual entry)
+        if ($this->pihak_type_id !== null) {
+            return $this->pihakType?->kode !== null ? strtolower((string) $this->pihakType->kode) : null;
+        }
+
+        // Via payment (settlement entry)
         $payment = $this->relationLoaded('payment') ? $this->payment : $this->payment()->first();
 
         if ($payment === null) {

@@ -6,6 +6,8 @@ use App\Enums\CashflowJenis;
 use App\Enums\KasStatus;
 use App\Models\CashAccount;
 use App\Models\Cashflow;
+use App\Models\Kategori;
+use App\Models\Realisasi;
 use Illuminate\Pagination\LengthAwarePaginator;
 
 class CashflowService
@@ -101,7 +103,44 @@ class CashflowService
 
         app(VoucherService::class)->generateFor($cashflow);
 
+        // For manual entries (no payment_id), create/sync Realisasi if tagged with project/party
+        if ($cashflow->isManual() && ($cashflow->project_id || $cashflow->pihak_item_id)) {
+            $this->syncRealisasiFromCashflow($cashflow);
+        }
+
         return $cashflow->refresh();
+    }
+
+    /**
+     * Create or update Realisasi from a posted manual cashflow entry.
+     */
+    protected function syncRealisasiFromCashflow(Cashflow $cashflow): ?Realisasi
+    {
+        // Determine kategori: find by akun's kategori or default
+        $kategoriId = $cashflow->akun?->kategori_id ?? Kategori::first()?->id;
+
+        // For cash in (pendapatan), use a default income category if available
+        if ($cashflow->jenis === CashflowJenis::Masuk) {
+            $kategoriId = Kategori::where('nama', 'Pendapatan Lain')->first()?->id ?? $kategoriId;
+        }
+
+        $data = [
+            'project_id' => $cashflow->project_id,
+            'akun_id' => $cashflow->akun_id,
+            'pihak_type_id' => $cashflow->pihak_type_id,
+            'pihak_item_id' => $cashflow->pihak_item_id,
+            'kategori_id' => $kategoriId,
+            'tanggal' => $cashflow->tanggal,
+            'nominal' => $cashflow->nominal,
+            'keterangan' => $cashflow->keterangan ?? 'Dari cashflow #'.$cashflow->id,
+            'sumber' => Realisasi::SUMBER_MANUAL,
+            'sumber_id' => $cashflow->id,
+        ];
+
+        return Realisasi::updateOrCreate(
+            ['sumber' => Realisasi::SUMBER_MANUAL, 'sumber_id' => $cashflow->id],
+            $data
+        );
     }
 
     /**
