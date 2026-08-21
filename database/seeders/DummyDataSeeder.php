@@ -7,6 +7,7 @@ use App\Enums\ProjectStatus;
 use App\Models\Akun;
 use App\Models\BudgetPlan;
 use App\Models\BudgetPlanItem;
+use App\Models\CashAccount;
 use App\Models\Cashflow;
 use App\Models\Investor;
 use App\Models\Kategori;
@@ -24,6 +25,7 @@ use App\Models\Receivable;
 use App\Models\Supplier;
 use App\Models\User;
 use App\Models\Vendor;
+use App\Services\CashflowService;
 use App\Services\PayableService;
 use App\Services\PaymentService;
 use App\Services\ReceivableService;
@@ -62,6 +64,166 @@ class DummyDataSeeder extends Seeder
         $this->syncSequenceFromMax('monitoring_period', (string) MonitoringPeriod::max('nomor'));
         $this->seedCashflows();
         $this->seedArAp();
+        $this->seedNewFeatureSamples();
+    }
+
+    /**
+     * Seed samples for new features:
+     * - Cashflow manual entry with Project + Party tagging (auto-sync to Realisasi)
+     * - Non-Project Allocation
+     */
+    protected function seedNewFeatureSamples(): void
+    {
+        $admin = User::where('email', 'admin@muwira.test')->first();
+        $project1 = Project::where('kode', 'PRJ-2025-001')->first();
+        $project2 = Project::where('kode', 'PRJ-2025-002')->first();
+        $akunOperasional = Akun::where('kode_akun', '5-101')->first();
+        $akunListrik = Akun::where('kode_akun', '5-102')->first();
+        $akunATK = Akun::where('kode_akun', '5-103')->first();
+
+        // Master Party items
+        $vendorType = MasterType::where('kode', 'VENDOR')->first();
+        $supplierType = MasterType::where('kode', 'SUPPLIER')->first();
+        $investorType = MasterType::where('kode', 'INVESTOR')->first();
+        $mandorType = MasterType::where('kode', 'MANDOR')->first();
+
+        $vendor = MasterItem::where('master_type_id', $vendorType->id)->where('kode', 'VND-001')->first();
+        $supplier = MasterItem::where('master_type_id', $supplierType->id)->where('kode', 'SPL-001')->first();
+        $investor = MasterItem::where('master_type_id', $investorType->id)->where('kode', 'INV-001')->first();
+        $mandor = MasterItem::where('master_type_id', $mandorType->id)->where('kode', 'MND-001')->first();
+
+        // ============================================
+        // 1. CASHIN MANUAL: Investor tag project + pihak
+        // ============================================
+        $akunPendapatan = Akun::where('kode_akun', '4-001')->first() ?? Akun::where('jenis_akun', 'pendapatan')->first();
+        if ($project1 && $investor && $investorType && $akunPendapatan) {
+            $cashIn = Cashflow::firstOrCreate(
+                [
+                    'tanggal' => '2026-07-01',
+                    'jenis' => 'masuk',
+                    'sumber' => 'pemasukan_manual',
+                    'nominal' => 150000000,
+                    'keterangan' => 'Investasi tambahan dari PT Mitra Investama untuk PRJ-2025-001',
+                ],
+                [
+                    'cash_account_id' => CashAccount::defaultId(),
+                    'akun_id' => $akunPendapatan->id,
+                    'project_id' => $project1->id,
+                    'pihak_type_id' => $investorType->id,
+                    'pihak_item_id' => $investor->id,
+                    'status' => 'approved', // create as approved, then post via service
+                    'submitted_by' => $admin?->id,
+                    'approved_by' => $admin?->id,
+                    'approved_at' => now(),
+                    'created_by' => $admin?->id,
+                ]
+            );
+
+            // Post via service to trigger syncRealisasiFromCashflow
+            if ($cashIn->wasRecentlyCreated || $cashIn->status->value === 'approved') {
+                app(CashflowService::class)->post($cashIn);
+            }
+        }
+
+        // ============================================
+        // 2. CASHOUT MANUAL: Vendor tag project + pihak
+        // ============================================
+        if ($project2 && $vendor && $vendorType && $akunListrik) {
+            $cashOut = Cashflow::firstOrCreate(
+                [
+                    'tanggal' => '2026-07-10',
+                    'jenis' => 'keluar',
+                    'sumber' => 'pengeluaran_lain',
+                    'nominal' => 25000000,
+                    'keterangan' => 'Bayar tagihan listrik site PRJ-2025-002 ke PT Maju Jaya',
+                ],
+                [
+                    'cash_account_id' => CashAccount::defaultId(),
+                    'akun_id' => $akunListrik->id,
+                    'project_id' => $project2->id,
+                    'pihak_type_id' => $vendorType->id,
+                    'pihak_item_id' => $vendor->id,
+                    'status' => 'approved',
+                    'submitted_by' => $admin?->id,
+                    'approved_by' => $admin?->id,
+                    'approved_at' => now(),
+                    'created_by' => $admin?->id,
+                ]
+            );
+
+            if ($cashOut->wasRecentlyCreated || $cashOut->status->value === 'approved') {
+                app(CashflowService::class)->post($cashOut);
+            }
+        }
+
+        // ============================================
+        // 3. CASHOUT NON-PROJECT: Operational tanpa project, tapi tag pihak
+        // ============================================
+        if ($supplier && $supplierType && $akunATK) {
+            $cashOutNonProj = Cashflow::firstOrCreate(
+                [
+                    'tanggal' => '2026-07-15',
+                    'jenis' => 'keluar',
+                    'sumber' => 'pengeluaran_lain',
+                    'nominal' => 5000000,
+                    'keterangan' => 'Beli ATK kantor dari PT Sumber Material (non-project)',
+                ],
+                [
+                    'cash_account_id' => CashAccount::defaultId(),
+                    'akun_id' => $akunATK->id,
+                    'project_id' => null,
+                    'pihak_type_id' => $supplierType->id,
+                    'pihak_item_id' => $supplier->id,
+                    'status' => 'approved',
+                    'submitted_by' => $admin?->id,
+                    'approved_by' => $admin?->id,
+                    'approved_at' => now(),
+                    'created_by' => $admin?->id,
+                ]
+            );
+
+            if ($cashOutNonProj->wasRecentlyCreated || $cashOutNonProj->status->value === 'approved') {
+                app(CashflowService::class)->post($cashOutNonProj);
+            }
+        }
+
+        // ============================================
+        // 4. NON-PROJECT ALLOCATION (Budgeting page)
+        // ============================================
+        if ($akunOperasional) {
+            ProjectAkun::updateOrCreate(
+                [
+                    'project_id' => null,
+                    'akun_id' => $akunOperasional->id,
+                ],
+                [
+                    'budget' => 100000000,
+                    'allocation' => 100000000,
+                    'status' => 'approved',
+                    'approved_by' => $admin?->id,
+                    'approved_at' => now(),
+                ]
+            );
+        }
+
+        // ============================================
+        // 5. NON-PROJECT ALLOCATION DRAFT (staff can submit)
+        // ============================================
+        $staff = User::where('email', 'staff@muwira.test')->first();
+        if ($staff && $akunListrik) {
+            ProjectAkun::updateOrCreate(
+                [
+                    'project_id' => null,
+                    'akun_id' => $akunListrik->id,
+                ],
+                [
+                    'budget' => 50000000,
+                    'allocation' => 50000000,
+                    'status' => 'draft',
+                    'created_by' => $staff->id,
+                ]
+            );
+        }
     }
 
     /**
