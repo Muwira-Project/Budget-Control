@@ -13,8 +13,8 @@ Aplikasi web untuk mengelola **budget (alokasi dana)**, **actual (realisasi)**, 
 - **Monitoring** — periode (rentang tanggal), Week & Month otomatis, Budget (dari Budget Plan), Actual In, Actual Out, Variance — berlaku per project dan global; ada halaman resume periode (seluruh akun); export summary CSV/XLS/PDF per periode.
 - **Budget Allocation** — workflow persetujuan (draft → waiting → approved/rejected) sebagai sumber alokasi.
 - **Cash Activity** — menu tersendiri dengan tab **Cash In**, **Cash Out**, **Fund Transfer**, dan **Cash Account**:
-  - Cash In: pemasukan manual (mis. dari investor) dan pelunasan AR.
-  - Cash Out: pengeluaran lain yang terikat akun/COA (mis. sewa, utility) dan pelunasan AP.
+  - Cash In: pemasukan manual (mis. dari investor) dan pelunasan AR; **manual entry bisa tag Project + Pihak (Vendor/Supplier/Mandor/Investor)** → otomatis sinkron ke Realisasi saat di-post.
+  - Cash Out: pengeluaran lain yang terikat akun/COA (mis. sewa, utility) dan pelunasan AP; **manual entry bisa tag Project + Pihak**.
   - Fund Transfer: pemindahan dana antar rekening.
   - Voucher otomatis per transaksi (Cash In/Out & Fund Transfer) diakses lewat tombol aksi di baris transaksi.
 - **AR & AP** — satu menu dengan tab **Receivable**, **Payable**, dan **Settlement History**; AR otomatis saat project selesai, AP otomatis dari Actual, pembayaran mencatat pelunasan + memengaruhi saldo kas.
@@ -77,4 +77,4 @@ php artisan test          # test suite
 vendor/bin/pint --test    # PSR-12 check
 ```
 
-Gate terakhir: **263 test lulus** + **Pint lulus**.
+Gate terakhir: **287 test lulus** + **Pint lulus**.
