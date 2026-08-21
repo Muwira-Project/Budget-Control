@@ -67,7 +67,7 @@
                                             {{ $item->sumber_label }}
                                         </span>
                                     </td>
-                                    <td class="px-6 py-4 text-gray-700">{{ $item->project->nama }}</td>
+                                    <td class="px-6 py-4 text-gray-700">{{ $item->project->nama ?? 'Non-Project' }}</td>
                                     <td class="px-6 py-4 text-gray-700">{{ $item->akun->kode_akun }} - {{ $item->akun->nama_akun }}</td>
                                     <td class="px-6 py-4 text-gray-700">
                                         @if ($item->pihakJenis && $item->pihak)
