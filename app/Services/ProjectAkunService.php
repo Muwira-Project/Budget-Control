@@ -5,11 +5,16 @@ namespace App\Services;
 use App\Enums\AllocationStatus;
 use App\Enums\CashflowSumber;
 use App\Enums\KasStatus;
+use App\Enums\PayableStatus;
+use App\Enums\ReceivableStatus;
 use App\Models\CashAccount;
 use App\Models\Cashflow;
+use App\Models\Payable;
 use App\Models\Project;
 use App\Models\ProjectAkun;
+use App\Models\Receivable;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 
 class ProjectAkunService
 {
@@ -25,6 +30,13 @@ class ProjectAkunService
         return ProjectAkun::create([
             'project_id' => $data['project_id'] ?? null,
             'akun_id' => $data['akun_id'],
+            'type' => $data['type'] ?? 'other_outcome',
+            'pihak_type_id' => $data['pihak_type_id'] ?? null,
+            'pihak_item_id' => $data['pihak_item_id'] ?? null,
+            'payable_id' => $data['payable_id'] ?? null,
+            'receivable_id' => $data['receivable_id'] ?? null,
+            'custom_name' => $data['custom_name'] ?? null,
+            'outstanding_balance' => $data['outstanding_balance'] ?? null,
             'budget' => $data['budget'],
             'allocation' => $data['allocation'],
             'status' => AllocationStatus::Draft,
@@ -42,6 +54,13 @@ class ProjectAkunService
         $allocation->update([
             'project_id' => $data['project_id'] ?? null,
             'akun_id' => $data['akun_id'],
+            'type' => $data['type'] ?? $allocation->type,
+            'pihak_type_id' => $data['pihak_type_id'] ?? $allocation->pihak_type_id,
+            'pihak_item_id' => $data['pihak_item_id'] ?? $allocation->pihak_item_id,
+            'payable_id' => $data['payable_id'] ?? $allocation->payable_id,
+            'receivable_id' => $data['receivable_id'] ?? $allocation->receivable_id,
+            'custom_name' => $data['custom_name'] ?? $allocation->custom_name,
+            'outstanding_balance' => $data['outstanding_balance'] ?? $allocation->outstanding_balance,
             'budget' => $data['budget'],
             'allocation' => $data['allocation'],
         ]);
@@ -127,6 +146,14 @@ class ProjectAkunService
             return null;
         }
 
+        $description = 'Non-project budget allocation #'.$allocation->id.' — '.($allocation->akun?->nama_akun ?? '');
+        if ($allocation->type !== 'other_outcome') {
+            $description .= ' ['.$allocation->type_label.']';
+        }
+        if ($allocation->display_name !== '-') {
+            $description .= ' — '.$allocation->display_name;
+        }
+
         return app(CashflowService::class)->create([
             'tanggal' => now()->toDateString(),
             'jenis' => 'keluar',
@@ -134,9 +161,30 @@ class ProjectAkunService
             'cash_account_id' => CashAccount::defaultId(),
             'akun_id' => $allocation->akun_id,
             'nominal' => $allocation->allocation,
-            'keterangan' => 'Non-project budget allocation #'.$allocation->id.' — '.($allocation->akun?->nama_akun ?? ''),
+            'keterangan' => $description,
             'status' => KasStatus::Draft,
         ]);
+    }
+
+    /**
+     * Calculate outstanding balance for a party item (AP/AR).
+     */
+    public function calculateOutstandingBalance(string $type, int $pihakItemId): float
+    {
+        if (! in_array($type, ['ap', 'ar'])) {
+            return 0.0;
+        }
+
+        if ($type === 'ap') {
+            return (float) Payable::where('pihak_item_id', $pihakItemId)
+                ->where('status', '!=', PayableStatus::Lunas)
+                ->sum(DB::raw('nominal - nominal_dibayar'));
+        }
+
+        // AR
+        return (float) Receivable::where('pihak_item_id', $pihakItemId)
+            ->where('status', '!=', ReceivableStatus::Lunas)
+            ->sum(DB::raw('nominal - nominal_dibayar'));
     }
 
     /**

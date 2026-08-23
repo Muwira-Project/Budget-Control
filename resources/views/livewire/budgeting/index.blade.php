@@ -84,6 +84,9 @@
                             <tr>
                                 <th class="px-6 py-3">Project</th>
                                 <th class="px-6 py-3">Account</th>
+                                <th class="px-6 py-3">Type</th>
+                                <th class="px-6 py-3">Party / Name</th>
+                                <th class="px-6 py-3 text-right">Outstanding</th>
                                 <th class="px-6 py-3 text-right">Budget (Plan)</th>
                                 <th class="px-6 py-3 text-right">Allocation</th>
                                 <th class="px-6 py-3">Status</th>
@@ -101,6 +104,36 @@
                                         @endif
                                     </td>
                                     <td class="px-6 py-4 text-gray-700">{{ $row['akun']?->kode_akun }} - {{ $row['akun']?->nama_akun }}</td>
+                                    <td class="px-6 py-4 text-gray-700">
+                                        @if ($row['is_non_project'] && $row['allocation'])
+                                            <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium
+                                                {{ match ($row['allocation']->type) {
+                                                    'ap' => 'bg-red-100 text-red-700',
+                                                    'ar' => 'bg-green-100 text-green-700',
+                                                    'other_income' => 'bg-blue-100 text-blue-700',
+                                                    'other_outcome' => 'bg-amber-100 text-amber-700',
+                                                    default => 'bg-gray-100 text-gray-700',
+                                                } }}">
+                                                {{ $row['allocation']->type_label }}
+                                            </span>
+                                        @else
+                                            <span class="text-gray-400">—</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-6 py-4 text-gray-700">
+                                        @if ($row['is_non_project'] && $row['allocation'])
+                                            {{ $row['allocation']->display_name }}
+                                        @else
+                                            <span class="text-gray-400">—</span>
+                                        @endif
+                                    </td>
+                                    <td class="px-6 py-4 text-right text-gray-700">
+                                        @if ($row['is_non_project'] && $row['allocation'] && $row['allocation']->outstanding_balance > 0)
+                                            {{ format_idr($row['allocation']->outstanding_balance) }}
+                                        @else
+                                            <span class="text-gray-400">—</span>
+                                        @endif
+                                    </td>
                                     <td class="px-6 py-4 text-right text-gray-900">{{ format_idr($row['budget']) }}</td>
                                     <td class="px-6 py-4 text-right text-gray-700">
                                         {{ $row['allocation'] ? format_idr($row['allocation']->allocation) : '—' }}

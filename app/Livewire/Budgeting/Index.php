@@ -260,7 +260,7 @@ class Index extends Component
         $isAdmin = auth()->user()->isAdmin();
 
         $allocations = ProjectAkun::query()
-            ->with(['project', 'akun'])
+            ->with(['project', 'akun', 'pihakItem'])
             ->when($project, fn ($query) => $query->where('project_id', $project->id))
             ->when($this->statusFilter !== '', fn ($query) => $query->where('status', $this->statusFilter))
             ->when(! $isAdmin, fn ($query) => $query->where('created_by', auth()->id()))
@@ -276,6 +276,15 @@ class Index extends Component
 
         foreach ($allocations as $allocation) {
             $key = ($allocation->project_id ?? 'non-project').'-'.$allocation->akun_id;
+            // For non-project, include type and party/custom_name in key to allow multiple rows per akun
+            if ($allocation->project_id === null) {
+                $key .= '-'.$allocation->type;
+                if ($allocation->pihak_item_id) {
+                    $key .= '-'.$allocation->pihak_item_id;
+                } elseif ($allocation->custom_name) {
+                    $key .= '-'.md5($allocation->custom_name);
+                }
+            }
             $byKey[$key] = [
                 'project' => $allocation->project,
                 'is_non_project' => $allocation->project_id === null,
@@ -347,6 +356,7 @@ class Index extends Component
         $isAdmin = auth()->user()->isAdmin();
 
         $allocations = ProjectAkun::query()
+            ->with(['project', 'akun', 'pihakItem'])
             ->when($project, fn ($query) => $query->where('project_id', $project->id))
             ->when(! $isAdmin, fn ($query) => $query->where('created_by', auth()->id()))
             ->get();

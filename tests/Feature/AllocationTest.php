@@ -308,6 +308,8 @@ class AllocationTest extends TestCase
         Livewire::actingAs($user)
             ->test(CreateAllokasi::class)
             ->set('projectId', null)
+            ->set('type', 'other_outcome')
+            ->set('customName', 'Test Expense')
             ->set('akunId', $akun->id)
             ->set('budget', '50000000')
             ->set('allocationNominal', '50000000')
@@ -321,6 +323,8 @@ class AllocationTest extends TestCase
             'budget' => 50000000,
             'allocation' => 50000000,
             'status' => 'draft',
+            'type' => 'other_outcome',
+            'custom_name' => 'Test Expense',
         ]);
     }
 
@@ -364,6 +368,7 @@ class AllocationTest extends TestCase
             'allocation' => 50000000,
             'status' => 'waiting',
             'created_by' => $admin->id,
+            'type' => 'other_outcome',
         ]);
 
         // Approve allocation -> cashflow draft dibuat.
