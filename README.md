@@ -21,7 +21,7 @@ Aplikasi web untuk mengelola **budget (alokasi dana)**, **actual (realisasi)**, 
 - **Actual** — ledger otomatis tanpa input manual: Actual Out dari pelunasan AP, Actual In dari pelunasan piutang.
 - **Master** — Category, Vendor, Supplier, Mandor, Investor, User (foto profil, departemen, tanggal masuk, lokasi) + sub-menu master dinamis: admin bisa menambah/mengedit/menghapus menu master (mis. PIC) dengan kolom custom (text, textarea, number, date), menu baru otomatis muncul di sidebar.
 - **Approval Center** — satu tempat persetujuan admin: kegiatan kas & fund transfer (waiting → approved → posted) dan pembatalan settlement.
-- **Import/Export** — import Account (template xlsx, validasi per baris + laporan), export Account/Actual/Account-vs-Actual (xlsx/PDF).
+- **Import/Export** — import Project & Account (template xlsx, validasi per baris + laporan), export Project/Account/Actual/Account-vs-Actual (xlsx/PDF).
 - **Notifikasi** — lonceng di topbar: over budget, user baru, dan request persetujuan; status baca/belum.
 - **Audit Log** — jejak otomatis semua perubahan (create/update/delete).
 - **Lainnya** — pagination (per halaman + lompat halaman), bulk delete checklist, filter rentang tanggal, company branding.
@@ -77,4 +77,4 @@ php artisan test          # test suite
 vendor/bin/pint --test    # PSR-12 check
 ```
 
-Gate terakhir: **287 test lulus** + **Pint lulus**.
+Gate terakhir: **302 test lulus** + **Pint lulus**.
