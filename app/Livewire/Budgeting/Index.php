@@ -34,6 +34,12 @@ class Index extends Component
     /** @var array<int, int> */
     public array $selectedIds = [];
 
+    /** Cached merged rows for summary computation */
+    protected array $cachedRows = [];
+
+    /** Cached summary data */
+    protected ?array $cachedSummary = null;
+
     /**
      * Delete an allocation request.
      */
@@ -247,31 +253,42 @@ class Index extends Component
     }
 
     /**
-     * Combine budget-plan items and allocations into one view.
-     *
-     * Every account that has either a planned budget or an allocation appears
-     * exactly once. When both exist they are merged on (project, akun); the
-     * row carries the plan nominal (Budget) and the allocation state.
+     * Get the base allocation query with eager loading and filters.
      */
-    #[Computed]
-    public function rows(): LengthAwarePaginator
+    protected function getBaseAllocationQuery()
     {
         $project = $this->projectId ? Project::find($this->projectId) : null;
         $isAdmin = auth()->user()->isAdmin();
 
-        $allocations = ProjectAkun::query()
+        return ProjectAkun::query()
             ->with(['project', 'akun', 'pihakItem'])
             ->when($project, fn ($query) => $query->where('project_id', $project->id))
             ->when($this->statusFilter !== '', fn ($query) => $query->where('status', $this->statusFilter))
-            ->when(! $isAdmin, fn ($query) => $query->where('created_by', auth()->id()))
-            ->get();
+            ->when(! $isAdmin, fn ($query) => $query->where('created_by', auth()->id()));
+    }
 
-        $planItems = BudgetPlanItem::query()
+    /**
+     * Get the base plan items query with eager loading and filters.
+     */
+    protected function getBasePlanItemsQuery()
+    {
+        $project = $this->projectId ? Project::find($this->projectId) : null;
+
+        return BudgetPlanItem::query()
             ->with(['budgetPlan.project', 'akun'])
-            ->when($project, fn ($query) => $query->whereHas('budgetPlan', fn ($q) => $q->where('project_id', $project->id)))
-            ->get();
+            ->when($project, fn ($query) => $query->whereHas('budgetPlan', fn ($q) => $q->where('project_id', $project->id)));
+    }
 
-        // Merge allocations and plan items on (project_id, akun_id).
+    /**
+     * Build the merged rows array from allocations and plan items.
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    protected function buildMergedRows(): array
+    {
+        $allocations = $this->getBaseAllocationQuery()->get();
+        $planItems = $this->getBasePlanItemsQuery()->get();
+
         $byKey = [];
 
         foreach ($allocations as $allocation) {
@@ -313,34 +330,82 @@ class Index extends Component
             }
         }
 
-        $rows = collect($byKey)->values();
+        return collect($byKey)->values()->all();
+    }
 
-        // Search across project code/name and account code/name.
-        if ($this->search !== '') {
-            $needle = strtolower($this->search);
-            $rows = $rows->filter(function (array $row) use ($needle) {
-                $project = $row['project'];
-                $akun = $row['akun'];
-                $haystack = strtolower(
-                    trim(($project?->kode ?? ($row['is_non_project'] ? 'non-project' : '')).' '.($project?->nama ?? ($row['is_non_project'] ? 'Non-Project' : '')).' '.($akun?->kode_akun ?? '').' '.($akun?->nama_akun ?? ''))
-                );
-
-                return str_contains($haystack, $needle);
-            });
+    /**
+     * Apply search filter to rows.
+     */
+    protected function applySearchFilter(array $rows): array
+    {
+        if ($this->search === '') {
+            return $rows;
         }
 
-        // Sort by project code then account code (non-project first).
-        $rows = $rows->sortBy([
-            fn ($row) => $row['is_non_project'] ? 0 : 1,
-            fn ($row) => strtolower($row['project']?->kode ?? ''),
-            fn ($row) => strtolower($row['akun']?->kode_akun ?? ''),
-        ])->values();
+        $needle = strtolower($this->search);
+
+        return array_filter($rows, function (array $row) use ($needle) {
+            $project = $row['project'];
+            $akun = $row['akun'];
+            $haystack = strtolower(
+                trim(($project?->kode ?? ($row['is_non_project'] ? 'non-project' : '')).' '.($project?->nama ?? ($row['is_non_project'] ? 'Non-Project' : '')).' '.($akun?->kode_akun ?? '').' '.($akun?->nama_akun ?? ''))
+            );
+
+            return str_contains($haystack, $needle);
+        });
+    }
+
+    /**
+     * Sort rows by project code then account code (non-project first).
+     */
+    protected function sortRows(array $rows): array
+    {
+        usort($rows, function (array $a, array $b) {
+            // Non-project first
+            if ($a['is_non_project'] !== $b['is_non_project']) {
+                return $a['is_non_project'] ? -1 : 1;
+            }
+
+            // Then by project code
+            $projectCodeA = strtolower($a['project']?->kode ?? '');
+            $projectCodeB = strtolower($b['project']?->kode ?? '');
+            if ($projectCodeA !== $projectCodeB) {
+                return strcmp($projectCodeA, $projectCodeB);
+            }
+
+            // Then by account code
+            return strcmp(
+                strtolower($a['akun']?->kode_akun ?? ''),
+                strtolower($b['akun']?->kode_akun ?? '')
+            );
+        });
+
+        return array_values($rows);
+    }
+
+    /**
+     * Combine budget-plan items and allocations into one view.
+     *
+     * Every account that has either a planned budget or an allocation appears
+     * exactly once. When both exist they are merged on (project, akun); the
+     * row carries the plan nominal (Budget) and the allocation state.
+     */
+    #[Computed]
+    public function rows(): LengthAwarePaginator
+    {
+        // Build merged rows once and cache
+        if ($this->cachedRows === []) {
+            $this->cachedRows = $this->buildMergedRows();
+        }
+
+        $rows = $this->applySearchFilter($this->cachedRows);
+        $rows = $this->sortRows($rows);
 
         $perPage = $this->perPage;
         $page = LengthAwarePaginator::resolveCurrentPage();
-        $slice = $rows->slice(($page - 1) * $perPage, $perPage);
+        $slice = array_slice($rows, ($page - 1) * $perPage, $perPage);
 
-        return new LengthAwarePaginator($slice, $rows->count(), $perPage, $page, [
+        return new LengthAwarePaginator($slice, count($rows), $perPage, $page, [
             'path' => LengthAwarePaginator::resolveCurrentPath(),
             'query' => request()->query(),
         ]);
@@ -352,16 +417,23 @@ class Index extends Component
     #[Computed]
     public function summary(): array
     {
+        // Return cached summary if available
+        if ($this->cachedSummary !== null) {
+            return $this->cachedSummary;
+        }
+
         $project = $this->projectId ? Project::find($this->projectId) : null;
         $isAdmin = auth()->user()->isAdmin();
 
-        $allocations = ProjectAkun::query()
+        // For summary, we need ALL allocations (unfiltered by status/search)
+        // to match the header cards behavior
+        $allAllocations = ProjectAkun::query()
             ->with(['project', 'akun', 'pihakItem'])
             ->when($project, fn ($query) => $query->where('project_id', $project->id))
             ->when(! $isAdmin, fn ($query) => $query->where('created_by', auth()->id()))
             ->get();
 
-        $planItems = BudgetPlanItem::query()
+        $allPlanItems = BudgetPlanItem::query()
             ->when($project, fn ($query) => $query->whereHas('budgetPlan', fn ($q) => $q->where('project_id', $project->id)))
             ->get();
 
@@ -371,21 +443,23 @@ class Index extends Component
             ? (float) Realisasi::query()->whereNull('project_id')->sum('nominal')
             : 0.0;
 
-        return [
-            'total_budget' => (float) $planItems->sum('nominal')
+        $this->cachedSummary = [
+            'total_budget' => (float) $allPlanItems->sum('nominal')
                 + (float) ProjectAkun::query()
                     ->whereNull('project_id')
                     ->when(! $isAdmin, fn ($query) => $query->where('created_by', auth()->id()))
                     ->sum('budget'),
-            'total_allocation' => (float) $allocations->sum('allocation')
+            'total_allocation' => (float) $allAllocations->sum('allocation')
                 + ($project === null
                     ? (float) ProjectAkun::query()
                         ->whereNull('project_id')
                         ->when(! $isAdmin, fn ($query) => $query->where('created_by', auth()->id()))
                         ->sum('allocation')
                     : 0.0),
-            'total_realisasi' => (float) $allocations->sum('total_realisasi') + $nonProjectRealisasi,
+            'total_realisasi' => (float) $allAllocations->sum('total_realisasi') + $nonProjectRealisasi,
         ];
+
+        return $this->cachedSummary;
     }
 
     /**

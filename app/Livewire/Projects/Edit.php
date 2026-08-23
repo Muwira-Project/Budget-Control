@@ -22,6 +22,8 @@ class Edit extends Component
 
     public ?string $lokasi = null;
 
+    public ?string $devisi = null;
+
     public ?string $pic = null;
 
     public ?int $projectCategoryId = null;
@@ -63,6 +65,7 @@ class Edit extends Component
         $this->kode = $project->kode;
         $this->nama = $project->nama;
         $this->lokasi = $project->lokasi;
+        $this->devisi = $project->devisi;
         $this->pic = $project->pic;
         $this->projectCategoryId = $project->project_category_id;
         $this->subWork = $project->sub_work;
@@ -87,6 +90,7 @@ class Edit extends Component
                 'kode' => $this->kode,
                 'nama' => $this->nama,
                 'lokasi' => $this->lokasi,
+                'devisi' => $this->devisi,
                 'pic' => $this->pic,
                 'project_category_id' => $this->projectCategoryId,
                 'sub_work' => $this->subWork,

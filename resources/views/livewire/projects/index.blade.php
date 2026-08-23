@@ -3,7 +3,13 @@
         <x-page-header icon="folder" title="Project" description="Manage projects, contract values, and their budget scope.">
             <x-slot:actions>
                 <a href="{{ route('imports.projects.template') }}" class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900">
-                    <x-icon name="download" class="h-4 w-4" /> Download Template (Draft)
+                    <x-icon name="download" class="h-4 w-4" /> Download Template
+                </a>
+                <a href="{{ route('imports.projects') }}" class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900">
+                    <x-icon name="upload" class="h-4 w-4" /> Import Projects
+                </a>
+                <a href="{{ route('imports.projects.export', ['periode' => $this->filterPeriode]) }}" class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900">
+                    <x-icon name="download" class="h-4 w-4" /> Export
                 </a>
                 <a href="{{ route('projects.create') }}" wire:navigate class="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700">
                     <x-icon name="plus" class="h-4 w-4" /> Add Project
@@ -21,9 +27,21 @@
             <x-bulk-actions :paginator="$this->projects" :selected-ids="$this->selectedIds" />
                 <div class="mt-6 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-200">
                 <div class="border-b border-gray-100 p-6">
-                    <div class="max-w-sm">
-                        <x-input-label for="search" :value="__('Search Project')" />
-                        <x-text-input id="search" class="mt-1 block w-full" type="text" wire:model.live.debounce.300ms="search" placeholder="Search project code or name..." />
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                        <div class="max-w-sm">
+                            <x-input-label for="search" :value="__('Search Project')" />
+                            <x-text-input id="search" class="mt-1 block w-full" type="text" wire:model.live.debounce.300ms="search" placeholder="Search project code or name..." />
+                        </div>
+
+                        <div class="max-w-sm">
+                            <x-input-label for="filter_periode" :value="__('Filter Periode')" />
+                            <select id="filter_periode" wire:model="filterPeriode" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                <option value="">All Periods</option>
+                                @foreach ($this->availablePeriodes as $p)
+                                    <option value="{{ $p }}">{{ $p }}</option>
+                                @endforeach
+                            </select>
+                        </div>
                     </div>
                 </div>
 
@@ -41,6 +59,7 @@
                                     <th class="px-6 py-3">Name</th>
                                     <th class="px-6 py-3">Type</th>
                                     <th class="px-6 py-3">Location</th>
+                                    <th class="px-6 py-3">Division</th>
                                     <th class="px-6 py-3">PIC</th>
                                     <th class="px-6 py-3 text-right">Value (incl. tax)</th>
                                     <th class="px-6 py-3">Status</th>
@@ -60,6 +79,7 @@
                                             </span>
                                         </td>
                                         <td class="px-6 py-4 text-gray-500">{{ $project->lokasi }}</td>
+                                        <td class="px-6 py-4 text-gray-700">{{ $project->devisi ?? '-' }}</td>
                                         <td class="px-6 py-4 text-gray-700">{{ $project->pic ?? '-' }}</td>
                                         <td class="px-6 py-4 text-right text-gray-900">
                                             @if ($project->nilai_total > 0)
@@ -123,10 +143,14 @@
                         <p class="mt-1 text-lg font-semibold text-slate-900">{{ $this->projectRealisations->count() }}</p>
                     </div>
                 </div>
-                <div class="grid grid-cols-2 gap-2 border-b border-gray-100 px-6 py-3 sm:grid-cols-4">
+                <div class="grid grid-cols-2 gap-2 border-b border-gray-100 px-6 py-3 sm:grid-cols-5">
                     <div>
                         <p class="text-xs uppercase tracking-wider text-slate-500">PIC</p>
                         <p class="mt-0.5 text-sm font-medium text-slate-800">{{ $this->selectedProject->pic ?? '-' }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs uppercase tracking-wider text-slate-500">Division</p>
+                        <p class="mt-0.5 text-sm font-medium text-slate-800">{{ $this->selectedProject->devisi ?? '-' }}</p>
                     </div>
                     <div>
                         <p class="text-xs uppercase tracking-wider text-slate-500">Category</p>

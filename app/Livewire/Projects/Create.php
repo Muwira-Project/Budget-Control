@@ -19,6 +19,8 @@ class Create extends Component
 
     public ?string $lokasi = null;
 
+    public ?string $devisi = null;
+
     public ?string $pic = null;
 
     public ?int $projectCategoryId = null;
@@ -41,7 +43,7 @@ class Create extends Component
 
     public ?string $targetSelesai = null;
 
-    public string $status = 'progress';
+    public string $status = 'draft';
 
     /**
      * Keep the tax rate in sync with the project type (11% PPN for goods, 2% for services).
@@ -61,6 +63,7 @@ class Create extends Component
                 'kode' => $this->kode,
                 'nama' => $this->nama,
                 'lokasi' => $this->lokasi,
+                'devisi' => $this->devisi,
                 'pic' => $this->pic,
                 'project_category_id' => $this->projectCategoryId,
                 'sub_work' => $this->subWork,

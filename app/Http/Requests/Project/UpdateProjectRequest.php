@@ -38,7 +38,7 @@ class UpdateProjectRequest extends FormRequest
             'pajak' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'tanggal_mulai' => ['nullable', 'date'],
             'target_selesai' => ['nullable', 'date', 'after_or_equal:tanggal_mulai'],
-            'status' => ['required', Rule::in(['progress', 'done', 'cancelled'])],
+            'status' => ['required', Rule::in(['draft', 'progress', 'done', 'cancelled'])],
         ];
     }
 }

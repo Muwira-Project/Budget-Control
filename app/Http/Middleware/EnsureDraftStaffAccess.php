@@ -35,6 +35,7 @@ class EnsureDraftStaffAccess
             'payments.index',
             'realisasi.index',
             'realisasi.summary',
+            'imports.*',
         )) {
             return $next($request);
         }

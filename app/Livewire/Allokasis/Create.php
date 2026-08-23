@@ -15,7 +15,6 @@ use App\Models\Project;
 use App\Models\ProjectAkun;
 use App\Models\Receivable;
 use App\Services\ProjectAkunService;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -159,16 +158,7 @@ class Create extends Component
             return 0.0;
         }
 
-        if ($this->type === 'ap') {
-            return (float) Payable::where('pihak_item_id', $this->pihakItemId)
-                ->where('status', '!=', PayableStatus::Lunas)
-                ->sum(DB::raw('nominal - nominal_dibayar'));
-        }
-
-        // AR
-        return (float) Receivable::where('pihak_item_id', $this->pihakItemId)
-            ->where('status', '!=', ReceivableStatus::Lunas)
-            ->sum(DB::raw('nominal - nominal_dibayar'));
+        return app(OutstandingBalanceService::class)->calculate($this->type, $this->pihakItemId);
     }
 
     /**

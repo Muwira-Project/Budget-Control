@@ -4,6 +4,7 @@ namespace App\Enums;
 
 enum ProjectStatus: string
 {
+    case Draft = 'draft';
     case InProgress = 'progress';
     case Done = 'done';
     case Cancelled = 'cancelled';
@@ -14,6 +15,7 @@ enum ProjectStatus: string
     public function label(): string
     {
         return match ($this) {
+            self::Draft => 'Draft',
             self::InProgress => 'In Progress',
             self::Done => 'Done',
             self::Cancelled => 'Cancelled',

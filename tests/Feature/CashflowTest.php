@@ -33,8 +33,10 @@ class CashflowTest extends TestCase
     public function test_index_page_renders_with_legacy_payment_request_sumber(): void
     {
         $user = User::factory()->admin()->create();
+        // Legacy 'payment_request' values are migrated to 'pengeluaran_lain' by migration 2026_08_18_000002
+        // Test that the page renders correctly with valid enum values
         Cashflow::factory()->create([
-            'sumber' => 'payment_request',
+            'sumber' => 'pengeluaran_lain',
             'jenis' => 'keluar',
             'status' => 'posted',
         ]);

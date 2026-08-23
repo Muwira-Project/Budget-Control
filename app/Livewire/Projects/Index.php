@@ -21,16 +21,16 @@ class Index extends Component
 
     public string $search = '';
 
+    public ?string $filterPeriode = null;
+
     public ?int $selectedProjectId = null;
 
     /**
-     * Delete a project.
+     * Reset pagination when filters change.
      */
-    public function delete(Project $project, ProjectService $service): void
+    public function updatedFilterPeriode(): void
     {
-        $service->delete($project);
-
-        session()->flash('status', 'Project deleted successfully.');
+        $this->resetPage();
     }
 
     /**
@@ -39,6 +39,14 @@ class Index extends Component
     public function updatedSearch(): void
     {
         $this->resetPage();
+    }
+
+    /**
+     * Export projects to Excel.
+     */
+    public function export(?string $periode = null)
+    {
+        $this->redirectRoute('imports.projects.export', ['periode' => $periode], navigate: true);
     }
 
     /**
@@ -52,8 +60,23 @@ class Index extends Component
                 $query->where('kode', 'like', '%'.$this->search.'%')
                     ->orWhere('nama', 'like', '%'.$this->search.'%');
             }))
+            ->when($this->filterPeriode, fn ($query) => $query->where('periode', $this->filterPeriode))
             ->latest()
             ->paginate($this->perPage);
+    }
+
+    /**
+     * Available periods for filter dropdown.
+     */
+    #[Computed]
+    public function availablePeriodes(): Collection
+    {
+        return Project::query()
+            ->select('periode')
+            ->whereNotNull('periode')
+            ->distinct()
+            ->orderBy('periode', 'desc')
+            ->pluck('periode');
     }
 
     public function showProjectDetail(int $projectId): void
@@ -92,8 +115,15 @@ class Index extends Component
     }
 
     /**
-     * Render the project index page.
+     * Delete a project.
      */
+    public function delete(Project $project, ProjectService $service): void
+    {
+        $service->delete($project);
+
+        session()->flash('status', 'Project deleted successfully.');
+    }
+
     protected function bulkCollectionProperty(): string
     {
         return 'projects';

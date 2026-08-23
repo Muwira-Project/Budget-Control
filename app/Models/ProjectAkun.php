@@ -177,6 +177,8 @@ class ProjectAkun extends Model
      *
      * Filters by akun_id explicitly since the relation only keys on
      * project_id (NULL = non-project rows).
+     * For non-project rows, also filters by party type and party item/custom_name
+     * to avoid aggregating across different parties.
      */
     public function getTotalRealisasiAttribute(?string $value = null): float
     {
@@ -184,10 +186,26 @@ class ProjectAkun extends Model
             return (float) $value;
         }
 
-        return (float) Realisasi::query()
+        $query = Realisasi::query()
             ->where('project_id', $this->project_id)
-            ->where('akun_id', $this->akun_id)
-            ->sum('nominal');
+            ->where('akun_id', $this->akun_id);
+
+        // For non-project rows, filter by party type and party item/custom_name
+        if ($this->project_id === null) {
+            if ($this->pihak_type_id !== null && $this->pihak_item_id !== null) {
+                $query->where('pihak_type_id', $this->pihak_type_id)
+                    ->where('pihak_item_id', $this->pihak_item_id);
+            } elseif ($this->custom_name !== null) {
+                $query->where('pihak_type_id', $this->pihak_type_id)
+                    ->where('pihak_item_id', null)
+                    ->where('custom_name', $this->custom_name);
+            } else {
+                // Neither party nor custom_name - no matching realisasi expected
+                return 0.0;
+            }
+        }
+
+        return (float) $query->sum('nominal');
     }
 
     /**

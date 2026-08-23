@@ -13,6 +13,18 @@
 
     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
         <div>
+            <x-input-label for="lokasi" :value="__('Location (optional)')" />
+            <x-text-input id="lokasi" class="mt-1 block w-full" type="text" wire:model="lokasi" placeholder="e.g. Jakarta" />
+            <x-input-error :messages="$errors->get('lokasi')" class="mt-2" />
+        </div>
+
+        <div>
+            <x-input-label for="devisi" :value="__('Division (optional)')" />
+            <x-text-input id="devisi" class="mt-1 block w-full" type="text" wire:model="devisi" placeholder="e.g. Construction" />
+            <x-input-error :messages="$errors->get('devisi')" class="mt-2" />
+        </div>
+
+        <div>
             <x-input-label for="pic" :value="__('PIC (optional)')" />
             <x-text-input id="pic" class="mt-1 block w-full" type="text" wire:model="pic" placeholder="e.g. Budi Santoso" />
             <x-input-error :messages="$errors->get('pic')" class="mt-2" />
@@ -94,6 +106,7 @@
     <div>
         <x-input-label for="status" :value="__('Status')" />
         <select id="status" wire:model="status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            <option value="draft">Draft</option>
             <option value="progress">In Progress</option>
             <option value="done">Done</option>
             <option value="cancelled">Cancelled</option>

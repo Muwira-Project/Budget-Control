@@ -48,7 +48,11 @@ abstract class BaseImport implements ToCollection, WithHeadingRow
 
         $actualHeaders = $rows->first()->keys()->all();
 
-        if ($this->expectedHeaders !== $actualHeaders) {
+        // Normalize headers to lowercase for case-insensitive comparison
+        $normalizedExpected = array_map('strtolower', $this->expectedHeaders);
+        $normalizedActual = array_map('strtolower', $actualHeaders);
+
+        if ($normalizedExpected !== $normalizedActual) {
             $this->fatalError = 'The header does not match the template. '
                 .'Expected: '.implode(', ', $this->expectedHeaders)
                 .'. Found: '.implode(', ', $actualHeaders).'.';

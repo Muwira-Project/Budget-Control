@@ -5,16 +5,11 @@ namespace App\Services;
 use App\Enums\AllocationStatus;
 use App\Enums\CashflowSumber;
 use App\Enums\KasStatus;
-use App\Enums\PayableStatus;
-use App\Enums\ReceivableStatus;
 use App\Models\CashAccount;
 use App\Models\Cashflow;
-use App\Models\Payable;
 use App\Models\Project;
 use App\Models\ProjectAkun;
-use App\Models\Receivable;
 use Illuminate\Pagination\LengthAwarePaginator;
-use Illuminate\Support\Facades\DB;
 
 class ProjectAkunService
 {
@@ -171,20 +166,7 @@ class ProjectAkunService
      */
     public function calculateOutstandingBalance(string $type, int $pihakItemId): float
     {
-        if (! in_array($type, ['ap', 'ar'])) {
-            return 0.0;
-        }
-
-        if ($type === 'ap') {
-            return (float) Payable::where('pihak_item_id', $pihakItemId)
-                ->where('status', '!=', PayableStatus::Lunas)
-                ->sum(DB::raw('nominal - nominal_dibayar'));
-        }
-
-        // AR
-        return (float) Receivable::where('pihak_item_id', $pihakItemId)
-            ->where('status', '!=', ReceivableStatus::Lunas)
-            ->sum(DB::raw('nominal - nominal_dibayar'));
+        return app(OutstandingBalanceService::class)->calculate($type, $pihakItemId);
     }
 
     /**

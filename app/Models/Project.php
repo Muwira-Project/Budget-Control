@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
-#[Fillable(['kode', 'nama', 'lokasi', 'pic', 'project_category_id', 'sub_work', 'periode', 'jenis', 'qty', 'satuan', 'harga_satuan', 'pajak', 'tanggal_mulai', 'target_selesai', 'status'])]
+#[Fillable(['kode', 'nama', 'lokasi', 'devisi', 'pic', 'project_category_id', 'sub_work', 'periode', 'jenis', 'qty', 'satuan', 'harga_satuan', 'pajak', 'tanggal_mulai', 'target_selesai', 'status'])]
 class Project extends Model
 {
     /** @use HasFactory<ProjectFactory> */

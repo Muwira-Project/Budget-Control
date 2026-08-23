@@ -26,6 +26,7 @@ use App\Livewire\Exports\Index as ExportIndex;
 use App\Livewire\FundTransfers\Create as CreateFundTransfer;
 use App\Livewire\FundTransfers\Index as IndexFundTransfer;
 use App\Livewire\Imports\ImportAkuns;
+use App\Livewire\Imports\ImportProjects;
 use App\Livewire\Kategoris\Create as CreateKategori;
 use App\Livewire\Kategoris\Edit as EditKategori;
 use App\Livewire\Kategoris\Index as IndexKategori;
@@ -63,6 +64,7 @@ use App\Livewire\Users\Index as IndexUser;
 use App\Livewire\Vouchers\Index as IndexVoucher;
 use App\Models\Cashflow;
 use App\Models\FundTransfer;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => redirect()->route('dashboard'))
@@ -126,7 +128,12 @@ Route::middleware(['auth', 'verified', 'draft-staff'])->group(function () {
     Route::get('/payments', IndexPayment::class)->name('payments.index');
 
     Route::get('/realisasi', function () {
-        return auth()->user()->isAdmin()
+        $user = Auth::user();
+        if (! $user) {
+            return redirect()->route('login');
+        }
+
+        return $user->isAdmin()
             ? redirect()->route('realisasi.detail')
             : redirect()->route('realisasi.summary');
     })->name('realisasi.index');
@@ -165,6 +172,8 @@ Route::middleware(['auth', 'verified', 'draft-staff'])->group(function () {
     Route::get('/import/akuns', ImportAkuns::class)->name('imports.akuns');
     Route::get('/import/akuns/template', [ImportTemplateController::class, 'akun'])->name('imports.akuns.template');
     Route::get('/import/projects/template', [ImportTemplateController::class, 'project'])->name('imports.projects.template');
+    Route::get('/import/projects', ImportProjects::class)->name('imports.projects');
+    Route::get('/import/projects/export', [ImportTemplateController::class, 'exportProjects'])->name('imports.projects.export');
 
     Route::get('/export/{type}', ExportIndex::class)
         ->whereIn('type', ['akuns', 'realisasi', 'vs'])
