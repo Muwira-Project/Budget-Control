@@ -24,6 +24,7 @@ class StoreProjectRequest extends FormRequest
     {
         return [
             'kode' => ['required', 'string', 'max:50', Rule::unique('projects', 'kode')],
+            'po_number' => ['nullable', 'string', 'max:100', Rule::unique('projects', 'po_number')],
             'nama' => ['required', 'string', 'max:255'],
             'lokasi' => ['nullable', 'string', 'max:255'],
             'pic' => ['nullable', 'string', 'max:255'],

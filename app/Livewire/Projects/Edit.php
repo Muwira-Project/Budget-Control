@@ -18,6 +18,8 @@ class Edit extends Component
 
     public string $kode = '';
 
+    public ?string $poNumber = null;
+
     public string $nama = '';
 
     public ?string $lokasi = null;
@@ -63,6 +65,7 @@ class Edit extends Component
     {
         $this->project = $project;
         $this->kode = $project->kode;
+        $this->poNumber = $project->po_number;
         $this->nama = $project->nama;
         $this->lokasi = $project->lokasi;
         $this->devisi = $project->devisi;
@@ -88,6 +91,7 @@ class Edit extends Component
         $validated = Validator::make(
             [
                 'kode' => $this->kode,
+                'po_number' => $this->poNumber,
                 'nama' => $this->nama,
                 'lokasi' => $this->lokasi,
                 'devisi' => $this->devisi,

@@ -5,6 +5,7 @@ namespace App\Enums;
 enum CashflowSumber: string
 {
     case Pendapatan = 'pendapatan';
+    case PemasukanManual = 'pemasukan_manual';
     case PelunasanAr = 'pelunasan_ar';
     case PelunasanAp = 'pelunasan_ap';
     case PengeluaranLain = 'pengeluaran_lain';
@@ -16,6 +17,7 @@ enum CashflowSumber: string
     {
         return match ($this) {
             self::Pendapatan => 'Income',
+            self::PemasukanManual => 'Manual Income',
             self::PelunasanAr => 'AR Settlement',
             self::PelunasanAp => 'AP Settlement',
             self::PengeluaranLain => 'Other Expense',

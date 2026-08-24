@@ -26,7 +26,9 @@ use App\Livewire\Exports\Index as ExportIndex;
 use App\Livewire\FundTransfers\Create as CreateFundTransfer;
 use App\Livewire\FundTransfers\Index as IndexFundTransfer;
 use App\Livewire\Imports\ImportAkuns;
+use App\Livewire\Imports\ImportPayables;
 use App\Livewire\Imports\ImportProjects;
+use App\Livewire\Imports\ImportReceivables;
 use App\Livewire\Kategoris\Create as CreateKategori;
 use App\Livewire\Kategoris\Edit as EditKategori;
 use App\Livewire\Kategoris\Index as IndexKategori;
@@ -174,14 +176,20 @@ Route::middleware(['auth', 'verified', 'draft-staff'])->group(function () {
     Route::get('/import/projects/template', [ImportTemplateController::class, 'project'])->name('imports.projects.template');
     Route::get('/import/projects', ImportProjects::class)->name('imports.projects');
     Route::get('/import/projects/export', [ImportTemplateController::class, 'exportProjects'])->name('imports.projects.export');
+    Route::get('/import/receivables', ImportReceivables::class)->name('imports.receivables');
+    Route::get('/import/receivables/template', [ImportTemplateController::class, 'receivable'])->name('imports.receivables.template');
+    Route::get('/import/payables', ImportPayables::class)->name('imports.payables');
+    Route::get('/import/payables/template', [ImportTemplateController::class, 'payable'])->name('imports.payables.template');
 
     Route::get('/export/{type}', ExportIndex::class)
-        ->whereIn('type', ['akuns', 'realisasi', 'vs'])
+        ->whereIn('type', ['akuns', 'realisasi', 'vs', 'receivables', 'payables'])
         ->name('exports.page');
     Route::get('/export/akuns/file', [ExportController::class, 'akuns'])->name('exports.akuns');
     Route::get('/export/realisasi/file', [ExportController::class, 'realisasi'])->name('exports.realisasi');
     Route::get('/export/akun-vs-realisasi/file', [ExportController::class, 'akunVsRealisasi'])->name('exports.vs');
     Route::get('/export/monitoring-summary/file', [ExportController::class, 'monitoringSummary'])->name('exports.monitoring-summary');
+    Route::get('/export/receivables/file', [ExportController::class, 'receivables'])->name('exports.receivables');
+    Route::get('/export/payables/file', [ExportController::class, 'payables'])->name('exports.payables');
 
     Route::view('profile', 'profile')->name('profile');
 });

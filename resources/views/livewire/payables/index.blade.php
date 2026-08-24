@@ -2,9 +2,19 @@
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <h2 class="text-xl font-semibold text-gray-800 leading-tight">{{ __('Payables (AP)') }}</h2>
-            <a href="{{ route('payables.create') }}" wire:navigate class="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                + Add Payable
-            </a>
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <a href="{{ route('exports.page', ['type' => 'payables']) }}" wire:navigate class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    <x-icon name="download" class="h-4 w-4 mr-2" />
+                    Export
+                </a>
+                <a href="{{ route('imports.payables') }}" wire:navigate class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    <x-icon name="upload" class="h-4 w-4 mr-2" />
+                    Import
+                </a>
+                <a href="{{ route('payables.create') }}" wire:navigate class="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    + Add Payable
+                </a>
+            </div>
         </div>
 
         @if (session('status'))

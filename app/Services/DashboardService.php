@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\AllocationStatus;
 use App\Enums\ProjectJenis;
+use App\Enums\ProjectStatus;
 use App\Models\Kategori;
 use App\Models\Payable;
 use App\Models\Project;
@@ -62,6 +63,8 @@ class DashboardService
         $outstandingAr = (float) Receivable::selectRaw('COALESCE(SUM(nominal - nominal_dibayar), 0) as total')->value('total');
         $outstandingAp = (float) Payable::selectRaw('COALESCE(SUM(nominal - nominal_dibayar), 0) as total')->value('total');
 
+        $arBreakdown = $this->arBreakdown($startDate, $endDate);
+
         $profitProjects = $projects->map(fn (Project $project) => [
             'kode' => $project->kode,
             'nama' => $project->nama,
@@ -101,6 +104,7 @@ class DashboardService
             'saldo_kas' => $cashflow['saldo'],
             'outstanding_ar' => $outstandingAr,
             'outstanding_ap' => $outstandingAp,
+            'ar_breakdown' => $arBreakdown,
             'total_profit' => array_sum(array_column($profitProjects, 'profit')),
             'profit_projects' => $profitProjects,
             'chart_budget_realisasi' => $chartBudgetRealisasi,
@@ -169,5 +173,61 @@ class DashboardService
         }
 
         return $totals;
+    }
+
+    /**
+     * AR Breakdown by category (billed, unbilled, inprogress) with grand total.
+     * Respects the dashboard date range filter.
+     *
+     * @return array<string, array{nominal: float, paid: float, outstanding: float, count: int}>
+     */
+    protected function arBreakdown(?string $startDate = null, ?string $endDate = null): array
+    {
+        $categories = ['billed', 'unbilled', 'inprogress'];
+        
+        $breakdown = [];
+        $grandTotal = ['nominal' => 0.0, 'paid' => 0.0, 'outstanding' => 0.0, 'count' => 0];
+
+        foreach ($categories as $category) {
+            $query = Receivable::query()->whereHas('project', function ($q) use ($category) {
+                match ($category) {
+                    'billed' => $q->where('status', ProjectStatus::Done)->whereNotNull('po_number'),
+                    'unbilled' => $q->where('status', ProjectStatus::Done)->whereNull('po_number'),
+                    'inprogress' => $q->where('status', '!=', ProjectStatus::Done),
+                    default => $q,
+                };
+            });
+
+            // Apply date range filter on receivable tanggal
+            if ($startDate) {
+                $query->whereDate('tanggal', '>=', $startDate);
+            }
+            if ($endDate) {
+                $query->whereDate('tanggal', '<=', $endDate);
+            }
+
+            $aggregates = $query->selectRaw(
+                'COALESCE(SUM(nominal), 0) as total_nominal,
+                 COALESCE(SUM(nominal_dibayar), 0) as total_paid,
+                 COALESCE(SUM(nominal - nominal_dibayar), 0) as total_outstanding,
+                 COUNT(*) as total_count'
+            )->first();
+
+            $breakdown[$category] = [
+                'nominal' => (float) $aggregates->total_nominal,
+                'paid' => (float) $aggregates->total_paid,
+                'outstanding' => (float) $aggregates->total_outstanding,
+                'count' => (int) $aggregates->total_count,
+            ];
+
+            $grandTotal['nominal'] += $breakdown[$category]['nominal'];
+            $grandTotal['paid'] += $breakdown[$category]['paid'];
+            $grandTotal['outstanding'] += $breakdown[$category]['outstanding'];
+            $grandTotal['count'] += $breakdown[$category]['count'];
+        }
+
+        $breakdown['total'] = $grandTotal;
+
+        return $breakdown;
     }
 }

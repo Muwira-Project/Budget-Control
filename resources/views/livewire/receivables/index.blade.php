@@ -2,9 +2,19 @@
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <h2 class="text-xl font-semibold text-gray-800 leading-tight">{{ __('Receivables (AR)') }}</h2>
-            <a href="{{ route('receivables.create') }}" wire:navigate class="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                + Add Receivable
-            </a>
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <a href="{{ route('exports.page', ['type' => 'receivables']) }}" wire:navigate class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    <x-icon name="download" class="h-4 w-4 mr-2" />
+                    Export
+                </a>
+                <a href="{{ route('imports.receivables') }}" wire:navigate class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    <x-icon name="upload" class="h-4 w-4 mr-2" />
+                    Import
+                </a>
+                <a href="{{ route('receivables.create') }}" wire:navigate class="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    + Add Receivable
+                </a>
+            </div>
         </div>
 
         @if (session('status'))
@@ -17,7 +27,7 @@
             <x-bulk-actions :paginator="$this->receivables" :selected-ids="$this->selectedIds" />
                 <div class="mt-6 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-200">
                 <div class="border-b border-gray-100 p-6">
-                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                         <div>
                             <x-input-label for="project_filter" :value="__('Filter Project')" />
                             <select id="project_filter" wire:model.live="projectId" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
@@ -45,12 +55,54 @@
                                 @endforeach
                             </select>
                         </div>
+                        <div>
+                            <x-input-label for="ar_category_filter" :value="__('Filter AR Category')" />
+                            <select id="ar_category_filter" wire:model.live="arCategoryFilter" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                @foreach ($this->arCategories as $value => $label)
+                                    <option value="{{ $value }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        <div>
+                            <x-input-label for="po_number_filter" :value="__('PO Number')" />
+                            <input id="po_number_filter" type="text" wire:model.live="poNumberFilter" placeholder="e.g. PO-2026-001" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" />
+                        </div>
+                        <div>
+                            <x-input-label for="date_from_filter" :value="__('Date From')" />
+                            <input id="date_from_filter" type="date" wire:model.live="dateFromFilter" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" />
+                        </div>
+                        <div>
+                            <x-input-label for="date_to_filter" :value="__('Date To')" />
+                            <input id="date_to_filter" type="date" wire:model.live="dateToFilter" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" />
+                        </div>
+                    </div>
+
+                    <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                        <div>
+                            <x-input-label for="amount_min_filter" :value="__('Min Amount')" />
+                            <input id="amount_min_filter" type="number" step="0.01" min="0" wire:model.live="amountMinFilter" placeholder="e.g. 1000000" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" />
+                        </div>
+                        <div>
+                            <x-input-label for="amount_max_filter" :value="__('Max Amount')" />
+                            <input id="amount_max_filter" type="number" step="0.01" min="0" wire:model.live="amountMaxFilter" placeholder="e.g. 100000000" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" />
+                        </div>
+                    </div>
+
+                    {{-- Summary Position Toggle --}}
+                    <div class="mt-4 flex items-center gap-3">
+                        <label class="inline-flex items-center cursor-pointer">
+                            <input type="checkbox" wire:model="summaryPositionBottom" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                            <span class="ml-2 text-sm text-gray-700">Show Summary at Bottom</span>
+                        </label>
                     </div>
                 </div>
 
                 @if ($this->receivables->isEmpty())
                     <p class="p-6 text-sm text-gray-500">
-                        {{ $this->projectId !== null || $this->statusFilter !== '' || $this->agingFilter !== '' ? 'No receivables match the filter.' : 'No receivables yet. Receivables are created automatically when a project is completed, or click "Add Receivable".' }}
+                        {{ $this->projectId !== null || $this->statusFilter !== '' || $this->agingFilter !== '' || $this->arCategoryFilter !== '' || $this->poNumberFilter !== '' || $this->dateFromFilter || $this->dateToFilter || $this->amountMinFilter !== null || $this->amountMaxFilter !== null ? 'No receivables match the filter.' : 'No receivables yet. Receivables are created automatically when a project is completed, or click "Add Receivable".' }}
                     </p>
                 @else
                     <div class="overflow-x-auto">
@@ -72,8 +124,8 @@
                             <tbody class="divide-y divide-gray-100 bg-white">
                                 @foreach ($this->receivables as $receivable)
                                     <tr class="hover:bg-gray-50">
-<td class="w-8 px-6 py-4"><input type="checkbox" wire:click="toggleSelected({{ $receivable->id }})" @checked(in_array($receivable->id, $this->selectedIds, true)) class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" /></td>
-                                            
+                                        <td class="w-8 px-6 py-4"><input type="checkbox" wire:click="toggleSelected({{ $receivable->id }})" @checked(in_array($receivable->id, $this->selectedIds, true)) class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" /></td>
+
                                         <td class="px-6 py-4 text-gray-700">{{ $receivable->project->kode }} - {{ $receivable->project->nama }}</td>
                                         <td class="px-6 py-4 text-gray-500 whitespace-nowrap">{{ $receivable->nomor_invoice ?? '-' }}</td>
                                         <td class="px-6 py-4 text-gray-700 whitespace-nowrap">{{ $receivable->tanggal->format('d M Y') }}</td>
@@ -119,7 +171,58 @@
                     </div>
                     <div class="border-t border-gray-100 px-6 py-4">
                         <x-pagination-footer :paginator="$this->receivables" />
-                    </div>
+                    </div
+
+                    {{-- AR Summary Table at Bottom --}}
+                    @if ($summaryPositionBottom && $this->arSummary)
+                        <div class="border-t border-gray-200 bg-gray-50 p-4">
+                            <h3 class="text-sm font-semibold text-gray-900 mb-3">AR Summary by Category</h3>
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200 text-sm">
+                                    <thead class="bg-gray-100 text-left text-xs font-semibold uppercase tracking-wider text-gray-600">
+                                        <tr>
+                                            <th class="px-4 py-2">Category</th>
+                                            <th class="px-4 py-2 text-right">Invoices</th>
+                                            <th class="px-4 py-2 text-right">Nominal</th>
+                                            <th class="px-4 py-2 text-right">Paid</th>
+                                            <th class="px-4 py-2 text-right">Outstanding</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-white divide-y divide-gray-100">
+                                        @foreach (['billed', 'unbilled', 'inprogress'] as $category)
+                                            @php
+                                                $data = $this->arSummary[$category] ?? ['nominal' => 0, 'paid' => 0, 'outstanding' => 0, 'count' => 0];
+                                                $label = match($category) {
+                                                    'billed' => 'Billed (Done + PO)',
+                                                    'unbilled' => 'Unbilled (Done, No PO)',
+                                                    'inprogress' => 'In Progress',
+                                                    default => ucfirst($category)
+                                                };
+                                            @endphp
+                                            <tr class="hover:bg-gray-50">
+                                                <td class="px-4 py-2 font-medium text-gray-900">{{ $label }}</td>
+                                                <td class="px-4 py-2 text-right text-gray-700">{{ $data['count'] }}</td>
+                                                <td class="px-4 py-2 text-right text-gray-900">{{ format_idr($data['nominal']) }}</td>
+                                                <td class="px-4 py-2 text-right text-green-700">{{ format_idr($data['paid']) }}</td>
+                                                <td class="px-4 py-2 text-right text-red-700 font-medium">{{ format_idr($data['outstanding']) }}</td>
+                                            </tr>
+                                        @endforeach
+                                        {{-- Grand Total Row --}}
+                                        @php
+                                            $gt = $this->arSummary['grand_total'] ?? ['nominal' => 0, 'paid' => 0, 'outstanding' => 0, 'count' => 0];
+                                        @endphp
+                                        <tr class="bg-gray-100 font-bold">
+                                            <td class="px-4 py-2 text-gray-900">Grand Total</td>
+                                            <td class="px-4 py-2 text-right text-gray-700">{{ $gt['count'] }}</td>
+                                            <td class="px-4 py-2 text-right text-gray-900">{{ format_idr($gt['nominal']) }}</td>
+                                            <td class="px-4 py-2 text-right text-green-700">{{ format_idr($gt['paid']) }}</td>
+                                            <td class="px-4 py-2 text-right text-red-700">{{ format_idr($gt['outstanding']) }}</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    @endif
                 @endif
             </div>
         </x-confirm-modal>

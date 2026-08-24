@@ -40,7 +40,10 @@ class DashboardTest extends TestCase
             ->assertSee('Project Overview')
             ->assertSee('Recent Activity')
             ->assertSee('Cash Activity')
-            ->assertSee('Outstanding Receivable')
+            ->assertSee('Billed')
+            ->assertSee('Unbilled')
+            ->assertSee('In Progress')
+            ->assertSee('Total AR')
             ->assertSee('Outstanding Payable');
     }
 
@@ -121,6 +124,7 @@ class DashboardTest extends TestCase
             'kategori_breakdown',
             'cash_in', 'cash_out', 'saldo_kas',
             'outstanding_ar', 'outstanding_ap',
+            'ar_breakdown',
             'total_profit', 'profit_projects',
             'chart_budget_realisasi',
         ];

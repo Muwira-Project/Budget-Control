@@ -6,6 +6,12 @@
     </div>
 
     <div>
+        <x-input-label for="po_number" :value="__('PO Number (optional)')" />
+        <x-text-input id="po_number" class="mt-1 block w-full" type="text" wire:model="poNumber" placeholder="e.g. PO-2026-001" />
+        <x-input-error :messages="$errors->get('po_number')" class="mt-2" />
+    </div>
+
+    <div>
         <x-input-label for="nama" :value="__('Project Name')" />
         <x-text-input id="nama" class="mt-1 block w-full" type="text" wire:model="nama" required />
         <x-input-error :messages="$errors->get('nama')" class="mt-2" />

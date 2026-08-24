@@ -15,7 +15,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 
-#[Fillable(['kode', 'nama', 'lokasi', 'devisi', 'pic', 'project_category_id', 'sub_work', 'periode', 'jenis', 'qty', 'satuan', 'harga_satuan', 'pajak', 'tanggal_mulai', 'target_selesai', 'status'])]
+#[Fillable(['kode', 'po_number', 'nama', 'lokasi', 'devisi', 'pic', 'project_category_id', 'sub_work', 'periode', 'jenis', 'qty', 'satuan', 'harga_satuan', 'pajak', 'tanggal_mulai', 'target_selesai', 'status'])]
 class Project extends Model
 {
     /** @use HasFactory<ProjectFactory> */
@@ -159,6 +159,33 @@ class Project extends Model
         return $value !== null
             ? (float) $value
             : (float) $this->realisasi()->sum('realisasi.nominal');
+    }
+
+    /**
+     * AR Category based on project status and PO number.
+     * - billed: Done + PO Number exists
+     * - unbilled: Done + no PO Number
+     * - inprogress: Not Done (InProgress, Draft, Cancelled)
+     */
+    public function getArCategoryAttribute(): string
+    {
+        if ($this->status->isDone()) {
+            return $this->po_number ? 'billed' : 'unbilled';
+        }
+        return 'inprogress';
+    }
+
+    /**
+     * Scope to filter projects by AR category.
+     */
+    public function scopeArCategory($query, string $category): Builder
+    {
+        return match ($category) {
+            'billed' => $query->where('status', ProjectStatus::Done)->whereNotNull('po_number'),
+            'unbilled' => $query->where('status', ProjectStatus::Done)->whereNull('po_number'),
+            'inprogress' => $query->where('status', '!=', ProjectStatus::Done),
+            default => $query,
+        };
     }
 
     /**

@@ -3,8 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Exports\AkunTemplateExport;
+use App\Exports\PayableTemplateExport;
 use App\Exports\ProjectExport;
 use App\Exports\ProjectTemplateExport;
+use App\Exports\ReceivableTemplateExport;
 use Maatwebsite\Excel\Facades\Excel;
 
 class ImportTemplateController extends Controller
@@ -33,5 +35,21 @@ class ImportTemplateController extends Controller
         $filename = $periode ? "projects-{$periode}.xlsx" : 'projects-all.xlsx';
 
         return Excel::download(new ProjectExport($periode), $filename);
+    }
+
+    /**
+     * Download the receivable import template.
+     */
+    public function receivable()
+    {
+        return Excel::download(new ReceivableTemplateExport, 'template-receivable.xlsx');
+    }
+
+    /**
+     * Download the payable import template.
+     */
+    public function payable()
+    {
+        return Excel::download(new PayableTemplateExport, 'template-payable.xlsx');
     }
 }

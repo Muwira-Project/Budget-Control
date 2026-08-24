@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Enums\CashflowSumber;
 use App\Enums\ProjectJenis;
 use App\Enums\ProjectStatus;
 use App\Models\Akun;
@@ -101,7 +102,7 @@ class DummyDataSeeder extends Seeder
                 [
                     'tanggal' => '2026-07-01',
                     'jenis' => 'masuk',
-                    'sumber' => 'pemasukan_manual',
+                    'sumber' => CashflowSumber::Pendapatan->value,
                     'nominal' => 150000000,
                     'keterangan' => 'Investasi tambahan dari PT Mitra Investama untuk PRJ-2025-001',
                 ],
@@ -133,7 +134,7 @@ class DummyDataSeeder extends Seeder
                 [
                     'tanggal' => '2026-07-10',
                     'jenis' => 'keluar',
-                    'sumber' => 'pengeluaran_lain',
+                    'sumber' => CashflowSumber::PengeluaranLain->value,
                     'nominal' => 25000000,
                     'keterangan' => 'Bayar tagihan listrik site PRJ-2025-002 ke PT Maju Jaya',
                 ],
@@ -164,7 +165,7 @@ class DummyDataSeeder extends Seeder
                 [
                     'tanggal' => '2026-07-15',
                     'jenis' => 'keluar',
-                    'sumber' => 'pengeluaran_lain',
+                    'sumber' => CashflowSumber::PengeluaranLain->value,
                     'nominal' => 5000000,
                     'keterangan' => 'Beli ATK kantor dari PT Sumber Material (non-project)',
                 ],
@@ -431,6 +432,7 @@ class DummyDataSeeder extends Seeder
         $projects = [
             [
                 'kode' => 'PRJ-2025-001',
+                'po_number' => 'PO-2025-001',
                 'nama' => 'Pembangunan Gedung Kantor',
                 'lokasi' => 'Jakarta',
                 'pic' => 'Arian',
@@ -455,6 +457,7 @@ class DummyDataSeeder extends Seeder
             ],
             [
                 'kode' => 'PRJ-2025-002',
+                'po_number' => 'PO-2025-002',
                 'nama' => 'Renovasi Ruang Rapat',
                 'lokasi' => 'Jakarta',
                 'pic' => 'Budi',
@@ -681,11 +684,11 @@ class DummyDataSeeder extends Seeder
         ];
 
         foreach ($keluar as $entry) {
-            if (Cashflow::where('sumber', 'pengeluaran_lain')->where('nominal', $entry['nominal'])->where('keterangan', $entry['keterangan'])->doesntExist()) {
+            if (Cashflow::where('sumber', CashflowSumber::PengeluaranLain->value)->where('nominal', $entry['nominal'])->where('keterangan', $entry['keterangan'])->doesntExist()) {
                 Cashflow::create([
                     'tanggal' => $entry['tanggal'],
                     'jenis' => 'keluar',
-                    'sumber' => 'pengeluaran_lain',
+                    'sumber' => CashflowSumber::PengeluaranLain->value,
                     'akun_id' => $entry['akun_id'],
                     'nominal' => $entry['nominal'],
                     'keterangan' => $entry['keterangan'],
@@ -699,11 +702,11 @@ class DummyDataSeeder extends Seeder
         ];
 
         foreach ($pendapatan as $entry) {
-            if (Cashflow::where('sumber', 'pendapatan')->where('nominal', $entry['nominal'])->where('keterangan', $entry['keterangan'])->doesntExist()) {
+            if (Cashflow::where('sumber', CashflowSumber::Pendapatan->value)->where('nominal', $entry['nominal'])->where('keterangan', $entry['keterangan'])->doesntExist()) {
                 Cashflow::create([
                     'tanggal' => $entry['tanggal'],
                     'jenis' => 'masuk',
-                    'sumber' => 'pendapatan',
+                    'sumber' => CashflowSumber::Pendapatan->value,
                     'nominal' => $entry['nominal'],
                     'keterangan' => $entry['keterangan'],
                 ]);
@@ -740,6 +743,145 @@ class DummyDataSeeder extends Seeder
                 'nominal' => $payable->nominal,
                 'keterangan' => 'Pelunasan penuh material',
             ]);
+        }
+
+        // Seed additional Receivables for AR import/export demo
+        $this->seedSampleReceivables();
+        $this->seedSamplePayables();
+    }
+
+    /**
+     * Seed sample Receivables (AR) with different categories for demo.
+     */
+    protected function seedSampleReceivables(): void
+    {
+        $project1 = Project::where('kode', 'PRJ-2025-001')->first();
+        $project2 = Project::where('kode', 'PRJ-2025-002')->first();
+
+        // MasterItem for customer (Investor)
+        $investorType = MasterType::where('kode', 'INVESTOR')->first();
+        $customer = $investorType ? MasterItem::where('master_type_id', $investorType->id)->first() : null;
+
+        $receivables = [
+            // Billed (dibayar_lunas / posted)
+            [
+                'project_id' => $project1?->id,
+                'pihak_type_id' => $investorType?->id,
+                'pihak_item_id' => $customer?->id,
+                'nomor_invoice' => 'INV-2026-001',
+                'tanggal' => '2026-07-01',
+                'jatuh_tempo' => '2026-07-31',
+                'nominal' => 150000000,
+                'nominal_dibayar' => 150000000,
+                'keterangan' => 'Tagihan pembangunan gedung kantor Tahap 1',
+            ],
+            [
+                'project_id' => $project2?->id,
+                'pihak_type_id' => $investorType?->id,
+                'pihak_item_id' => $customer?->id,
+                'nomor_invoice' => 'INV-2026-002',
+                'tanggal' => '2026-07-15',
+                'jatuh_tempo' => '2026-08-15',
+                'nominal' => 80000000,
+                'nominal_dibayar' => 40000000,
+                'keterangan' => 'Tagihan renovasi ruang rapat - 50%',
+            ],
+            // Unbilled (draft)
+            [
+                'project_id' => $project1?->id,
+                'pihak_type_id' => $investorType?->id,
+                'pihak_item_id' => $customer?->id,
+                'nomor_invoice' => 'INV-2026-003',
+                'tanggal' => '2026-08-01',
+                'jatuh_tempo' => '2026-08-31',
+                'nominal' => 200000000,
+                'nominal_dibayar' => 0,
+                'keterangan' => 'Tagihan tahap 2 - belum diterbitkan',
+            ],
+            // Inprogress (partially paid)
+            [
+                'project_id' => $project1?->id,
+                'pihak_type_id' => $investorType?->id,
+                'pihak_item_id' => $customer?->id,
+                'nomor_invoice' => 'INV-2026-004',
+                'tanggal' => '2026-06-15',
+                'jatuh_tempo' => '2026-07-15',
+                'nominal' => 100000000,
+                'nominal_dibayar' => 30000000,
+                'keterangan' => 'Tagihan material tambahan - on progress',
+            ],
+        ];
+
+        foreach ($receivables as $data) {
+            if ($data['project_id'] && $data['pihak_type_id'] && $data['pihak_item_id']) {
+                Receivable::firstOrCreate(
+                    ['nomor_invoice' => $data['nomor_invoice']],
+                    $data
+                );
+            }
+        }
+    }
+
+    /**
+     * Seed sample Payables (AP) for demo.
+     */
+    protected function seedSamplePayables(): void
+    {
+        $project1 = Project::where('kode', 'PRJ-2025-001')->first();
+        $project2 = Project::where('kode', 'PRJ-2025-002')->first();
+
+        $vendorType = MasterType::where('kode', 'VENDOR')->first();
+        $vendor = $vendorType ? MasterItem::where('master_type_id', $vendorType->id)->first() : null;
+
+        $supplierType = MasterType::where('kode', 'SUPPLIER')->first();
+        $supplier = $supplierType ? MasterItem::where('master_type_id', $supplierType->id)->first() : null;
+
+        $payables = [
+            [
+                'project_id' => $project1?->id,
+                'pihak_type_id' => $vendorType?->id,
+                'pihak_item_id' => $vendor?->id,
+                'akun_id' => Akun::where('kode_akun', '5-102')->first()?->id,
+                'nomor_invoice' => 'BILL-2026-001',
+                'tanggal' => '2026-07-01',
+                'jatuh_tempo' => '2026-07-31',
+                'nominal' => 50000000,
+                'nominal_dibayar' => 50000000,
+                'keterangan' => 'Tagihan upah tukang Januari',
+            ],
+            [
+                'project_id' => $project2?->id,
+                'pihak_type_id' => $supplierType?->id,
+                'pihak_item_id' => $supplier?->id,
+                'akun_id' => Akun::where('kode_akun', '5-001')->first()?->id,
+                'nomor_invoice' => 'BILL-2026-002',
+                'tanggal' => '2026-07-10',
+                'jatuh_tempo' => '2026-08-10',
+                'nominal' => 40000000,
+                'nominal_dibayar' => 0,
+                'keterangan' => 'Tagihan material cat & plafon',
+            ],
+            [
+                'project_id' => $project1?->id,
+                'pihak_type_id' => $vendorType?->id,
+                'pihak_item_id' => $vendor?->id,
+                'akun_id' => Akun::where('kode_akun', '5-102')->first()?->id,
+                'nomor_invoice' => 'BILL-2026-003',
+                'tanggal' => '2026-07-20',
+                'jatuh_tempo' => '2026-08-20',
+                'nominal' => 75000000,
+                'nominal_dibayar' => 25000000,
+                'keterangan' => 'Tagihan listrik site Juli',
+            ],
+        ];
+
+        foreach ($payables as $data) {
+            if ($data['project_id'] && $data['pihak_type_id'] && $data['pihak_item_id']) {
+                Payable::firstOrCreate(
+                    ['nomor_invoice' => $data['nomor_invoice']],
+                    $data
+                );
+            }
         }
     }
 

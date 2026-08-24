@@ -5,8 +5,11 @@ namespace App\Http\Controllers;
 use App\Exports\AkunExport;
 use App\Exports\AkunVsRealisasiExport;
 use App\Exports\MonitoringSummaryExport;
+use App\Exports\PayableExport;
 use App\Exports\RealisasiExport;
+use App\Exports\ReceivableExport;
 use App\Services\MonitoringPeriodService;
+use App\Services\ReceivableService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Maatwebsite\Excel\Excel;
@@ -63,6 +66,60 @@ class ExportController extends Controller
             'pdf' => app(Excel::class)->download($export, $filename, Excel::DOMPDF),
             default => app(Excel::class)->download($export, $filename),
         };
+    }
+
+    /**
+     * Download the receivables (AR) report.
+     */
+    public function receivables(Request $request): BinaryFileResponse
+    {
+        return $this->download(new ReceivableExport($this->receivableFilters($request)), 'AR_', $request->query('format', 'xlsx'));
+    }
+
+    /**
+     * Download the payables (AP) report.
+     */
+    public function payables(Request $request): BinaryFileResponse
+    {
+        return $this->download(new PayableExport($this->payableFilters($request)), 'AP_', $request->query('format', 'xlsx'));
+    }
+
+    /**
+     * Build the export filters for receivables from the request query string.
+     *
+     * @return array<string, mixed>
+     */
+    private function receivableFilters(Request $request): array
+    {
+        return [
+            'project_id' => $request->integer('project_id') ?: null,
+            'status' => in_array($request->query('status'), ['belum_dibayar', 'sebagian', 'lunas'], true) ? $request->query('status') : null,
+            'aging' => in_array($request->query('aging'), ['current', '1_30', '31_60', '61_90', 'over_90'], true) ? $request->query('aging') : null,
+            'ar_category' => in_array($request->query('ar_category'), ['billed', 'unbilled', 'inprogress'], true) ? $request->query('ar_category') : null,
+            'po_number' => $request->query('po_number') ?: null,
+            'date_from' => $this->validDate($request->query('date_from')),
+            'date_to' => $this->validDate($request->query('date_to')),
+            'amount_min' => $request->filled('amount_min') ? (float) $request->query('amount_min') : null,
+            'amount_max' => $request->filled('amount_max') ? (float) $request->query('amount_max') : null,
+        ];
+    }
+
+    /**
+     * Build the export filters for payables from the request query string.
+     *
+     * @return array<string, mixed>
+     */
+    private function payableFilters(Request $request): array
+    {
+        return [
+            'project_id' => $request->integer('project_id') ?: null,
+            'status' => in_array($request->query('status'), ['belum_bayar', 'sebagian', 'lunas'], true) ? $request->query('status') : null,
+            'aging' => in_array($request->query('aging'), ['current', '1_30', '31_60', '61_90', 'over_90'], true) ? $request->query('aging') : null,
+            'date_from' => $this->validDate($request->query('date_from')),
+            'date_to' => $this->validDate($request->query('date_to')),
+            'amount_min' => $request->filled('amount_min') ? (float) $request->query('amount_min') : null,
+            'amount_max' => $request->filled('amount_max') ? (float) $request->query('amount_max') : null,
+        ];
     }
 
     private function filters(Request $request): array

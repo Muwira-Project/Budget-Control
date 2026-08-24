@@ -288,24 +288,55 @@
                 </div>
             </div>
             {{-- Receivable & Payable --}}
-            <div class="app-card overflow-hidden">
-                <div class="flex items-center justify-between border-b border-slate-100 px-5 py-4">
-                    <div>
-                        <h3 class="flex items-center gap-2 font-semibold text-slate-900"><x-icon name="receipt" class="h-5 w-5 text-brand-600" /> Receivable & Payable</h3>
-                        <p class="mt-0.5 text-sm text-slate-500">Outstanding AR and AP balances</p>
-                    </div>
-                </div>
-                <div class="grid grid-cols-2 gap-3 p-5">
-                    <a href="{{ route('receivables.index') }}" wire:navigate class="rounded-lg bg-brand-50 p-3 ring-1 ring-brand-100 transition hover:bg-brand-100/70">
-                        <p class="text-[11px] font-semibold uppercase tracking-wider text-brand-700">Outstanding Receivable</p>
-                        <p class="mt-1 text-xl font-bold text-brand-800">{{ format_idr($stats['outstanding_ar']) }}</p>
-                    </a>
-                    <a href="{{ route('payables.index') }}" wire:navigate class="rounded-lg bg-red-50 p-3 ring-1 ring-red-100 transition hover:bg-red-100/70">
-                        <p class="text-[11px] font-semibold uppercase tracking-wider text-red-700">Outstanding Payable</p>
-                        <p class="mt-1 text-xl font-bold text-red-800">{{ format_idr($stats['outstanding_ap']) }}</p>
-                    </a>
-                </div>
-            </div>
+                        <div class="app-card overflow-hidden">
+                            <div class="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+                                <div>
+                                    <h3 class="flex items-center gap-2 font-semibold text-slate-900"><x-icon name="receipt" class="h-5 w-5 text-brand-600" /> Receivable (AR) Breakdown</h3>
+                                    <p class="mt-0.5 text-sm text-slate-500">Outstanding AR by category</p>
+                                </div>
+                            </div>
+                            <div class="grid grid-cols-1 gap-3 p-5 sm:grid-cols-2 lg:grid-cols-4">
+                                {{-- Billed --}}
+                                <a href="{{ route('receivables.index', ['ar_category' => 'billed']) }}" wire:navigate class="rounded-lg bg-emerald-50 p-3 ring-1 ring-emerald-100 transition hover:bg-emerald-100/70">
+                                    <p class="text-[11px] font-semibold uppercase tracking-wider text-emerald-700">Billed</p>
+                                    <p class="mt-1 text-xl font-bold text-emerald-800">{{ format_idr($stats['ar_breakdown']['billed']['outstanding'] ?? 0) }}</p>
+                                    <p class="text-xs text-emerald-600">{{ $stats['ar_breakdown']['billed']['count'] ?? 0 }} invoices</p>
+                                </a>
+                                {{-- Unbilled --}}
+                                <a href="{{ route('receivables.index', ['ar_category' => 'unbilled']) }}" wire:navigate class="rounded-lg bg-amber-50 p-3 ring-1 ring-amber-100 transition hover:bg-amber-100/70">
+                                    <p class="text-[11px] font-semibold uppercase tracking-wider text-amber-700">Unbilled</p>
+                                    <p class="mt-1 text-xl font-bold text-amber-800">{{ format_idr($stats['ar_breakdown']['unbilled']['outstanding'] ?? 0) }}</p>
+                                    <p class="text-xs text-amber-600">{{ $stats['ar_breakdown']['unbilled']['count'] ?? 0 }} invoices</p>
+                                </a>
+                                {{-- In Progress --}}
+                                <a href="{{ route('receivables.index', ['ar_category' => 'inprogress']) }}" wire:navigate class="rounded-lg bg-blue-50 p-3 ring-1 ring-blue-100 transition hover:bg-blue-100/70">
+                                    <p class="text-[11px] font-semibold uppercase tracking-wider text-blue-700">In Progress</p>
+                                    <p class="mt-1 text-xl font-bold text-blue-800">{{ format_idr($stats['ar_breakdown']['inprogress']['outstanding'] ?? 0) }}</p>
+                                    <p class="text-xs text-blue-600">{{ $stats['ar_breakdown']['inprogress']['count'] ?? 0 }} invoices</p>
+                                </a>
+                                {{-- Grand Total --}}
+                                <a href="{{ route('receivables.index') }}" wire:navigate class="rounded-lg bg-brand-50 p-3 ring-1 ring-brand-100 transition hover:bg-brand-100/70">
+                                    <p class="text-[11px] font-semibold uppercase tracking-wider text-brand-700">Total AR</p>
+                                    <p class="mt-1 text-xl font-bold text-brand-800">{{ format_idr($stats['ar_breakdown']['total']['outstanding'] ?? 0) }}</p>
+                                    <p class="text-xs text-brand-600">{{ $stats['ar_breakdown']['total']['count'] ?? 0 }} invoices</p>
+                                </a>
+                            </div>
+                        </div>
+                        {{-- Payable (FLAT) --}}
+                        <div class="app-card overflow-hidden">
+                            <div class="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+                                <div>
+                                    <h3 class="flex items-center gap-2 font-semibold text-slate-900"><x-icon name="credit-card" class="h-5 w-5 text-red-600" /> Outstanding Payable</h3>
+                                    <p class="mt-0.5 text-sm text-slate-500">Total AP balance</p>
+                                </div>
+                            </div>
+                            <div class="p-5">
+                                <a href="{{ route('payables.index') }}" wire:navigate class="rounded-lg bg-red-50 p-3 ring-1 ring-red-100 text-center">
+                                    <p class="text-[11px] font-semibold uppercase tracking-wider text-red-700">Outstanding AP</p>
+                                    <p class="mt-1 text-xl font-bold text-red-800">{{ format_idr($stats['outstanding_ap']) }}</p>
+                                </a>
+                            </div>
+                        </div>
         </section>
     @endunless
 </div>

@@ -26,6 +26,6 @@
             </form>
         </div>
 
-        @include('livewire.imports._report')
+        @include('livewire.imports._report', ['report' => $report])
     </div>
 </div>

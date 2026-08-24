@@ -15,6 +15,8 @@ class Create extends Component
 {
     public string $kode = '';
 
+    public ?string $poNumber = null;
+
     public string $nama = '';
 
     public ?string $lokasi = null;
@@ -61,6 +63,7 @@ class Create extends Component
         $validated = Validator::make(
             [
                 'kode' => $this->kode,
+                'po_number' => $this->poNumber,
                 'nama' => $this->nama,
                 'lokasi' => $this->lokasi,
                 'devisi' => $this->devisi,
