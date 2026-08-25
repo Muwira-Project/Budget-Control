@@ -77,4 +77,62 @@ php artisan test          # test suite
 vendor/bin/pint --test    # PSR-12 check
 ```
 
-Gate terakhir: **302 test lulus** + **Pint lulus**.
+Gate terakhir: **331 test lulus** + **Pint lulus**.
+
+## Changelog
+
+### 2026-08-25 — Commit `3bd6edf` (branch `feature/review-16-aug-2026`)
+
+**Project Lifecycle & State Machine:**
+- State machine validation (`ProjectStatus::canTransitionTo()`) enforced at Enum, Model, FormRequest, Livewire, and Blade layers
+- Valid transitions: Draft → Progress/Cancelled → Done/Revisi/Cancelled → Revisi/Cancelled
+- Dynamic status dropdown disables illegal transitions in UI
+
+**Revisi Workflow + Audit Trail:**
+- Migration `2026_08_25_140000_add_revisi_fields_to_projects_table.php`: adds `revisi_reason`, `revisi_at`, `revisi_by`
+- `LogsActivity` trait extended with extra properties support
+- Auto-set revisi fields when transitioning TO revisi; reason required
+- Custom audit log entries: "Moved to Revisi" / "Moved from Revisi"
+
+**AR Integrity (Double-Count Fix):**
+- `ReceivableService::createForProject()` uses `updateOrCreate` with `withTrashed()` to restore soft-deleted receivables instead of creating duplicates
+- Handles Done → Revisi → Done cycle correctly
+
+**PO Number Validation:**
+- `required_if:status,done` validation on Store/Update Project FormRequests
+- "Revisi" status added to dropdown
+
+**Division Migration (Flexible Master Data):**
+- Migration `2026_08_25_074220_add_flag_project_to_master_types_table.php`: adds `flag_project` boolean to `master_types`
+- Migration `2026_08_25_074221_add_division_id_to_projects_table.php`: adds `division_id` FK, creates MasterType "Division" with 6 MasterItems (Construction, MEP, Civil, Architecture, Interior, Others), migrates existing "Construction" string data, drops `devisi` column
+- English labels for master data, UI remains Indonesian, flexible via Master → Master Items
+
+**PIC Filter on Projects:**
+- Dropdown filter on Projects Index using distinct PICs from database
+
+**Budget Number Cross-Reference:**
+- Cashflow model: `budgetPlans()` HasManyThrough + `budget_number`/`budget_numbers` accessors
+- MonitoringPeriod model: `budget_number` accessor
+- Cash Activity (Livewire): Budget No. column + filter dropdown
+- Monitoring Index/Resume: Budget No. display column
+- Eager loaded via `project.budgetPlans` — no lazy loading violations
+
+**Alpine.js Fix:**
+- Renamed `open` → `isOpen` in `confirm-modal`, `dropdown`, `sidebar-dropdown` components (reserved word conflict with `window.open()`)
+
+**Testing:**
+- New: `tests/Feature/ProjectStatusTransitionTest.php` (28 comprehensive tests)
+- Total tests: **331** (was 302)
+- All tests pass, build success
+
+**New Files:**
+- 4 migrations (division, revisi fields, budget plan nomor, master type flag)
+- 4 Import/Export files for Cashflow
+- 1 Import Cashflows Livewire component + view
+- 1 comprehensive test file
+
+---
+
+### 2026-08-16 — Commit `912e2b9` (baseline)
+
+AR/AP module with PO Number, Export/Import, Dashboard breakdown
