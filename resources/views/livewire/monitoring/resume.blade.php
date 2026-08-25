@@ -4,7 +4,7 @@
             <div>
                 <h2 class="text-xl font-semibold text-gray-800 leading-tight">{{ __('Period Resume') }} — {{ $monitoringPeriod->nomor }}</h2>
                 <p class="mt-1 text-sm text-slate-500">
-                    {{ $monitoringPeriod->periode_label }}
+                    {{ $monitoringPeriod->budget_number ?? 'No Budget Number' }}
                     @if ($monitoringPeriod->project)
                         · {{ $monitoringPeriod->project->kode }} - {{ $monitoringPeriod->project->nama }}
                     @else

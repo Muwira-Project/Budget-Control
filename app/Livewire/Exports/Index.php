@@ -30,10 +30,17 @@ class Index extends Component
 
     public ?float $amountMax = null;
 
+    // Cashflow specific filters
+    public ?string $jenis = null;
+
+    public ?string $sumber = null;
+
+    public ?int $cashAccountId = null;
+
     /** Load the export type from the route parameter. */
     public function mount(string $type): void
     {
-        if (! in_array($type, ['akuns', 'realisasi', 'vs', 'receivables', 'payables'], true)) {
+        if (! in_array($type, ['akuns', 'realisasi', 'vs', 'receivables', 'payables', 'cashflows'], true)) {
             abort(404);
         }
 
@@ -97,6 +104,37 @@ class Index extends Component
         ];
     }
 
+    /** Cashflow jenis options for filtering. */
+    #[Computed]
+    public function cashflowJenisOptions(): array
+    {
+        return [
+            '' => 'All Types',
+            'masuk' => 'Cash In',
+            'keluar' => 'Cash Out',
+        ];
+    }
+
+    /** Cashflow sumber options for filtering. */
+    #[Computed]
+    public function cashflowSumberOptions(): array
+    {
+        return [
+            '' => 'All Sources',
+            'pendapatan' => 'Income',
+            'pelunasan_ar' => 'AR Settlement',
+            'pelunasan_ap' => 'AP Settlement',
+            'pengeluaran_lain' => 'Other Expense',
+        ];
+    }
+
+    /** The cash accounts available for filtering. */
+    #[Computed]
+    public function cashAccounts()
+    {
+        return \App\Models\CashAccount::query()->where('status', 'active')->orderBy('kode')->get();
+    }
+
     /** Build the download URL for the given format with the current filters. */
     public function downloadUrl(string $format): string
     {
@@ -111,6 +149,9 @@ class Index extends Component
             'aging' => $this->aging,
             'amount_min' => $this->amountMin,
             'amount_max' => $this->amountMax,
+            'jenis' => $this->jenis,
+            'sumber' => $this->sumber,
+            'cash_account_id' => $this->cashAccountId,
         ];
 
         return route('exports.'.$this->type, $params);

@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['kode', 'nama', 'deskripsi', 'flag_ar', 'flag_ap', 'aktif', 'is_system', 'sort'])]
+#[Fillable(['kode', 'nama', 'deskripsi', 'flag_ar', 'flag_ap', 'flag_project', 'aktif', 'is_system', 'sort'])]
 class MasterType extends Model
 {
     /** @use HasFactory<MasterTypeFactory> */

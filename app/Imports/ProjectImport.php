@@ -28,7 +28,7 @@ class ProjectImport extends BaseImport
         $kode = trim((string) $row->get('code'));
         $nama = trim((string) $row->get('name'));
         $lokasi = trim((string) $row->get('location'));
-        $devisi = trim((string) $row->get('division'));
+        $division = trim((string) $row->get('division'));
         $pic = trim((string) $row->get('pic'));
         $projectCategory = trim((string) $row->get('project_category'));
         $subWork = trim((string) $row->get('sub_work'));
@@ -84,6 +84,23 @@ class ProjectImport extends BaseImport
             $projectCategoryId = $category->id;
         }
 
+        // Validate division if provided
+        $divisionId = null;
+        if ($division !== '') {
+            $divisionItem = MasterItem::whereHas('masterType', fn ($query) => $query->where('kode', 'DIVISION')->where('aktif', true))
+                ->where('aktif', true)
+                ->where(function ($query) use ($division) {
+                    $query->where('kode', $division)->orWhere('nama', $division);
+                })
+                ->first();
+
+            if (! $divisionItem) {
+                return [false, null, 'Division "'.$division.'" not found in Master Division'];
+            }
+
+            $divisionId = $divisionItem->id;
+        }
+
         // Check duplicate in file
         if (isset($seenKeys[$kode])) {
             return [false, null, 'Code '.$kode.' is duplicated in the file'];
@@ -101,7 +118,7 @@ class ProjectImport extends BaseImport
                 'kode' => $kode,
                 'nama' => $nama,
                 'lokasi' => $lokasi ?: null,
-                'devisi' => $devisi ?: null,
+                'division_id' => $divisionId,
                 'pic' => $pic ?: null,
                 'project_category_id' => $projectCategoryId,
                 'sub_work' => $subWork ?: null,

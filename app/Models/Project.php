@@ -14,8 +14,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\Builder;
 
-#[Fillable(['kode', 'po_number', 'nama', 'lokasi', 'devisi', 'pic', 'project_category_id', 'sub_work', 'periode', 'jenis', 'qty', 'satuan', 'harga_satuan', 'pajak', 'tanggal_mulai', 'target_selesai', 'status'])]
+#[Fillable(['kode', 'po_number', 'nama', 'lokasi', 'division_id', 'pic', 'project_category_id', 'sub_work', 'periode', 'jenis', 'qty', 'satuan', 'harga_satuan', 'pajak', 'tanggal_mulai', 'target_selesai', 'status', 'revisi_reason', 'revisi_at', 'revisi_by'])]
 class Project extends Model
 {
     /** @use HasFactory<ProjectFactory> */
@@ -31,6 +32,47 @@ class Project extends Model
         static::created(fn ($model) => DashboardService::clearCache());
         static::updated(fn ($model) => DashboardService::clearCache());
         static::deleted(fn ($model) => DashboardService::clearCache());
+
+        // Enforce status transition rules
+        static::updating(function (Project $project): void {
+            if ($project->isDirty('status')) {
+                $originalStatus = $project->getOriginal('status');
+                $oldStatus = $originalStatus instanceof ProjectStatus 
+                    ? $originalStatus 
+                    : ProjectStatus::tryFrom($originalStatus);
+                $newStatus = $project->status;
+
+                if ($oldStatus && !$oldStatus->canTransitionTo($newStatus)) {
+                    throw \Illuminate\Validation\ValidationException::withMessages([
+                        'status' => "Tidak bisa mengubah status dari {$oldStatus->label()} ke {$newStatus->label()}.",
+                    ]);
+                }
+
+                // Handle revisi fields and audit log
+                if ($newStatus === ProjectStatus::Revisi) {
+                    // Moving TO revisi - require reason
+                    if (blank($project->revisi_reason)) {
+                        throw \Illuminate\Validation\ValidationException::withMessages([
+                            'revisi_reason' => 'Alasan revisi wajib diisi saat mengubah status ke Revisi.',
+                        ]);
+                    }
+                    $project->revisi_at = now();
+                    $project->revisi_by = auth()->id();
+                    
+                    // Log specific revisi activity
+                    $project->recordActivity('moved_to_revisi', [
+                        'reason' => $project->revisi_reason,
+                        'from_status' => $oldStatus->label(),
+                    ]);
+                } elseif ($oldStatus === ProjectStatus::Revisi && $newStatus !== ProjectStatus::Revisi) {
+                    // Moving FROM revisi
+                    $project->recordActivity('exited_revisi', [
+                        'from_status' => 'Revisi',
+                        'to_status' => $newStatus->label(),
+                    ]);
+                }
+            }
+        });
     }
 
     /**
@@ -81,6 +123,14 @@ class Project extends Model
     public function projectCategory(): BelongsTo
     {
         return $this->belongsTo(MasterItem::class, 'project_category_id');
+    }
+
+    /**
+     * Get the project division (dynamic master item).
+     */
+    public function division(): BelongsTo
+    {
+        return $this->belongsTo(MasterItem::class, 'division_id');
     }
 
     /**
@@ -186,6 +236,14 @@ class Project extends Model
             'inprogress' => $query->where('status', '!=', ProjectStatus::Done),
             default => $query,
         };
+    }
+
+    /**
+     * Backward compatibility accessor for old 'devisi' string field.
+     */
+    public function getDevisiAttribute(): ?string
+    {
+        return $this->division?->nama;
     }
 
     /**

@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Projects;
 
+use App\Enums\ProjectStatus;
 use App\Livewire\Concerns\BulkSelection;
 use App\Livewire\Concerns\PerPagePagination;
 use App\Models\Project;
@@ -23,6 +24,10 @@ class Index extends Component
 
     public ?string $filterPeriode = null;
 
+    public ?string $filterStatus = null;
+
+    public ?string $filterPic = null;
+
     public ?int $selectedProjectId = null;
 
     /**
@@ -42,6 +47,22 @@ class Index extends Component
     }
 
     /**
+     * Reset pagination when status filter changes.
+     */
+    public function updatedFilterStatus(): void
+    {
+        $this->resetPage();
+    }
+
+    /**
+     * Reset pagination when PIC filter changes.
+     */
+    public function updatedFilterPic(): void
+    {
+        $this->resetPage();
+    }
+
+    /**
      * Export projects to Excel.
      */
     public function export(?string $periode = null)
@@ -56,11 +77,14 @@ class Index extends Component
     public function projects(): LengthAwarePaginator
     {
         return Project::query()
+            ->with(['division'])
             ->when($this->search !== '', fn ($query) => $query->where(function ($query) {
                 $query->where('kode', 'like', '%'.$this->search.'%')
                     ->orWhere('nama', 'like', '%'.$this->search.'%');
             }))
             ->when($this->filterPeriode, fn ($query) => $query->where('periode', $this->filterPeriode))
+            ->when($this->filterStatus, fn ($query) => $query->where('status', $this->filterStatus))
+            ->when($this->filterPic, fn ($query) => $query->where('pic', 'like', '%'.$this->filterPic.'%'))
             ->latest()
             ->paginate($this->perPage);
     }
@@ -79,6 +103,37 @@ class Index extends Component
             ->pluck('periode');
     }
 
+    /**
+     * Available PICs for filter dropdown.
+     */
+    #[Computed]
+    public function availablePics(): Collection
+    {
+        return Project::query()
+            ->select('pic')
+            ->whereNotNull('pic')
+            ->where('pic', '!=', '')
+            ->distinct()
+            ->orderBy('pic')
+            ->pluck('pic');
+    }
+
+    /**
+     * Available project statuses for filter dropdown.
+     */
+    #[Computed]
+    public function availableStatuses(): array
+    {
+        return [
+            '' => 'All Statuses',
+            ProjectStatus::Draft->value => ProjectStatus::Draft->label(),
+            ProjectStatus::InProgress->value => ProjectStatus::InProgress->label(),
+            ProjectStatus::Revisi->value => ProjectStatus::Revisi->label(),
+            ProjectStatus::Done->value => ProjectStatus::Done->label(),
+            ProjectStatus::Cancelled->value => ProjectStatus::Cancelled->label(),
+        ];
+    }
+
     public function showProjectDetail(int $projectId): void
     {
         $this->selectedProjectId = $projectId;
@@ -93,7 +148,7 @@ class Index extends Component
     public function selectedProject(): ?Project
     {
         return $this->selectedProjectId
-            ? Project::withSum('projectAkuns as budget_total', 'budget')->find($this->selectedProjectId)
+            ? Project::with(['division', 'projectAkuns' => fn ($q) => $q->sum('budget')])->find($this->selectedProjectId)
             : null;
     }
 

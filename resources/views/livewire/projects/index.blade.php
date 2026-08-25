@@ -27,23 +27,42 @@
             <x-bulk-actions :paginator="$this->projects" :selected-ids="$this->selectedIds" />
                 <div class="mt-6 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-200">
                 <div class="border-b border-gray-100 p-6">
-                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                        <div class="max-w-sm">
-                            <x-input-label for="search" :value="__('Search Project')" />
-                            <x-text-input id="search" class="mt-1 block w-full" type="text" wire:model.live.debounce.300ms="search" placeholder="Search project code or name..." />
-                        </div>
+                                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                                        <div class="max-w-sm">
+                                            <x-input-label for="search" :value="__('Search Project')" />
+                                            <x-text-input id="search" class="mt-1 block w-full" type="text" wire:model.live.debounce.300ms="search" placeholder="Search project code or name..." />
+                                        </div>
 
-                        <div class="max-w-sm">
-                            <x-input-label for="filter_periode" :value="__('Filter Periode')" />
-                            <select id="filter_periode" wire:model="filterPeriode" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                <option value="">All Periods</option>
-                                @foreach ($this->availablePeriodes as $p)
-                                    <option value="{{ $p }}">{{ $p }}</option>
-                                @endforeach
-                            </select>
-                        </div>
-                    </div>
-                </div>
+                                        <div class="max-w-sm">
+                                            <x-input-label for="filter_periode" :value="__('Filter Periode')" />
+                                            <select id="filter_periode" wire:model="filterPeriode" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                                <option value="">All Periods</option>
+                                                @foreach ($this->availablePeriodes as $p)
+                                                    <option value="{{ $p }}">{{ $p }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+
+                                        <div class="max-w-sm">
+                                            <x-input-label for="filter_status" :value="__('Filter Status')" />
+                                            <select id="filter_status" wire:model="filterStatus" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                                @foreach ($this->availableStatuses as $value => $label)
+                                                    <option value="{{ $value }}">{{ $label }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+
+                                        <div class="max-w-sm">
+                                            <x-input-label for="filter_pic" :value="__('Filter PIC')" />
+                                            <select id="filter_pic" wire:model="filterPic" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                                <option value="">All PICs</option>
+                                                @foreach ($this->availablePics as $pic)
+                                                    <option value="{{ $pic }}">{{ $pic }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
 
                 @if ($this->projects->isEmpty())
                     <p class="p-6 text-sm text-gray-500">
@@ -79,7 +98,7 @@
                                             </span>
                                         </td>
                                         <td class="px-6 py-4 text-gray-500">{{ $project->lokasi }}</td>
-                                        <td class="px-6 py-4 text-gray-700">{{ $project->devisi ?? '-' }}</td>
+                                        <td class="px-6 py-4 text-gray-700">{{ $project->division?->nama ?? '-' }}</td>
                                         <td class="px-6 py-4 text-gray-700">{{ $project->pic ?? '-' }}</td>
                                         <td class="px-6 py-4 text-right text-gray-900">
                                             @if ($project->nilai_total > 0)
@@ -90,9 +109,12 @@
                                         </td>
                                         <td class="px-6 py-4">
                                             <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ match ($project->status->value) {
+                                                'draft' => 'bg-slate-100 text-slate-700',
+                                                'progress' => 'bg-blue-100 text-blue-700',
+                                                'revisi' => 'bg-amber-100 text-amber-700',
                                                 'done' => 'bg-green-100 text-green-700',
                                                 'cancelled' => 'bg-red-100 text-red-700',
-                                                default => 'bg-blue-100 text-blue-700',
+                                                default => 'bg-slate-100 text-slate-700',
                                             } }}">
                                                 {{ $project->status->label() }}
                                             </span>
@@ -150,7 +172,7 @@
                     </div>
                     <div>
                         <p class="text-xs uppercase tracking-wider text-slate-500">Division</p>
-                        <p class="mt-0.5 text-sm font-medium text-slate-800">{{ $this->selectedProject->devisi ?? '-' }}</p>
+                        <p class="mt-0.5 text-sm font-medium text-slate-800">{{ $this->selectedProject->division?->nama ?? '-' }}</p>
                     </div>
                     <div>
                         <p class="text-xs uppercase tracking-wider text-slate-500">Category</p>

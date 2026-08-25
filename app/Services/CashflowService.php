@@ -163,7 +163,7 @@ class CashflowService
     }
 
     /**
-     * List cashflow entries, optionally filtered by date range, jenis, sumber, and lokasi dana.
+     * List cashflow entries, optionally filtered by date range, jenis, sumber, lokasi dana, and budget number.
      */
     public function paginate(
         ?string $startDate = null,
@@ -171,15 +171,17 @@ class CashflowService
         ?string $jenis = null,
         ?string $sumber = null,
         ?int $cashAccountId = null,
+        ?string $budgetNumber = null,
         int $perPage = 10,
     ): LengthAwarePaginator {
         return Cashflow::query()
-            ->with(['cashAccount', 'voucher', 'submittedBy', 'akun'])
+            ->with(['cashAccount', 'voucher', 'submittedBy', 'akun', 'project.budgetPlans' => fn($q) => $q->select('id', 'project_id', 'nomor')->orderBy('periode')])
             ->when($jenis, fn ($query) => $query->where('jenis', $jenis))
             ->when($sumber, fn ($query) => $query->where('sumber', $sumber))
             ->when($cashAccountId, fn ($query) => $query->where('cash_account_id', $cashAccountId))
             ->when($startDate, fn ($query) => $query->whereDate('tanggal', '>=', $startDate))
             ->when($endDate, fn ($query) => $query->whereDate('tanggal', '<=', $endDate))
+            ->when($budgetNumber, fn ($query) => $query->whereHas('project.budgetPlans', fn ($q) => $q->where('nomor', 'like', '%'.$budgetNumber.'%')))
             ->orderByDesc('tanggal')
             ->paginate($perPage)
             ->withQueryString();

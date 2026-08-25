@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exports\AkunTemplateExport;
+use App\Exports\CashflowTemplateExport;
 use App\Exports\PayableTemplateExport;
 use App\Exports\ProjectExport;
 use App\Exports\ProjectTemplateExport;
@@ -51,5 +52,13 @@ class ImportTemplateController extends Controller
     public function payable()
     {
         return Excel::download(new PayableTemplateExport, 'template-payable.xlsx');
+    }
+
+    /**
+     * Download the cashflow import template.
+     */
+    public function cashflow()
+    {
+        return Excel::download(new CashflowTemplateExport, 'template-cashflow.xlsx');
     }
 }

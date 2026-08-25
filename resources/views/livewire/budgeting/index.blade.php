@@ -83,6 +83,7 @@
                         <thead class="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
                             <tr>
                                 <th class="px-6 py-3">Project</th>
+                                <th class="px-6 py-3">Budgeting Number</th>
                                 <th class="px-6 py-3">Account</th>
                                 <th class="px-6 py-3">Type</th>
                                 <th class="px-6 py-3">Party / Name</th>
@@ -102,6 +103,9 @@
                                         @else
                                             {{ $row['project']?->kode }} - {{ $row['project']?->nama }}
                                         @endif
+                                    </td>
+                                    <td class="px-6 py-4 text-gray-700">
+                                        {{ $row['budgeting_number'] ?? '—' }}
                                     </td>
                                     <td class="px-6 py-4 text-gray-700">{{ $row['akun']?->kode_akun }} - {{ $row['akun']?->nama_akun }}</td>
                                     <td class="px-6 py-4 text-gray-700">

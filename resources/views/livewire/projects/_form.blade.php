@@ -6,9 +6,10 @@
     </div>
 
     <div>
-        <x-input-label for="po_number" :value="__('PO Number (optional)')" />
-        <x-text-input id="po_number" class="mt-1 block w-full" type="text" wire:model="poNumber" placeholder="e.g. PO-2026-001" />
+        <x-input-label for="po_number" :value="__('PO Number')" />
+        <x-text-input id="po_number" class="mt-1 block w-full" type="text" wire:model="poNumber" placeholder="e.g. PO-2026-001" required="false" />
         <x-input-error :messages="$errors->get('po_number')" class="mt-2" />
+        <p class="mt-1 text-xs text-slate-500">Wajib diisi saat status = Done (untuk AR Billed)</p>
     </div>
 
     <div>
@@ -25,9 +26,14 @@
         </div>
 
         <div>
-            <x-input-label for="devisi" :value="__('Division (optional)')" />
-            <x-text-input id="devisi" class="mt-1 block w-full" type="text" wire:model="devisi" placeholder="e.g. Construction" />
-            <x-input-error :messages="$errors->get('devisi')" class="mt-2" />
+            <x-input-label for="division_id" :value="__('Division (optional)')" />
+            <select id="division_id" wire:model="divisionId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                <option value="">Select Division...</option>
+                @foreach ($this->divisionOptions() as $division)
+                    <option value="{{ $division->id }}">{{ $division->kode }} - {{ $division->nama }}</option>
+                @endforeach
+            </select>
+            <x-input-error :messages="$errors->get('divisionId')" class="mt-2" />
         </div>
 
         <div>
@@ -112,11 +118,30 @@
     <div>
         <x-input-label for="status" :value="__('Status')" />
         <select id="status" wire:model="status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-            <option value="draft">Draft</option>
-            <option value="progress">In Progress</option>
-            <option value="done">Done</option>
-            <option value="cancelled">Cancelled</option>
+            @php
+                $currentStatus = \App\Enums\ProjectStatus::tryFrom($this->status);
+                $allStatuses = \App\Enums\ProjectStatus::cases();
+            @endphp
+            @foreach ($allStatuses as $statusEnum)
+                @php
+                    $disabled = $currentStatus && !$currentStatus->canTransitionTo($statusEnum);
+                @endphp
+                <option value="{{ $statusEnum->value }}" {{ $disabled ? 'disabled' : '' }}>
+                    {{ $statusEnum->label() }} {{ $disabled ? '(tidak diizinkan)' : '' }}
+                </option>
+            @endforeach
         </select>
         <x-input-error :messages="$errors->get('status')" class="mt-2" />
     </div>
+
+    @if ($this->status === 'revisi')
+    <div>
+        <x-input-label for="revisi_reason" :value="__('Alasan Revisi')" />
+        <textarea id="revisi_reason" wire:model="revisiReason" rows="3" 
+            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+            placeholder="Jelaskan alasan revisi project..."></textarea>
+        <x-input-error :messages="$errors->get('revisiReason')" class="mt-2" />
+        <p class="mt-1 text-xs text-slate-500">Wajib diisi saat status = Revisi</p>
+    </div>
+    @endif
 </div>

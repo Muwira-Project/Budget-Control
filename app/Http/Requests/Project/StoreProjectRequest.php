@@ -4,6 +4,7 @@ namespace App\Http\Requests\Project;
 
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
+use App\Enums\ProjectStatus;
 
 class StoreProjectRequest extends FormRequest
 {
@@ -22,9 +23,9 @@ class StoreProjectRequest extends FormRequest
      */
     public function rules(): array
     {
-        return [
+        $rules = [
             'kode' => ['required', 'string', 'max:50', Rule::unique('projects', 'kode')],
-            'po_number' => ['nullable', 'string', 'max:100', Rule::unique('projects', 'po_number')],
+            'po_number' => ['nullable', 'string', 'max:100', Rule::unique('projects', 'po_number'), 'required_if:status,done'],
             'nama' => ['required', 'string', 'max:255'],
             'lokasi' => ['nullable', 'string', 'max:255'],
             'pic' => ['nullable', 'string', 'max:255'],
@@ -38,7 +39,27 @@ class StoreProjectRequest extends FormRequest
             'pajak' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'tanggal_mulai' => ['nullable', 'date'],
             'target_selesai' => ['nullable', 'date', 'after_or_equal:tanggal_mulai'],
-            'status' => ['required', Rule::in(['draft', 'progress', 'done', 'cancelled'])],
+            'status' => ['required', Rule::in(array_column(ProjectStatus::cases(), 'value'))],
         ];
+
+        return $rules;
+    }
+
+    /**
+     * Configure the validator instance.
+     */
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            // For new projects, current status is implicitly Draft
+            $newStatus = ProjectStatus::tryFrom($this->input('status'));
+            
+            if ($newStatus && !ProjectStatus::Draft->canTransitionTo($newStatus)) {
+                $validator->errors()->add(
+                    'status', 
+                    "Tidak bisa membuat project dengan status {$newStatus->label()}. Project baru harus berstatus Draft, In Progress, atau Cancelled."
+                );
+            }
+        });
     }
 }

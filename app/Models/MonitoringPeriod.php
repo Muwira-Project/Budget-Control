@@ -67,4 +67,19 @@ class MonitoringPeriod extends Model
     {
         return 'Monitoring Period '.($this->nomor ?: '#'.$this->id);
     }
+
+    /**
+     * Get budget numbers for this monitoring period's project.
+     */
+    public function getBudgetNumberAttribute(): ?string
+    {
+        if (!$this->project_id) {
+            return null;
+        }
+
+        return $this->project->budgetPlans()
+            ->orderBy('periode')
+            ->pluck('nomor')
+            ->implode(', ');
+    }
 }

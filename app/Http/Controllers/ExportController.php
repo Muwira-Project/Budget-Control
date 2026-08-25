@@ -4,6 +4,8 @@ namespace App\Http\Controllers;
 
 use App\Exports\AkunExport;
 use App\Exports\AkunVsRealisasiExport;
+use App\Exports\CashflowExport;
+use App\Exports\CashflowTemplateExport;
 use App\Exports\MonitoringSummaryExport;
 use App\Exports\PayableExport;
 use App\Exports\RealisasiExport;
@@ -82,6 +84,29 @@ class ExportController extends Controller
     public function payables(Request $request): BinaryFileResponse
     {
         return $this->download(new PayableExport($this->payableFilters($request)), 'AP_', $request->query('format', 'xlsx'));
+    }
+
+    /**
+     * Download the cashflow (Cash In/Out) report.
+     */
+    public function cashflows(Request $request): BinaryFileResponse
+    {
+        $format = in_array($request->query('format'), ['csv', 'pdf'], true) ? $request->query('format') : 'xlsx';
+        $export = new CashflowExport([
+            'jenis' => $request->query('jenis'),
+            'start_date' => $this->validDate($request->query('start_date')),
+            'end_date' => $this->validDate($request->query('end_date')),
+            'sumber' => $request->query('sumber'),
+            'cash_account_id' => $request->integer('cash_account_id') ?: null,
+        ]);
+
+        $filename = 'Cashflow_'.now()->format('Ymd').'.'.$format;
+
+        return match ($format) {
+            'csv' => app(Excel::class)->download($export, $filename, Excel::CSV),
+            'pdf' => app(Excel::class)->download($export, $filename, Excel::DOMPDF),
+            default => app(Excel::class)->download($export, $filename),
+        };
     }
 
     /**

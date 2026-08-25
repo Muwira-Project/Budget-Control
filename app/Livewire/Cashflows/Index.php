@@ -7,8 +7,10 @@ use App\Livewire\Concerns\BulkSelection;
 use App\Livewire\Concerns\PerPagePagination;
 use App\Models\CashAccount;
 use App\Models\Cashflow;
+use App\Models\BudgetPlan;
 use App\Services\CashflowService;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -29,6 +31,8 @@ class Index extends Component
     public string $sumberFilter = '';
 
     public ?int $cashAccountId = null;
+
+    public ?string $budgetNumberFilter = null;
 
     /**
      * Reset pagination when the active tab changes and prevent staff from
@@ -113,6 +117,11 @@ class Index extends Component
         $this->resetPage();
     }
 
+    public function updatedBudgetNumberFilter(): void
+    {
+        $this->resetPage();
+    }
+
     /**
      * The jenis derived from the active tab (null for non-cash tabs).
      */
@@ -142,6 +151,7 @@ class Index extends Component
             $this->jenisForTab,
             $this->sumberFilter !== '' ? $this->sumberFilter : null,
             $this->cashAccountId,
+            $this->budgetNumberFilter,
             $this->perPage,
         );
     }
@@ -201,6 +211,20 @@ class Index extends Component
     public function cashAccounts()
     {
         return CashAccount::query()->where('status', 'active')->orderBy('kode')->get();
+    }
+
+    /**
+     * Available budget numbers for filter dropdown.
+     */
+    #[Computed]
+    public function budgetNumberOptions(): Collection
+    {
+        return BudgetPlan::query()
+            ->select('nomor')
+            ->whereNotNull('nomor')
+            ->distinct()
+            ->orderBy('nomor')
+            ->pluck('nomor');
     }
 
     protected function bulkCollectionProperty(): string

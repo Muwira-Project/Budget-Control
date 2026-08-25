@@ -5,6 +5,7 @@
         'vs' => 'Export Account Detail',
         'receivables' => 'Export Receivables (AR)',
         'payables' => 'Export Payables (AP)',
+        'cashflows' => 'Export Cash In/Out',
     ];
     $columns = [
         'akuns' => 'Account Code, Account Name, Type, Category',
@@ -12,6 +13,7 @@
         'vs' => 'Account Code, Account Name, Budget, Allocation, Total Actual, Remaining (Variance), Percentage (%)',
         'receivables' => 'Project Code, Project Name, PO Number, Invoice No., Date, Due Date, Party Type, Party, Amount, Paid, Outstanding, Status, Description',
         'payables' => 'Project Code, Project Name, Invoice No., Date, Due Date, Party Type, Party, Amount, Paid, Outstanding, Status, Description',
+        'cashflows' => 'Date, Type, Source, Cash Account, Account (COA), Project, Party Type, Party, Amount, Description, Status, Created By',
     ];
 @endphp
 
@@ -104,6 +106,61 @@
                         <input id="amount_max" type="number" step="0.01" min="0" wire:model.live="amountMax" placeholder="e.g. 100000000" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" />
                     </div>
                     @endif
+                </div>
+                @endif
+
+                {{-- Cashflow specific filters --}}
+                @if ($type === 'cashflows')
+                <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                    {{-- Date range --}}
+                    <div>
+                        <x-input-label for="start_date" :value="__('Start Date')" />
+                        <x-text-input id="start_date" class="mt-1 block w-full" type="date" wire:model="startDate" />
+                    </div>
+
+                    <div>
+                        <x-input-label for="end_date" :value="__('End Date')" />
+                        <x-text-input id="end_date" class="mt-1 block w-full" type="date" wire:model="endDate" />
+                    </div>
+
+                    <div>
+                        <x-input-label for="jenis" :value="__('Type')" />
+                        <select id="jenis" wire:model.live="jenis" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            @foreach ($this->cashflowJenisOptions as $value => $label)
+                                <option value="{{ $value }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div>
+                        <x-input-label for="sumber" :value="__('Source')" />
+                        <select id="sumber" wire:model.live="sumber" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            @foreach ($this->cashflowSumberOptions as $value => $label)
+                                <option value="{{ $value }}">{{ $label }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    <div>
+                        <x-input-label for="cash_account_id" :value="__('Cash Account')" />
+                        <select id="cash_account_id" wire:model.live="cashAccountId" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                            <option value="">All Cash Accounts</option>
+                            @foreach ($this->cashAccounts as $account)
+                                <option value="{{ $account->id }}">{{ $account->kode }} - {{ $account->nama }}</option>
+                            @endforeach
+                        </select>
+                    </div>
+
+                    {{-- Amount range filter --}}
+                    <div>
+                        <x-input-label for="amount_min" :value="__('Min Amount')" />
+                        <input id="amount_min" type="number" step="0.01" min="0" wire:model.live="amountMin" placeholder="e.g. 1000000" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" />
+                    </div>
+
+                    <div>
+                        <x-input-label for="amount_max" :value="__('Max Amount')" />
+                        <input id="amount_max" type="number" step="0.01" min="0" wire:model.live="amountMax" placeholder="e.g. 100000000" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" />
+                    </div>
                 </div>
                 @endif
 

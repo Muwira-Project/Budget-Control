@@ -7,7 +7,7 @@ use Maatwebsite\Excel\Concerns\FromArray;
 /**
  * Draft Excel template for Project master data.
  *
- * Updated with devisi, draft status, and proper column order.
+ * Updated with Division (kode), draft status, and proper column order.
  */
 class ProjectTemplateExport implements FromArray
 {
@@ -20,11 +20,11 @@ class ProjectTemplateExport implements FromArray
     {
         return [
             ['Code', 'Name', 'Location', 'Division', 'PIC', 'Project Category', 'Sub Work', 'Period', 'Type', 'Qty', 'Unit', 'Unit Price', 'Tax', 'Start Date', 'Target Finish', 'Status'],
-            ['PRJ-001', 'Gedung Serbaguna', 'Jakarta', 'Construction', 'Budi Santoso', 'Konstruksi', 'Pekerjaan pondasi', '2026', 'jasa', 1, 'paket', 500000000, 11, '2026-08-01', '2026-12-31', 'draft'],
-            ['PRJ-002', 'Jalan Tol', 'Bandung', 'Infrastructure', 'Siti Rahayu', 'Infrastruktur', 'Pekerjaan aspal', '2026', 'barang', 5000, 'meter', 250000, 11, '2026-09-01', '2027-03-31', 'progress'],
+            ['PRJ-001', 'Office Building', 'Jakarta', 'CONSTRUCTION', 'Budi Santoso', 'Konstruksi', 'Foundation work', '2026', 'jasa', 1, 'package', 500000000, 11, '2026-08-01', '2026-12-31', 'draft'],
+            ['PRJ-002', 'Toll Road', 'Bandung', 'CIVIL', 'Siti Rahayu', 'Infrastruktur', 'Asphalt work', '2026', 'barang', 5000, 'meter', 250000, 11, '2026-09-01', '2027-03-31', 'progress'],
             [],
-            ['NOTE: Updated template with Division column and Draft status.'],
-            ['Type: "barang" (goods) atau "jasa" (services). Status: "draft" / "progress" / "done" / "cancelled". Tanggal format: YYYY-MM-DD. Tax dalam persen (0-100).'],
+            ['NOTE: Updated template with Division column (use MasterItem kode) and Draft status.'],
+            ['Type: "barang" (goods) or "jasa" (services). Status: "draft" / "progress" / "done" / "cancelled". Date format: YYYY-MM-DD. Tax in percent (0-100).'],
         ];
     }
 }

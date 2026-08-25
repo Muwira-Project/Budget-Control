@@ -302,6 +302,18 @@ class Index extends Component
                     $key .= '-'.md5($allocation->custom_name);
                 }
             }
+            
+            // Check if this allocation was created from a budget plan
+            $budgetingNumber = null;
+            if ($allocation->project_id !== null) {
+                $planItem = \App\Models\BudgetPlanItem::whereHas('budgetPlan', function ($q) use ($allocation) {
+                    $q->where('project_id', $allocation->project_id);
+                })->where('akun_id', $allocation->akun_id)->first();
+                if ($planItem) {
+                    $budgetingNumber = $planItem->budgetPlan->nomor;
+                }
+            }
+            
             $byKey[$key] = [
                 'project' => $allocation->project,
                 'is_non_project' => $allocation->project_id === null,
@@ -309,6 +321,7 @@ class Index extends Component
                 'budget' => (float) $allocation->budget,
                 'allocation' => $allocation,
                 'plan' => null,
+                'budgeting_number' => $budgetingNumber,
             ];
         }
 
@@ -318,6 +331,7 @@ class Index extends Component
             if (isset($byKey[$key])) {
                 // Keep the allocation's own budget; only fill the plan reference.
                 $byKey[$key]['plan'] = $item;
+                $byKey[$key]['budgeting_number'] = $item->budgetPlan->nomor;
             } else {
                 $byKey[$key] = [
                     'project' => $item->budgetPlan->project,
@@ -326,6 +340,7 @@ class Index extends Component
                     'budget' => (float) $item->nominal,
                     'allocation' => null,
                     'plan' => $item,
+                    'budgeting_number' => $item->budgetPlan->nomor,
                 ];
             }
         }

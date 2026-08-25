@@ -216,21 +216,61 @@ class ReceivableService
 
     /**
      * Auto-create a receivable for a completed project (idempotent).
+     * Uses updateOrCreate withTrashed to handle project status changes (Done -> Revisi -> Done).
+     * Also handles soft-deleted receivables by restoring them.
      */
     public function createForProject(Project $project): ?Receivable
     {
-        if (Receivable::where('project_id', $project->id)->exists()) {
+        if (! $project->status->isDone()) {
             return null;
         }
 
-        return Receivable::create([
-            'project_id' => $project->id,
-            'tanggal' => now()->toDateString(),
-            'jatuh_tempo' => null,
-            'nominal' => $project->nilai_total,
-            'nominal_dibayar' => 0,
-            'keterangan' => 'Receivable from contract '.$project->kode,
-        ]);
+        // First check if there's a soft-deleted receivable for this project
+        $trashedReceivable = Receivable::onlyTrashed()->where('project_id', $project->id)->first();
+        
+        if ($trashedReceivable) {
+            // Restore the soft-deleted receivable
+            $trashedReceivable->restore();
+            $trashedReceivable->update([
+                'tanggal' => now()->toDateString(),
+                'jatuh_tempo' => null,
+                'nominal' => $project->nilai_total,
+                'nominal_dibayar' => 0,
+                'keterangan' => 'Receivable from contract ' . $project->kode,
+                'pihak_type_id' => $project->customer_type_id ?? null,
+                'pihak_item_id' => $project->customer_item_id ?? null,
+                'nomor_invoice' => $this->generateInvoiceNumber($project),
+            ]);
+            return $trashedReceivable->refresh();
+        }
+
+        $receivable = Receivable::updateOrCreate(
+            ['project_id' => $project->id],
+            [
+                'tanggal' => now()->toDateString(),
+                'jatuh_tempo' => null,
+                'nominal' => $project->nilai_total,
+                'nominal_dibayar' => 0,
+                'keterangan' => 'Receivable from contract ' . $project->kode,
+                'pihak_type_id' => $project->customer_type_id ?? null,
+                'pihak_item_id' => $project->customer_item_id ?? null,
+                'nomor_invoice' => $this->generateInvoiceNumber($project),
+            ]
+        );
+
+        return $receivable;
+    }
+
+    /**
+     * Generate a unique invoice number for the project.
+     */
+    private function generateInvoiceNumber(Project $project): string
+    {
+        $prefix = 'INV';
+        $year = now()->format('Y');
+        $sequence = Receivable::whereYear('tanggal', $year)->count() + 1;
+        
+        return sprintf('%s-%s-%04d', $prefix, $year, $sequence);
     }
 
     /**

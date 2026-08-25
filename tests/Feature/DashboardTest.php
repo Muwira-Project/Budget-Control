@@ -44,7 +44,7 @@ class DashboardTest extends TestCase
             ->assertSee('Unbilled')
             ->assertSee('In Progress')
             ->assertSee('Total AR')
-            ->assertSee('Outstanding Payable');
+            ->assertSee('Payable (AP) Breakdown');
     }
 
     public function test_dashboard_shows_aggregated_statistics(): void
@@ -125,6 +125,7 @@ class DashboardTest extends TestCase
             'cash_in', 'cash_out', 'saldo_kas',
             'outstanding_ar', 'outstanding_ap',
             'ar_breakdown',
+            'ap_breakdown',
             'total_profit', 'profit_projects',
             'chart_budget_realisasi',
         ];

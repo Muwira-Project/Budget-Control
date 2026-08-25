@@ -66,7 +66,7 @@
 
             <div class="mt-6 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-200">
                 <div class="border-b border-gray-100 p-6">
-                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
                         <div>
                             <x-input-label for="start_date" :value="__('Start Date')" />
                             <x-text-input id="start_date" class="mt-1 block w-full" type="date" wire:model.live="startDate" />
@@ -93,6 +93,15 @@
                                 @endforeach
                             </select>
                         </div>
+                        <div>
+                            <x-input-label for="budget_number_filter" :value="__('Budget Number')" />
+                            <select id="budget_number_filter" wire:model.live="budgetNumberFilter" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                <option value="">All Budget Numbers</option>
+                                @foreach ($this->budgetNumberOptions as $bn)
+                                    <option value="{{ $bn }}">{{ $bn }}</option>
+                                @endforeach
+                            </select>
+                        </div>
                     </div>
                 </div>
 
@@ -111,6 +120,7 @@
                                     <th class="px-6 py-3">Date</th>
                                     <th class="px-6 py-3">Type</th>
                                     <th class="px-6 py-3">Source</th>
+                                    <th class="px-6 py-3">Budget No.</th>
                                     <th class="px-6 py-3">Account</th>
                                     <th class="px-6 py-3">Status</th>
                                     <th class="px-6 py-3">Description</th>
@@ -130,6 +140,7 @@
                                             </span>
                                         </td>
                                         <td class="px-6 py-4 text-gray-700">{{ $entry->sumber->label() }}</td>
+                                        <td class="px-6 py-4 text-gray-700">{{ $entry->budget_number ?? '-' }}</td>
                                         <td class="px-6 py-4 text-gray-500">{{ $entry->cashAccount?->kode ?? '-' }}</td>
                                         <td class="px-6 py-4">
                                             <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ match ($entry->status->value) {

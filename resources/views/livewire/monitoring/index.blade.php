@@ -61,6 +61,7 @@
                                 <tr>
                                     <th class="w-8 px-6 py-3"><input type="checkbox" disabled class="rounded border-gray-300 text-blue-600 cursor-not-allowed" aria-hidden="true" /></th>
                                     <th class="px-6 py-3">Number</th>
+                                    <th class="px-6 py-3">Budget No.</th>
                                     <th class="px-6 py-3">Period</th>
                                     <th class="px-6 py-3">Week</th>
                                     <th class="px-6 py-3">Month</th>
@@ -77,10 +78,12 @@
                                     <tr class="hover:bg-gray-50">
                                         <td class="w-8 px-6 py-4"><input type="checkbox" wire:click="toggleSelected({{ $period->id }})" @checked(in_array($period->id, $this->selectedIds, true)) class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" /></td>
                                         <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
-                                        <a href="{{ route('monitoring.show', $period) }}" wire:navigate class="text-blue-600 hover:text-blue-800 hover:underline">{{ $period->nomor }}</a>
-                                    </td>
+                                                                                <a href="{{ route('monitoring.show', $period) }}" wire:navigate class="text-blue-600 hover:text-blue-800 hover:underline">{{ $period->nomor }}</a>
+                                                                            </td>
 
-                                        <td class="px-6 py-4 text-gray-700 whitespace-nowrap">{{ $period->periode_label }}</td>
+                                                                            <td class="px-6 py-4 text-gray-700">{{ $period->budget_number ?? '-' }}</td>
+
+                                                                            <td class="px-6 py-4 text-gray-700 whitespace-nowrap">{{ $period->periode_label }}</td>
                                         <td class="px-6 py-4 text-gray-700">{{ $period->week }}</td>
                                         <td class="px-6 py-4 text-gray-700">{{ $period->month }}</td>
                                         <td class="px-6 py-4 text-right text-gray-900">{{ format_idr($totals['budget']) }}</td>

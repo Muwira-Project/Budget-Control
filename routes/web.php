@@ -26,6 +26,7 @@ use App\Livewire\Exports\Index as ExportIndex;
 use App\Livewire\FundTransfers\Create as CreateFundTransfer;
 use App\Livewire\FundTransfers\Index as IndexFundTransfer;
 use App\Livewire\Imports\ImportAkuns;
+use App\Livewire\Imports\ImportCashflows;
 use App\Livewire\Imports\ImportPayables;
 use App\Livewire\Imports\ImportProjects;
 use App\Livewire\Imports\ImportReceivables;
@@ -174,6 +175,8 @@ Route::middleware(['auth', 'verified', 'draft-staff'])->group(function () {
     Route::get('/import/akuns', ImportAkuns::class)->name('imports.akuns');
     Route::get('/import/akuns/template', [ImportTemplateController::class, 'akun'])->name('imports.akuns.template');
     Route::get('/import/projects/template', [ImportTemplateController::class, 'project'])->name('imports.projects.template');
+    Route::get('/import/cashflows', ImportCashflows::class)->name('imports.cashflows');
+    Route::get('/import/cashflows/template', [ImportTemplateController::class, 'cashflow'])->name('imports.cashflows.template');
     Route::get('/import/projects', ImportProjects::class)->name('imports.projects');
     Route::get('/import/projects/export', [ImportTemplateController::class, 'exportProjects'])->name('imports.projects.export');
     Route::get('/import/receivables', ImportReceivables::class)->name('imports.receivables');
@@ -190,6 +193,7 @@ Route::middleware(['auth', 'verified', 'draft-staff'])->group(function () {
     Route::get('/export/monitoring-summary/file', [ExportController::class, 'monitoringSummary'])->name('exports.monitoring-summary');
     Route::get('/export/receivables/file', [ExportController::class, 'receivables'])->name('exports.receivables');
     Route::get('/export/payables/file', [ExportController::class, 'payables'])->name('exports.payables');
+    Route::get('/export/cashflows/file', [ExportController::class, 'cashflows'])->name('exports.cashflows');
 
     Route::view('profile', 'profile')->name('profile');
 });

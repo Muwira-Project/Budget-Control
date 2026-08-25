@@ -3,11 +3,13 @@
 namespace App\Livewire\Projects;
 
 use App\Enums\ProjectJenis;
+use App\Enums\ProjectStatus;
 use App\Http\Requests\Project\UpdateProjectRequest;
 use App\Models\MasterItem;
 use App\Models\Project;
 use App\Services\ProjectService;
 use Illuminate\Support\Facades\Validator;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -24,7 +26,7 @@ class Edit extends Component
 
     public ?string $lokasi = null;
 
-    public ?string $devisi = null;
+    public ?int $divisionId = null;
 
     public ?string $pic = null;
 
@@ -50,12 +52,49 @@ class Edit extends Component
 
     public string $status = 'progress';
 
+    public ?string $revisiReason = null;
+
     /**
      * Keep the tax rate in sync with the project type (11% PPN for goods, 2% for services).
      */
     public function updatedJenis(): void
     {
         $this->pajak = (string) ProjectJenis::from($this->jenis)->pajakDefault();
+    }
+
+    /**
+     * Validate status transition when status changes.
+     * Show/hide revisi reason field.
+     */
+    public function updatedStatus(): void
+    {
+        $currentStatus = $this->project->status;
+        $newStatus = ProjectStatus::tryFrom($this->status);
+        
+        if ($newStatus && !$currentStatus->canTransitionTo($newStatus)) {
+            $this->addError('status', "Tidak bisa mengubah status dari {$currentStatus->label()} ke {$newStatus->label()}.");
+            $this->status = $currentStatus->value;
+        } else {
+            $this->resetErrorBag('status');
+        }
+        
+        // Reset revisi reason when not in revisi
+        if ($this->status !== ProjectStatus::Revisi->value) {
+            $this->revisiReason = null;
+            $this->resetErrorBag('revisiReason');
+        }
+    }
+
+    /**
+     * Validate revisi reason when provided.
+     */
+    public function updatedRevisiReason(): void
+    {
+        if ($this->status === ProjectStatus::Revisi->value && blank($this->revisiReason)) {
+            $this->addError('revisiReason', 'Alasan revisi wajib diisi.');
+        } else {
+            $this->resetErrorBag('revisiReason');
+        }
     }
 
     /**
@@ -68,7 +107,7 @@ class Edit extends Component
         $this->poNumber = $project->po_number;
         $this->nama = $project->nama;
         $this->lokasi = $project->lokasi;
-        $this->devisi = $project->devisi;
+        $this->divisionId = $project->division_id;
         $this->pic = $project->pic;
         $this->projectCategoryId = $project->project_category_id;
         $this->subWork = $project->sub_work;
@@ -94,7 +133,7 @@ class Edit extends Component
                 'po_number' => $this->poNumber,
                 'nama' => $this->nama,
                 'lokasi' => $this->lokasi,
-                'devisi' => $this->devisi,
+                'division_id' => $this->divisionId,
                 'pic' => $this->pic,
                 'project_category_id' => $this->projectCategoryId,
                 'sub_work' => $this->subWork,
@@ -107,6 +146,7 @@ class Edit extends Component
                 'tanggal_mulai' => $this->tanggalMulai !== null && $this->tanggalMulai !== '' ? $this->tanggalMulai : null,
                 'target_selesai' => $this->targetSelesai !== null && $this->targetSelesai !== '' ? $this->targetSelesai : null,
                 'status' => $this->status,
+                'revisi_reason' => $this->revisiReason,
             ],
             (new UpdateProjectRequest)->rules($this->project->id),
         )->validate();
@@ -121,10 +161,24 @@ class Edit extends Component
     /**
      * The project categories available for the form (dynamic master).
      */
+    #[Computed]
     public function projectCategories()
     {
         return MasterItem::query()
             ->whereHas('masterType', fn ($query) => $query->where('kode', 'PROJECT_CATEGORY')->where('aktif', true))
+            ->where('aktif', true)
+            ->orderBy('nama')
+            ->get();
+    }
+
+    /**
+     * The divisions available for the form (dynamic master).
+     */
+    #[Computed]
+    public function divisionOptions()
+    {
+        return MasterItem::query()
+            ->whereHas('masterType', fn ($query) => $query->where('kode', 'DIVISION')->where('aktif', true))
             ->where('aktif', true)
             ->orderBy('nama')
             ->get();

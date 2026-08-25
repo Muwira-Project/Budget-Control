@@ -6,6 +6,7 @@ use App\Models\Activity;
 use App\Models\MonitoringPeriod;
 use App\Models\Project;
 use App\Models\Realisasi;
+use App\Enums\ProjectStatus;
 use App\Services\DashboardService;
 use Illuminate\Support\Collection;
 use Livewire\Attributes\Computed;
@@ -32,6 +33,39 @@ class Dashboard extends Component
     public function statistics(): array
     {
         return app(DashboardService::class)->statistics($this->startDate, $this->endDate);
+    }
+
+    /**
+     * Projects ready for submission (draft).
+     *
+     * @return array<array{kode: string, nama: string, project_id: int, status: string, division: string|null, nilai_total: float}>
+     */
+    #[Computed]
+    public function projectsToSubmit(): array
+    {
+        return app(DashboardService::class)->projectsToSubmit();
+    }
+
+    /**
+     * Projects needing revision (revisi).
+     *
+     * @return array<array{kode: string, nama: string, project_id: int, status: string, division: string|null, nilai_total: float}>
+     */
+    #[Computed]
+    public function projectsToRevisi(): array
+    {
+        return app(DashboardService::class)->projectsToRevisi();
+    }
+
+    /**
+     * Submit/Revisi counts for widget badges.
+     *
+     * @return array{submit_count: int, revisi_count: int}
+     */
+    #[Computed]
+    public function submitRevisiCounts(): array
+    {
+        return app(DashboardService::class)->submitRevisiCounts();
     }
 
     /**

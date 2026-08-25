@@ -86,9 +86,15 @@ class Cashflow extends Model
     /**
      * The project behind this entry (via the settled AP/AR record), or null
      * for manual cash entries.
+     * Uses eager loaded relation if available, otherwise falls back to queries.
      */
     public function getProjectAttribute(): ?Project
     {
+        // If project is already eager loaded, use it
+        if ($this->relationLoaded('project')) {
+            return $this->getRelation('project');
+        }
+
         // Direct FK (manual entry with project tagging)
         if ($this->project_id !== null) {
             return $this->project()->first();
@@ -215,6 +221,54 @@ class Cashflow extends Model
     public function voucher(): HasOne
     {
         return $this->hasOne(Voucher::class);
+    }
+
+    /**
+     * Get the budget plans associated with this cashflow's project.
+     */
+    public function budgetPlans(): \Illuminate\Database\Eloquent\Relations\HasManyThrough
+    {
+        return $this->hasManyThrough(
+            BudgetPlan::class,
+            Project::class,
+            'id',         // Foreign key on projects table
+            'project_id', // Foreign key on budget_plans table
+            'project_id', // Local key on cashflows table
+            'id'          // Local key on projects table
+        )->orderBy('periode');
+    }
+
+    /**
+     * Get all budget numbers for this cashflow (comma-separated).
+     */
+    public function getBudgetNumbersAttribute(): array
+    {
+        // Use eager loaded project.budgetPlans if available
+        if ($this->relationLoaded('project') && $this->project && $this->project->relationLoaded('budgetPlans')) {
+            return $this->project->budgetPlans->pluck('nomor')->toArray();
+        }
+
+        // No project or budget plans not eager loaded - return empty to avoid lazy loading
+        if (!$this->project_id) {
+            return [];
+        }
+
+        // If project is loaded but budgetPlans not, don't lazy load
+        if ($this->relationLoaded('project') && $this->project && !$this->project->relationLoaded('budgetPlans')) {
+            return [];
+        }
+
+        // Fallback to HasManyThrough (will only work if lazy loading enabled)
+        return $this->budgetPlans->pluck('nomor')->toArray();
+    }
+
+    /**
+     * Get primary budget number for display.
+     */
+    public function getBudgetNumberAttribute(): ?string
+    {
+        $numbers = $this->budget_numbers;
+        return $numbers ? implode(', ', $numbers) : null;
     }
 
     public function submittedBy(): BelongsTo

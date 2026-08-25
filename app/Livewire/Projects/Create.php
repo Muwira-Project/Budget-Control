@@ -3,10 +3,12 @@
 namespace App\Livewire\Projects;
 
 use App\Enums\ProjectJenis;
+use App\Enums\ProjectStatus;
 use App\Http\Requests\Project\StoreProjectRequest;
 use App\Models\MasterItem;
 use App\Services\ProjectService;
 use Illuminate\Support\Facades\Validator;
+use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
 
@@ -21,7 +23,7 @@ class Create extends Component
 
     public ?string $lokasi = null;
 
-    public ?string $devisi = null;
+    public ?int $divisionId = null;
 
     public ?string $pic = null;
 
@@ -56,6 +58,23 @@ class Create extends Component
     }
 
     /**
+     * Validate status transition when status changes.
+     */
+    public function updatedStatus(): void
+    {
+        // For create, we only check if draft can go to the new status
+        $currentStatus = ProjectStatus::Draft;
+        $newStatus = ProjectStatus::tryFrom($this->status);
+        
+        if ($newStatus && !$currentStatus->canTransitionTo($newStatus)) {
+            $this->addError('status', "Tidak bisa mengubah status dari {$currentStatus->label()} ke {$newStatus->label()}.");
+            $this->status = $currentStatus->value;
+        } else {
+            $this->resetErrorBag('status');
+        }
+    }
+
+    /**
      * Store a newly created project.
      */
     public function save(ProjectService $service): void
@@ -66,7 +85,7 @@ class Create extends Component
                 'po_number' => $this->poNumber,
                 'nama' => $this->nama,
                 'lokasi' => $this->lokasi,
-                'devisi' => $this->devisi,
+                'division_id' => $this->divisionId,
                 'pic' => $this->pic,
                 'project_category_id' => $this->projectCategoryId,
                 'sub_work' => $this->subWork,
@@ -93,10 +112,24 @@ class Create extends Component
     /**
      * The project categories available for the form (dynamic master).
      */
+    #[Computed]
     public function projectCategories()
     {
         return MasterItem::query()
             ->whereHas('masterType', fn ($query) => $query->where('kode', 'PROJECT_CATEGORY')->where('aktif', true))
+            ->where('aktif', true)
+            ->orderBy('nama')
+            ->get();
+    }
+
+    /**
+     * The divisions available for the form (dynamic master).
+     */
+    #[Computed]
+    public function divisionOptions()
+    {
+        return MasterItem::query()
+            ->whereHas('masterType', fn ($query) => $query->where('kode', 'DIVISION')->where('aktif', true))
             ->where('aktif', true)
             ->orderBy('nama')
             ->get();

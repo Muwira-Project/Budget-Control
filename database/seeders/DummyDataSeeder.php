@@ -52,6 +52,7 @@ class DummyDataSeeder extends Seeder
         $this->seedKategoris();
         $this->seedMasterAkuns();
         $this->seedPartyMasterTypes();
+        $this->seedDivisionMasterType();
         $this->seedVendors();
         $this->seedSuppliers();
         $this->seedMandors();
@@ -285,6 +286,43 @@ class DummyDataSeeder extends Seeder
     }
 
     /**
+     * Seed the Division master type and its items.
+     * Flexible - admin can add/remove via Master -> Master Items.
+     */
+    protected function seedDivisionMasterType(): void
+    {
+        $divisionType = MasterType::firstOrCreate(
+            ['kode' => 'DIVISION'],
+            [
+                'nama' => 'Division',
+                'deskripsi' => 'Project division/department',
+                'flag_project' => true,
+                'flag_ar' => false,
+                'flag_ap' => false,
+                'aktif' => true,
+                'is_system' => true,
+                'sort' => 5,
+            ],
+        );
+
+        $divisions = [
+            ['kode' => 'CONSTRUCTION', 'nama' => 'Construction'],
+            ['kode' => 'MEP', 'nama' => 'MEP'],
+            ['kode' => 'CIVIL', 'nama' => 'Civil'],
+            ['kode' => 'ARCHITECTURE', 'nama' => 'Architecture'],
+            ['kode' => 'INTERIOR', 'nama' => 'Interior'],
+            ['kode' => 'OTHERS', 'nama' => 'Others'],
+        ];
+
+        foreach ($divisions as $div) {
+            MasterItem::firstOrCreate(
+                ['master_type_id' => $divisionType->id, 'kode' => $div['kode']],
+                ['nama' => $div['nama'], 'aktif' => true],
+            );
+        }
+    }
+
+    /**
      * Seed the vendor master data (jasa).
      */
     protected function seedVendors(): void
@@ -436,6 +474,9 @@ class DummyDataSeeder extends Seeder
                 'nama' => 'Pembangunan Gedung Kantor',
                 'lokasi' => 'Jakarta',
                 'pic' => 'Arian',
+                'division_id' => MasterItem::whereHas('masterType', fn($q) => $q->where('kode', 'DIVISION'))
+                    ->where('kode', 'CONSTRUCTION')
+                    ->first()?->id,
                 'jenis' => ProjectJenis::Jasa->value,
                 'qty' => 1,
                 'satuan' => 'unit',
@@ -461,6 +502,9 @@ class DummyDataSeeder extends Seeder
                 'nama' => 'Renovasi Ruang Rapat',
                 'lokasi' => 'Jakarta',
                 'pic' => 'Budi',
+                'division_id' => MasterItem::whereHas('masterType', fn($q) => $q->where('kode', 'DIVISION'))
+                    ->where('kode', 'INTERIOR')
+                    ->first()?->id,
                 'jenis' => ProjectJenis::Jasa->value,
                 'qty' => 1,
                 'satuan' => 'unit',
@@ -597,6 +641,18 @@ class DummyDataSeeder extends Seeder
                     'target_laba' => 0,
                 ],
             );
+
+            // Generate nomor for the budget plan
+            if (empty($plan->nomor)) {
+                $projectCode = $project->kode ?? 'NP';
+                $periode = $periods[$index] ?? '2026-08';
+                $lastPlan = BudgetPlan::where('project_id', $project->id)
+                    ->where('periode', $periods[$index] ?? '2026-08')
+                    ->latest('id')
+                    ->first();
+                $sequence = ($lastPlan?->id ?? 0) + 1;
+                $plan->update(['nomor' => 'BP/'.$projectCode.'/'.$periode.'/'.$sequence]);
+            }
 
             // Rebuild the plan items from the approved allocations and keep
             // estimasi_biaya & target_laba in sync with the item totals.
