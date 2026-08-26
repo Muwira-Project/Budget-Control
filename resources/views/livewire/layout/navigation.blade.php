@@ -16,6 +16,16 @@ new class extends Component
     }
 
     /**
+     * Sidebar collapsed state (persisted in user preferences and localStorage).
+     */
+    public bool $sidebarCollapsed = false;
+
+    public function mount(): void
+    {
+        $this->sidebarCollapsed = auth()->user()->dashboard_preferences['sidebar_collapsed'] ?? false;
+    }
+
+    /**
      * Mark a single notification as read.
      */
     public function markNotificationAsRead(string $id): void
@@ -32,6 +42,19 @@ new class extends Component
     }
 
     /**
+     * Toggle sidebar collapsed state.
+     */
+    public function toggleSidebarCollapse(): void
+    {
+        $this->sidebarCollapsed = !$this->sidebarCollapsed;
+
+        // Persist to user preferences
+        $preferences = auth()->user()->dashboard_preferences ?? [];
+        $preferences['sidebar_collapsed'] = $this->sidebarCollapsed;
+        auth()->user()->update(['dashboard_preferences' => $preferences]);
+    }
+
+    /**
      * Log the current user out of the application.
      */
     public function logout(Logout $logout): void
@@ -43,7 +66,18 @@ new class extends Component
 };
 ?>
 
-<div x-data="{ sidebarOpen: false }">
+<div x-data="{
+    sidebarOpen: false,
+    collapsed: @entangle('sidebarCollapsed').defer,
+    init() {
+        this.$watch('collapsed', (value) => {
+            localStorage.setItem('sidebar_collapsed', value);
+        });
+    },
+    toggleCollapse() {
+        this.collapsed = !this.collapsed;
+    }
+}" x-init="init()">
     {{-- Desktop Sidebar --}}
     <aside class="fixed inset-y-0 left-0 z-40 hidden w-[248px] flex-col border-r border-white/5 bg-brand-950 lg:flex">
         <a href="{{ route('dashboard') }}" wire:navigate class="flex h-16 shrink-0 items-center gap-3 border-b border-white/5 px-5">

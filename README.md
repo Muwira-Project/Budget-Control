@@ -2,7 +2,7 @@
 
 Aplikasi web untuk mengelola **budget (alokasi dana)**, **actual (realisasi)**, dan **variance (sisa)** per project, dilengkapi modul keuangan: Cash Activity, AR/AP, Fund Transfer, dan Monitoring periode.
 
-> UI aplikasi berbahasa **Inggris** dengan branding **myfinance**. Dokumentasi progres per batch ada di `PROGRESS.md` dan notulensi di `MEETING.md`.
+> UI aplikasi berbahasa **Indonesia** dengan branding **myfinance**. Dokumentasi progres per batch ada di `PROGRESS.md` dan notulensi di `MEETING.md`.
 
 ## Fitur Utama
 
@@ -81,6 +81,18 @@ Gate terakhir: **331 test lulus** + **Pint lulus**.
 
 ## Changelog
 
+### 2026-08-26 — Dashboard UX Refactoring
+
+**Dashboard UX Refactoring:**
+- Tabbed navigation replacing long scroll layout
+- 5 tabs: Overview, Projects, Finance, AR/AP, Settings
+- Role-based tab visibility: Admin sees all 5 tabs, Staff sees Overview/Projects/Finance only
+- Sidebar collapse functionality (248px → 64px icon-only mode)
+- localStorage persistence for sidebar collapse state per browser
+- Master dropdown remains functional in collapsed mode
+- Dynamic content padding in app layout driven by Alpine.js state
+- JSON column `dashboard_preferences` added to users table for preference storage
+
 ### 2026-08-25 — Commit `3bd6edf` (branch `feature/review-16-aug-2026`)
 
 **Project Lifecycle & State Machine:**
@@ -130,9 +142,3 @@ Gate terakhir: **331 test lulus** + **Pint lulus**.
 - 4 Import/Export files for Cashflow
 - 1 Import Cashflows Livewire component + view
 - 1 comprehensive test file
-
----
-
-### 2026-08-16 — Commit `912e2b9` (baseline)
-
-AR/AP module with PO Number, Export/Import, Dashboard breakdown
