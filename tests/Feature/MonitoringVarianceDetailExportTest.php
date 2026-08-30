@@ -503,10 +503,67 @@ class MonitoringVarianceDetailExportTest extends TestCase
 
         // Verifikasi Baris Total Konsolidasi di Excel
         $totalRow = $collection->last();
+        $this->assertEquals('-', $totalRow['budget_no']);
         $this->assertEquals('TOTAL KONSOLIDASI', $totalRow['po_number']);
         $this->assertEquals(100_000_000.0, $totalRow['budget']);
         $this->assertEquals(45_000_000.0, $totalRow['actual_out']);
         $this->assertEquals(50_000_000.0, $totalRow['cash_in']);
         $this->assertEquals(55_000_000.0, $totalRow['variance']);
     }
+
+    public function test_export_includes_budget_number_in_headings_and_rows(): void
+    {
+        $project = Project::factory()->create(['kode' => 'PRJ-BN', 'nama' => 'Budget No Test']);
+        $period = MonitoringPeriod::factory()->create([
+            'project_id'      => $project->id,
+            'tanggal_mulai'   => '2026-08-01',
+            'tanggal_selesai' => '2026-08-31',
+        ]);
+
+        $akun = Akun::factory()->create([
+            'kode_akun'  => '5-BN',
+            'nama_akun'  => 'Akun Budget No',
+            'jenis_akun' => 'pengeluaran',
+        ]);
+
+        $budgetPlan = BudgetPlan::factory()->create([
+            'project_id' => $project->id,
+            'nomor'      => 'BP/PRJ-BN/2026-08/01',
+        ]);
+
+        BudgetPlanItem::factory()->create([
+            'budget_plan_id'  => $budgetPlan->id,
+            'akun_id'         => $akun->id,
+            'nominal'         => 80_000_000,
+            'tanggal_mulai'   => '2026-08-01',
+            'tanggal_selesai' => '2026-08-31',
+        ]);
+
+        Realisasi::factory()->create([
+            'project_id' => $project->id,
+            'akun_id'    => $akun->id,
+            'tanggal'    => '2026-08-15',
+            'nominal'    => 25_000_000,
+        ]);
+
+        $export = new \App\Exports\MonitoringVarianceDetailExport($period);
+        $headings = $export->headings();
+
+        $this->assertContains('Budget No.', $headings);
+        $this->assertEquals('Budget No.', $headings[0], 'Budget No. harus menjadi kolom pertama pada headings');
+
+        $rows = app(\App\Services\MonitoringPeriodService::class)->varianceDetailRows($period);
+        $budgetRow = collect($rows)->firstWhere('type', 'Budget');
+        $actualRow = collect($rows)->firstWhere('type', 'Actual Out');
+
+        $this->assertNotNull($budgetRow);
+        $this->assertEquals('BP/PRJ-BN/2026-08/01', $budgetRow['budget_no']);
+
+        $this->assertNotNull($actualRow);
+        $this->assertEquals('BP/PRJ-BN/2026-08/01', $actualRow['budget_no']);
+
+        $mappedBudget = $export->map($budgetRow);
+        $this->assertEquals('BP/PRJ-BN/2026-08/01', $mappedBudget[0]);
+    }
 }
+

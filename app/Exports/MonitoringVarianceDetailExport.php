@@ -48,6 +48,7 @@ class MonitoringVarianceDetailExport implements
             $totalVariance  = $totalBudget - $totalActualOut;
 
             $rows[] = [
+                'budget_no'     => '-',
                 'po_number'     => 'TOTAL KONSOLIDASI',
                 'project'       => 'SEMUA TRANSAKSI',
                 'account'       => 'TOTAL AKHIR',
@@ -75,6 +76,7 @@ class MonitoringVarianceDetailExport implements
     public function headings(): array
     {
         return [
+            'Budget No.',
             'PO Number',
             'Project',
             'Account',
@@ -96,6 +98,7 @@ class MonitoringVarianceDetailExport implements
     public function map($row): array
     {
         return [
+            $row['budget_no'] ?? '-',
             $row['po_number'] ?? '-',
             $row['project'] ?? '',
             $row['account'] ?? '',
@@ -119,11 +122,11 @@ class MonitoringVarianceDetailExport implements
         $currencyFormat = '#,##0';
 
         return [
-            'I' => $currencyFormat, // Budget
-            'K' => $currencyFormat, // Actual Out
-            'L' => $currencyFormat, // Cash In
-            'M' => $currencyFormat, // AP Pay
-            'N' => $currencyFormat, // Variance
+            'J' => $currencyFormat, // Budget
+            'L' => $currencyFormat, // Actual Out
+            'M' => $currencyFormat, // Cash In
+            'N' => $currencyFormat, // AP Pay
+            'O' => $currencyFormat, // Variance
         ];
     }
 
@@ -132,7 +135,7 @@ class MonitoringVarianceDetailExport implements
         $lastRow = $this->rowCount + 1; // +1 due to header row
 
         // Header styling
-        $sheet->getStyle('A1:O1')->applyFromArray([
+        $sheet->getStyle('A1:P1')->applyFromArray([
             'font' => [
                 'bold' => true,
                 'color' => ['rgb' => 'FFFFFF'],
@@ -151,18 +154,18 @@ class MonitoringVarianceDetailExport implements
         $sheet->getRowDimension(1)->setRowHeight(28);
 
         // Center align code/date/day/type columns
-        $sheet->getStyle("A2:A{$lastRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-        $sheet->getStyle("D2:D{$lastRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-        $sheet->getStyle("F2:H{$lastRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-        $sheet->getStyle("J2:J{$lastRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle("A2:B{$lastRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle("E2:E{$lastRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle("G2:I{$lastRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+        $sheet->getStyle("K2:K{$lastRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
 
         // Right align monetary columns
-        $sheet->getStyle("I2:I{$lastRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
-        $sheet->getStyle("K2:N{$lastRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+        $sheet->getStyle("J2:J{$lastRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
+        $sheet->getStyle("L2:O{$lastRow}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_RIGHT);
 
         // Total row styling if rows exist
         if ($this->rowCount > 0) {
-            $sheet->getStyle("A{$lastRow}:O{$lastRow}")->applyFromArray([
+            $sheet->getStyle("A{$lastRow}:P{$lastRow}")->applyFromArray([
                 'font' => [
                     'bold' => true,
                     'size' => 11,

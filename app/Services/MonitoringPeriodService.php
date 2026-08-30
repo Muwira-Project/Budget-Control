@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Enums\KasStatus;
 use App\Enums\PaymentJenis;
 use App\Models\Akun;
+use App\Models\BudgetPlan;
 use App\Models\BudgetPlanItem;
 use App\Models\Cashflow;
 use App\Models\MonitoringPeriod;
@@ -106,7 +107,7 @@ class MonitoringPeriodService
 
     /**
      * Detail rows for variance export: one row per transaction (budget item, realisasi, payment).
-     * Each row has consolidated fields: po_number, project, account, type, pihak, periode_week, day_name, budget_date, budget, actual_date, actual_out, cash_in, ap_settlement, variance, description.
+     * Each row has consolidated fields: budget_no, po_number, project, account, type, pihak, periode_week, day_name, budget_date, budget, actual_date, actual_out, cash_in, ap_settlement, variance, description.
      *
      * @return array<int, array<string, mixed>>
      */
@@ -121,6 +122,16 @@ class MonitoringPeriodService
         $periodEnd     = $period->tanggal_selesai->format('Y-m-d');
         $includeLegacy = ! $this->hasEarlierPeriodInSameMonth($period);
         $periodLabel   = $period->nomor . ' (W' . $period->week . ')';
+
+        $budgetNumbersByProject = BudgetPlan::query()
+            ->whereNotNull('nomor')
+            ->whereNotNull('project_id')
+            ->orderBy('periode')
+            ->get()
+            ->groupBy('project_id')
+            ->map(fn ($plans) => $plans->pluck('nomor')->filter()->unique()->implode(', '));
+
+        $budgetNumberFallback = $period->budget_number ?: ($projectId ? ($budgetNumbersByProject[$projectId] ?? '-') : '-');
 
         // ── 1. Budget plan items yang overlap dengan periode ─────────────────
         $budgetItems = BudgetPlanItem::query()
@@ -145,6 +156,7 @@ class MonitoringPeriodService
             ->select([
                 'budget_plan_items.id as item_id',
                 'budget_plans.project_id',
+                'budget_plans.nomor as budget_number',
                 'budget_plan_items.akun_id',
                 'budget_plan_items.nominal as budget',
                 'budget_plan_items.tanggal_mulai',
@@ -158,7 +170,7 @@ class MonitoringPeriodService
             ->get();
 
         if ($budgetItems->isEmpty()) {
-            return $this->varianceRowsFromActualOnly($period, $projectId, $periodStart, $periodEnd);
+            return $this->varianceRowsFromActualOnly($period, $projectId, $periodStart, $periodEnd, $budgetNumbersByProject, $budgetNumberFallback);
         }
 
         // Kumpulkan budget & actual per akun untuk variance summary
@@ -180,8 +192,6 @@ class MonitoringPeriodService
             ->orderBy('tanggal')
             ->get();
 
-
-
         // ── 3. Cash In / AR Settlement dalam periode ─────────────────────────
         $cashInRows = Payment::query()
             ->join('receivables', 'receivables.id', '=', 'payments.receivable_id')
@@ -197,6 +207,7 @@ class MonitoringPeriodService
                 'payments.tanggal',
                 'payments.nominal',
                 'payments.keterangan',
+                'receivables.project_id',
                 'mi.nama as party_name',
                 'mt.nama as party_type',
                 'prj.kode as project_code',
@@ -253,6 +264,7 @@ class MonitoringPeriodService
                 'payables.nominal_dibayar',
                 'payables.keterangan',
                 'payables.nomor_invoice',
+                DB::raw('COALESCE(payables.project_id, rls.project_id) as project_id'),
                 DB::raw('COALESCE(ak_p.kode_akun, ak_r.kode_akun) as account_code'),
                 DB::raw('COALESCE(ak_p.nama_akun, ak_r.nama_akun) as account_name'),
                 DB::raw('COALESCE(mi_p.nama, mi_r.nama) as party_name'),
@@ -292,6 +304,7 @@ class MonitoringPeriodService
                 'payments.tanggal',
                 'payments.nominal',
                 'payments.keterangan',
+                DB::raw('COALESCE(payables.project_id, rls.project_id) as project_id'),
                 DB::raw('COALESCE(ak_p.kode_akun, ak_r.kode_akun) as account_code'),
                 DB::raw('COALESCE(ak_p.nama_akun, ak_r.nama_akun) as account_name'),
                 DB::raw('COALESCE(mi_p.nama, mi_r.nama) as party_name'),
@@ -312,7 +325,7 @@ class MonitoringPeriodService
         $rows = [];
 
         // E. Cash Activity rows — manual Posted cashflows yang TIDAK ter-sync ke Realisasi
-        $cashActivityRows = $this->getCashActivityRows($projectId, $periodStart, $periodEnd, $periodLabel, $projectNameFallback, $poNumberFallback);
+        $cashActivityRows = $this->getCashActivityRows($projectId, $periodStart, $periodEnd, $periodLabel, $projectNameFallback, $poNumberFallback, $budgetNumbersByProject, $budgetNumberFallback);
 
         // Akumulasikan realisasi ke actualByAkun
         foreach ($realisasiRows as $r) {
@@ -342,8 +355,11 @@ class MonitoringPeriodService
             $totalBudgetForAkun = (float) $item->budget;
             $totalActualForAkun = $actualByAkun[$item->akun_id] ?? 0.0;
 
+            $budgetNo = $item->budget_number ?: ($item->project_id ? ($budgetNumbersByProject[$item->project_id] ?? $budgetNumberFallback) : $budgetNumberFallback);
+
             $budgetRows[] = [
                 'sort_date'     => $budgetDateStr,
+                'budget_no'     => $budgetNo ?: '-',
                 'po_number'     => $item->po_number ?? $poNumberFallback,
                 'project'       => $projectLabel,
                 'account'       => $accountLabel,
@@ -382,9 +398,11 @@ class MonitoringPeriodService
             $pihakLabel = ($pihakType && $pihakItem) ? $pihakType . ': ' . $pihakItem : ($pihakItem ?? '-');
 
             $isUnbudgeted = ! in_array($r->akun_id, $budgetAkunIds, true);
+            $budgetNo = $r->project_id ? ($budgetNumbersByProject[$r->project_id] ?? $budgetNumberFallback) : $budgetNumberFallback;
 
             $rows[] = [
                 'sort_date'     => $actualDateStr,
+                'budget_no'     => $budgetNo ?: '-',
                 'po_number'     => $r->project?->po_number ?? $poNumberFallback,
                 'project'       => $projectLabel,
                 'account'       => $accountLabel,
@@ -411,9 +429,11 @@ class MonitoringPeriodService
 
             $projectLabel = ($p->project_code ? '[' . $p->project_code . '] ' : '') . ($p->project_name ?? $projectNameFallback);
             $pihakLabel   = ($p->party_type && $p->party_name) ? $p->party_type . ': ' . $p->party_name : ($p->party_name ?? '-');
+            $budgetNo     = $p->project_id ? ($budgetNumbersByProject[$p->project_id] ?? $budgetNumberFallback) : $budgetNumberFallback;
 
             $rows[] = [
                 'sort_date'     => $actualDateStr,
+                'budget_no'     => $budgetNo ?: '-',
                 'po_number'     => $p->po_number ?? $poNumberFallback,
                 'project'       => $projectLabel,
                 'account'       => 'Receivable / Cash In',
@@ -445,9 +465,11 @@ class MonitoringPeriodService
             $paid = (float) ($ap->nominal_dibayar ?? 0);
             $total = (float) $ap->nominal;
             $statusLabel = $paid <= 0 ? 'Belum Bayar' : ($paid >= $total ? 'Lunas' : 'Sebagian');
+            $budgetNo    = $ap->project_id ? ($budgetNumbersByProject[$ap->project_id] ?? $budgetNumberFallback) : $budgetNumberFallback;
 
             $rows[] = [
                 'sort_date'     => $apDateStr,
+                'budget_no'     => $budgetNo ?: '-',
                 'po_number'     => $ap->po_number ?? $poNumberFallback,
                 'project'       => $projectLabel,
                 'account'       => $accountLabel,
@@ -475,9 +497,11 @@ class MonitoringPeriodService
             $projectLabel = ($p->project_code ? '[' . $p->project_code . '] ' : '') . ($p->project_name ?? $projectNameFallback);
             $accountLabel = ($p->account_code ? '[' . $p->account_code . '] ' : '') . ($p->account_name ?? 'Payable / Cash Out');
             $pihakLabel   = ($p->party_type && $p->party_name) ? $p->party_type . ': ' . $p->party_name : ($p->party_name ?? '-');
+            $budgetNo     = $p->project_id ? ($budgetNumbersByProject[$p->project_id] ?? $budgetNumberFallback) : $budgetNumberFallback;
 
             $rows[] = [
                 'sort_date'     => $actualDateStr,
+                'budget_no'     => $budgetNo ?: '-',
                 'po_number'     => $p->po_number ?? $poNumberFallback,
                 'project'       => $projectLabel,
                 'account'       => $accountLabel,
@@ -520,13 +544,16 @@ class MonitoringPeriodService
      * Fallback: rows dari semua transaksi aktual (realisasi, Cash In, AP)
      * ketika tidak ada budget plan items yang overlap periode.
      *
+     * @param  \Illuminate\Support\Collection|array  $budgetNumbersByProject
      * @return array<int, array<string, mixed>>
      */
     private function varianceRowsFromActualOnly(
         MonitoringPeriod $period,
         ?int $projectId,
         string $periodStart,
-        string $periodEnd
+        string $periodEnd,
+        $budgetNumbersByProject = [],
+        string $budgetNumberFallback = '-'
     ): array {
         $rows = [];
         $periodLabel = $period->nomor . ' (W' . $period->week . ')';
@@ -550,9 +577,11 @@ class MonitoringPeriodService
             $pihakType = $r->pihakType?->nama;
             $pihakItem = $r->pihakItem?->nama;
             $pihakLabel = ($pihakType && $pihakItem) ? $pihakType . ': ' . $pihakItem : ($pihakItem ?? '-');
+            $budgetNo   = $r->project_id ? ($budgetNumbersByProject[$r->project_id] ?? $budgetNumberFallback) : $budgetNumberFallback;
 
             $rows[] = [
                 'sort_date'     => $actualDateStr,
+                'budget_no'     => $budgetNo ?: '-',
                 'po_number'     => $r->project?->po_number ?? '-',
                 'project'       => $projectLabel,
                 'account'       => $accountLabel,
@@ -586,6 +615,7 @@ class MonitoringPeriodService
                 'payments.tanggal',
                 'payments.nominal',
                 'payments.keterangan',
+                'receivables.project_id',
                 'mi.nama as party_name',
                 'mt.nama as party_type',
                 'prj.kode as project_code',
@@ -602,9 +632,11 @@ class MonitoringPeriodService
 
             $projectLabel = ($p->project_code ? '[' . $p->project_code . '] ' : '') . ($p->project_name ?? 'Non-Project');
             $pihakLabel   = ($p->party_type && $p->party_name) ? $p->party_type . ': ' . $p->party_name : ($p->party_name ?? '-');
+            $budgetNo     = $p->project_id ? ($budgetNumbersByProject[$p->project_id] ?? $budgetNumberFallback) : $budgetNumberFallback;
 
             $rows[] = [
                 'sort_date'     => $actualDateStr,
+                'budget_no'     => $budgetNo ?: '-',
                 'po_number'     => $p->po_number ?? '-',
                 'project'       => $projectLabel,
                 'account'       => 'Receivable / Cash In',
@@ -640,6 +672,7 @@ class MonitoringPeriodService
                 'payments.nominal',
                 'payments.keterangan',
                 'payables.akun_id',
+                'payables.project_id',
                 'akuns.kode_akun as account_code',
                 'akuns.nama_akun as account_name',
                 'mi.nama as party_name',
@@ -659,9 +692,11 @@ class MonitoringPeriodService
             $projectLabel = ($p->project_code ? '[' . $p->project_code . '] ' : '') . ($p->project_name ?? 'Non-Project');
             $accountLabel = ($p->account_code ? '[' . $p->account_code . '] ' : '') . ($p->account_name ?? 'Payable / Cash Out');
             $pihakLabel   = ($p->party_type && $p->party_name) ? $p->party_type . ': ' . $p->party_name : ($p->party_name ?? '-');
+            $budgetNo     = $p->project_id ? ($budgetNumbersByProject[$p->project_id] ?? $budgetNumberFallback) : $budgetNumberFallback;
 
             $rows[] = [
                 'sort_date'     => $actualDateStr,
+                'budget_no'     => $budgetNo ?: '-',
                 'po_number'     => $p->po_number ?? '-',
                 'project'       => $projectLabel,
                 'account'       => $accountLabel,
@@ -681,7 +716,7 @@ class MonitoringPeriodService
         }
 
         // Cash Activity rows — manual Posted cashflows yang TIDAK ter-sync ke Realisasi
-        foreach ($this->getCashActivityRows($projectId, $periodStart, $periodEnd, $periodLabel, 'All Projects', '-') as $cr) {
+        foreach ($this->getCashActivityRows($projectId, $periodStart, $periodEnd, $periodLabel, 'All Projects', '-', $budgetNumbersByProject, $budgetNumberFallback) as $cr) {
             $rows[] = $cr;
         }
 
@@ -706,6 +741,7 @@ class MonitoringPeriodService
      * kantor entered manually without tagging) are the ones that are missing from
      * the export — this helper captures those.
      *
+     * @param  \Illuminate\Support\Collection|array  $budgetNumbersByProject
      * @return array<int, array<string, mixed>>
      */
     private function getCashActivityRows(
@@ -714,7 +750,9 @@ class MonitoringPeriodService
         string $periodEnd,
         string $periodLabel,
         string $projectNameFallback,
-        string $poNumberFallback
+        string $poNumberFallback,
+        $budgetNumbersByProject = [],
+        string $budgetNumberFallback = '-'
     ): array {
         // IDs of cashflows that have already been synced to Realisasi (sumber = 'manual')
         $syncedCashflowIds = Realisasi::where('sumber', Realisasi::SUMBER_MANUAL)
@@ -764,11 +802,13 @@ class MonitoringPeriodService
 
             $projectLabel = ($cf->project_code ? '[' . $cf->project_code . '] ' : '') . ($cf->project_name ?? $projectNameFallback);
             $pihakLabel   = ($cf->party_type && $cf->party_name) ? $cf->party_type . ': ' . $cf->party_name : ($cf->party_name ?? '-');
+            $budgetNo     = $cf->project_id ? ($budgetNumbersByProject[$cf->project_id] ?? $budgetNumberFallback) : $budgetNumberFallback;
 
             $isMasuk = $cf->jenis->value === 'masuk';
 
             $rows[] = [
                 'sort_date'     => $dateStr,
+                'budget_no'     => $budgetNo ?: '-',
                 'po_number'     => $cf->po_number ?? $poNumberFallback,
                 'project'       => $projectLabel,
                 'account'       => $accountLabel,
