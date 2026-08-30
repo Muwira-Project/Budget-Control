@@ -276,50 +276,10 @@ class MonitoringPeriodService
             ->orderBy('payables.tanggal')
             ->get();
 
-        // B. Pelunasan Hutang (Payments untuk Payable) yang dibayar di dalam periode
-        $apPaymentRows = Payment::query()
-            ->join('payables', 'payables.id', '=', 'payments.payable_id')
-            ->leftJoin('realisasi as rls', 'rls.id', '=', 'payables.realisasi_id')
-            ->leftJoin('akuns as ak_p', 'ak_p.id', '=', 'payables.akun_id')
-            ->leftJoin('akuns as ak_r', 'ak_r.id', '=', 'rls.akun_id')
-            ->leftJoin('master_items as mi_p', 'mi_p.id', '=', 'payables.pihak_item_id')
-            ->leftJoin('master_items as mi_r', 'mi_r.id', '=', 'rls.pihak_item_id')
-            ->leftJoin('master_types as mt_p', 'mt_p.id', '=', 'payables.pihak_type_id')
-            ->leftJoin('master_types as mt_r', 'mt_r.id', '=', 'rls.pihak_type_id')
-            ->leftJoin('projects as prj_p', 'prj_p.id', '=', 'payables.project_id')
-            ->leftJoin('projects as prj_r', 'prj_r.id', '=', 'rls.project_id')
-            ->where('payments.jenis', PaymentJenis::Keluar)
-            ->whereDate('payments.tanggal', '>=', $periodStart)
-            ->whereDate('payments.tanggal', '<=', $periodEnd)
-            ->whereNotNull('payments.payable_id')
-            ->when($projectId, fn ($q) => $q->where(function ($sub) use ($projectId) {
-                $sub->where('payables.project_id', $projectId)
-                    ->orWhere('rls.project_id', $projectId)
-                    ->orWhere(function ($nullScope) {
-                        $nullScope->whereNull('payables.project_id')
-                            ->whereNull('rls.project_id');
-                    });
-            }))
-            ->select([
-                'payments.tanggal',
-                'payments.nominal',
-                'payments.keterangan',
-                DB::raw('COALESCE(payables.project_id, rls.project_id) as project_id'),
-                DB::raw('COALESCE(ak_p.kode_akun, ak_r.kode_akun) as account_code'),
-                DB::raw('COALESCE(ak_p.nama_akun, ak_r.nama_akun) as account_name'),
-                DB::raw('COALESCE(mi_p.nama, mi_r.nama) as party_name'),
-                DB::raw('COALESCE(mt_p.nama, mt_r.nama) as party_type'),
-                DB::raw('COALESCE(prj_p.kode, prj_r.kode) as project_code'),
-                DB::raw('COALESCE(prj_p.nama, prj_r.nama) as project_name'),
-                DB::raw('COALESCE(prj_p.po_number, prj_r.po_number) as po_number'),
-            ])
-            ->orderBy('payments.tanggal')
-            ->get();
-
         // ── 5. Susun baris output ────────────────────────────────────────────
         $projectFallback = Project::find($projectId);
         $projectCodeFallback = $projectFallback?->kode ?? ($projectId ? 'PRJ-' . $projectId : 'GLOBAL');
-        $projectNameFallback = $projectFallback?->nama ?? ($projectId ? 'Project ' . $projectId : 'All Projects');
+        $projectNameFallback = $projectFallback?->nama ?? ($projectId ? 'Project ' . $projectId : '-');
         $poNumberFallback = $projectFallback?->po_number ?? '-';
 
         $rows = [];
@@ -388,7 +348,7 @@ class MonitoringPeriodService
             $actualDateStr = $r->tanggal->format('Y-m-d');
             $dayName = $r->tanggal->locale('id')->isoFormat('dddd');
 
-            $projectLabel = ($r->project?->kode ? '[' . $r->project->kode . '] ' : '') . ($r->project?->nama ?? 'Non-Project');
+            $projectLabel = ($r->project?->kode ? '[' . $r->project->kode . '] ' : '') . ($r->project?->nama ?? '-');
             $accountCode  = $akunInfo?->account_code ?? $r->akun?->kode_akun ?? '';
             $accountName  = $akunInfo?->account_name ?? $r->akun?->nama_akun ?? '';
             $accountLabel = ($accountCode ? '[' . $accountCode . '] ' : '') . $accountName;
@@ -488,38 +448,6 @@ class MonitoringPeriodService
             ];
         }
 
-        // D2. AP Payment (Pelunasan Hutang via Kas)
-        foreach ($apPaymentRows as $p) {
-            $actualDateObj = Carbon::parse($p->tanggal);
-            $actualDateStr = $actualDateObj->format('Y-m-d');
-            $dayName = $actualDateObj->locale('id')->isoFormat('dddd');
-
-            $projectLabel = ($p->project_code ? '[' . $p->project_code . '] ' : '') . ($p->project_name ?? $projectNameFallback);
-            $accountLabel = ($p->account_code ? '[' . $p->account_code . '] ' : '') . ($p->account_name ?? 'Payable / Cash Out');
-            $pihakLabel   = ($p->party_type && $p->party_name) ? $p->party_type . ': ' . $p->party_name : ($p->party_name ?? '-');
-            $budgetNo     = $p->project_id ? ($budgetNumbersByProject[$p->project_id] ?? $budgetNumberFallback) : $budgetNumberFallback;
-
-            $rows[] = [
-                'sort_date'     => $actualDateStr,
-                'budget_no'     => $budgetNo ?: '-',
-                'po_number'     => $p->po_number ?? $poNumberFallback,
-                'project'       => $projectLabel,
-                'account'       => $accountLabel,
-                'type'          => 'AP Payment',
-                'pihak'         => $pihakLabel,
-                'periode_week'  => $periodLabel,
-                'day_name'      => $dayName,
-                'budget_date'   => '',
-                'budget'        => 0.0,
-                'actual_date'   => $actualDateStr,
-                'actual_out'    => 0.0,
-                'cash_in'       => 0.0,
-                'ap_settlement' => (float) $p->nominal,
-                'variance'      => 0.0,
-                'description'   => $p->keterangan ?? 'Pelunasan Hutang',
-            ];
-        }
-
         // E. Cash Activity rows
         foreach ($cashActivityRows as $cr) {
             $isUnbudgeted = ! empty($cr['_akun_id']) && ! in_array($cr['_akun_id'], $budgetAkunIds, true);
@@ -571,7 +499,7 @@ class MonitoringPeriodService
             $actualDateStr = $r->tanggal->format('Y-m-d');
             $dayName = $r->tanggal->locale('id')->isoFormat('dddd');
 
-            $projectLabel = ($r->project?->kode ? '[' . $r->project->kode . '] ' : '') . ($r->project?->nama ?? 'Non-Project');
+            $projectLabel = ($r->project?->kode ? '[' . $r->project->kode . '] ' : '') . ($r->project?->nama ?? '-');
             $accountLabel = ($r->akun?->kode_akun ? '[' . $r->akun->kode_akun . '] ' : '') . ($r->akun?->nama_akun ?? '');
 
             $pihakType = $r->pihakType?->nama;
@@ -630,7 +558,7 @@ class MonitoringPeriodService
             $actualDateStr = $actualDateObj->format('Y-m-d');
             $dayName = $actualDateObj->locale('id')->isoFormat('dddd');
 
-            $projectLabel = ($p->project_code ? '[' . $p->project_code . '] ' : '') . ($p->project_name ?? 'Non-Project');
+            $projectLabel = ($p->project_code ? '[' . $p->project_code . '] ' : '') . ($p->project_name ?? '-');
             $pihakLabel   = ($p->party_type && $p->party_name) ? $p->party_type . ': ' . $p->party_name : ($p->party_name ?? '-');
             $budgetNo     = $p->project_id ? ($budgetNumbersByProject[$p->project_id] ?? $budgetNumberFallback) : $budgetNumberFallback;
 
@@ -689,7 +617,7 @@ class MonitoringPeriodService
             $actualDateStr = $actualDateObj->format('Y-m-d');
             $dayName = $actualDateObj->locale('id')->isoFormat('dddd');
 
-            $projectLabel = ($p->project_code ? '[' . $p->project_code . '] ' : '') . ($p->project_name ?? 'Non-Project');
+            $projectLabel = ($p->project_code ? '[' . $p->project_code . '] ' : '') . ($p->project_name ?? '-');
             $accountLabel = ($p->account_code ? '[' . $p->account_code . '] ' : '') . ($p->account_name ?? 'Payable / Cash Out');
             $pihakLabel   = ($p->party_type && $p->party_name) ? $p->party_type . ': ' . $p->party_name : ($p->party_name ?? '-');
             $budgetNo     = $p->project_id ? ($budgetNumbersByProject[$p->project_id] ?? $budgetNumberFallback) : $budgetNumberFallback;
