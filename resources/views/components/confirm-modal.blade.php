@@ -4,14 +4,19 @@
     'confirmLabel' => 'Delete',
 ])
 
-<div {{ $attributes }}>
-    <div x-data="{ isOpen: false, target: null, openWith(target) { this.target = target; this.isOpen = true; } }">
-        {{ $slot }}
+<div {{ $attributes }}
+    x-data="{ showConfirmModal: false, confirmTarget: null }"
+    @open-confirm-modal.window="showConfirmModal = true; confirmTarget = $event.detail"
+    @open-with.window="showConfirmModal = true; confirmTarget = $event.detail"
+    @keydown.escape.window="showConfirmModal = false"
+>
+    {{ $slot }}
 
-        <!-- Modal -->
-        <div x-show="isOpen" x-cloak class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
+    <!-- Modal (only injected into DOM when open) -->
+    <template x-if="showConfirmModal">
+        <div class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true" aria-labelledby="confirm-modal-title">
             <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
-                <div class="fixed inset-0 bg-gray-500/75 transition-opacity" aria-hidden="true" @click="isOpen = false"></div>
+                <div class="fixed inset-0 bg-gray-500/75 transition-opacity" aria-hidden="true" @click="showConfirmModal = false"></div>
 
                 <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-md">
                     <div class="px-6 pt-6 pb-4">
@@ -28,15 +33,15 @@
                         </div>
                     </div>
                     <div class="flex justify-end gap-3 bg-gray-50 px-6 py-4">
-                        <button type="button" @click="isOpen = false" class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                        <button type="button" @click="showConfirmModal = false" class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
                             Cancel
                         </button>
-                        <button type="button" @click="isOpen = false; $wire.delete(target)" class="inline-flex items-center rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
+                        <button type="button" @click="showConfirmModal = false; $wire.delete(confirmTarget)" class="inline-flex items-center rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">
                             {{ $confirmLabel }}
                         </button>
                     </div>
                 </div>
             </div>
         </div>
-    </div>
+    </template>
 </div>

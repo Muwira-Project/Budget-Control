@@ -4,6 +4,8 @@ namespace Tests\Feature;
 
 use App\Exports\AkunExport;
 use App\Exports\AkunVsRealisasiExport;
+use App\Exports\MonitoringPeriodVarianceExport;
+use App\Exports\MonitoringSummaryExport;
 use App\Exports\RealisasiExport;
 use App\Models\Akun;
 use App\Models\Kategori;
@@ -79,6 +81,150 @@ class ExportTest extends TestCase
         $response->assertOk();
         $this->assertStringContainsString('Monitoring_Summary_'.now()->format('Ymd').'.pdf', $response->headers->get('content-disposition'));
         $this->assertStringContainsString('application/pdf', $response->headers->get('content-type'));
+    }
+
+    public function test_monitoring_variance_excel_download(): void
+    {
+        $user = User::factory()->admin()->create();
+        $period = \App\Models\MonitoringPeriod::factory()->create();
+        $project = $period->project;
+
+        $kategori = \App\Models\Kategori::factory()->create(['nama' => 'Material']);
+        $akun = \App\Models\Akun::factory()->create([
+            'kode_akun' => 'AKN-001',
+            'nama_akun' => 'Biaya Material',
+            'jenis_akun' => 'pengeluaran',
+            'kategori_id' => $kategori->id,
+        ]);
+
+        \App\Models\BudgetPlanItem::factory()->create([
+            'budget_plan_id' => \App\Models\BudgetPlan::factory()->create(['project_id' => $project->id])->id,
+            'akun_id' => $akun->id,
+            'nominal' => 100000000,
+            'tanggal_mulai' => $period->tanggal_mulai->format('Y-m-d'),
+            'tanggal_selesai' => $period->tanggal_selesai->format('Y-m-d'),
+        ]);
+
+        \App\Models\Realisasi::factory()->create([
+            'project_id' => $project->id,
+            'akun_id' => $akun->id,
+            'tanggal' => $period->tanggal_mulai->format('Y-m-d'),
+            'nominal' => 30000000,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('exports.monitoring-variance', ['period' => $period, 'format' => 'xlsx']));
+
+        $response->assertOk();
+        $this->assertStringContainsString('Monitoring_Variance_'.$period->nomor.'_'.now()->format('Ymd').'.xlsx', $response->headers->get('content-disposition'));
+        $this->assertStringContainsString('spreadsheetml', $response->headers->get('content-type'));
+    }
+
+    public function test_monitoring_variance_csv_download(): void
+    {
+        $user = User::factory()->admin()->create();
+        $period = \App\Models\MonitoringPeriod::factory()->create();
+        $project = $period->project;
+
+        $kategori = \App\Models\Kategori::factory()->create(['nama' => 'Material']);
+        $akun = \App\Models\Akun::factory()->create([
+            'kode_akun' => 'AKN-001',
+            'nama_akun' => 'Biaya Material',
+            'jenis_akun' => 'pengeluaran',
+            'kategori_id' => $kategori->id,
+        ]);
+
+        \App\Models\BudgetPlanItem::factory()->create([
+            'budget_plan_id' => \App\Models\BudgetPlan::factory()->create(['project_id' => $project->id])->id,
+            'akun_id' => $akun->id,
+            'nominal' => 100000000,
+            'tanggal_mulai' => $period->tanggal_mulai->format('Y-m-d'),
+            'tanggal_selesai' => $period->tanggal_selesai->format('Y-m-d'),
+        ]);
+
+        \App\Models\Realisasi::factory()->create([
+            'project_id' => $project->id,
+            'akun_id' => $akun->id,
+            'tanggal' => $period->tanggal_mulai->format('Y-m-d'),
+            'nominal' => 30000000,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('exports.monitoring-variance', ['period' => $period, 'format' => 'csv']));
+
+        $response->assertOk();
+        $this->assertStringContainsString('Monitoring_Variance_'.$period->nomor.'_'.now()->format('Ymd').'.csv', $response->headers->get('content-disposition'));
+    }
+
+    public function test_monitoring_variance_pdf_download(): void
+    {
+        $user = User::factory()->admin()->create();
+        $period = \App\Models\MonitoringPeriod::factory()->create();
+        $project = $period->project;
+
+        $kategori = \App\Models\Kategori::factory()->create(['nama' => 'Material']);
+        $akun = \App\Models\Akun::factory()->create([
+            'kode_akun' => 'AKN-001',
+            'nama_akun' => 'Biaya Material',
+            'jenis_akun' => 'pengeluaran',
+            'kategori_id' => $kategori->id,
+        ]);
+
+        \App\Models\BudgetPlanItem::factory()->create([
+            'budget_plan_id' => \App\Models\BudgetPlan::factory()->create(['project_id' => $project->id])->id,
+            'akun_id' => $akun->id,
+            'nominal' => 100000000,
+            'tanggal_mulai' => $period->tanggal_mulai->format('Y-m-d'),
+            'tanggal_selesai' => $period->tanggal_selesai->format('Y-m-d'),
+        ]);
+
+        \App\Models\Realisasi::factory()->create([
+            'project_id' => $project->id,
+            'akun_id' => $akun->id,
+            'tanggal' => $period->tanggal_mulai->format('Y-m-d'),
+            'nominal' => 30000000,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('exports.monitoring-variance', ['period' => $period, 'format' => 'pdf']));
+
+        $response->assertOk();
+        $this->assertStringContainsString('Monitoring_Variance_'.$period->nomor.'_'.now()->format('Ymd').'.pdf', $response->headers->get('content-disposition'));
+        $this->assertStringContainsString('application/pdf', $response->headers->get('content-type'));
+    }
+
+    public function test_monitoring_variance_export_contains_expected_columns(): void
+    {
+        $user = User::factory()->create();
+        $period = \App\Models\MonitoringPeriod::factory()->create();
+        $project = \App\Models\Project::factory()->create(['kode' => 'PRJ-001', 'nama' => 'Gedung Kantor']);
+        $period->project_id = $project->id;
+        $period->save();
+
+        $kategori = \App\Models\Kategori::factory()->create(['nama' => 'Material']);
+        $akun = \App\Models\Akun::factory()->create([
+            'kode_akun' => 'AKN-001',
+            'nama_akun' => 'Biaya Material',
+            'jenis_akun' => 'pengeluaran',
+            'kategori_id' => $kategori->id,
+        ]);
+
+        \App\Models\BudgetPlanItem::factory()->create([
+            'budget_plan_id' => \App\Models\BudgetPlan::factory()->create(['project_id' => $project->id])->id,
+            'akun_id' => $akun->id,
+            'nominal' => 100000000,
+            'tanggal_mulai' => $period->tanggal_mulai->format('Y-m-d'),
+            'tanggal_selesai' => $period->tanggal_selesai->format('Y-m-d'),
+        ]);
+
+        \App\Models\Realisasi::factory()->create([
+            'project_id' => $project->id,
+            'akun_id' => $akun->id,
+            'tanggal' => $period->tanggal_mulai->format('Y-m-d'),
+            'nominal' => 30000000,
+        ]);
+
+        $export = new MonitoringPeriodVarianceExport($period);
+        $mapped = $export->map($export->collection()->first());
+
+        $this->assertSame(['AKN-001', 'Biaya Material', 100000000.0, 30000000.0, 70000000.0], $mapped);
     }
 
     public function test_akun_pdf_download(): void

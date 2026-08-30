@@ -24,8 +24,6 @@ class MasterItemFactory extends Factory
             'nama' => fake()->words(2, true),
             'keterangan' => null,
             'aktif' => true,
-            'flag_ar' => false,
-            'flag_ap' => true,
         ];
     }
 }

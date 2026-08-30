@@ -14,23 +14,24 @@ $classes = $active
 @endphp
 
 @if ($disabled)
-    <span class="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-500">
+    <span class="flex cursor-not-allowed items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-500" :title="collapsed ? '{{ $label }}' : ''">
         @if ($icon)
             <x-icon :name="$icon" class="h-5 w-5 shrink-0" />
         @endif
-        <span class="flex-1 truncate">{{ $label }}</span>
-        <span class="rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-semibold text-slate-400">Segera</span>
+        <span class="flex-1 truncate whitespace-nowrap" x-show="!collapsed" x-transition.opacity>{{ $label }}</span>
+        <span class="rounded bg-white/10 px-1.5 py-0.5 text-[10px] font-semibold text-slate-400" x-show="!collapsed">Segera</span>
     </span>
 @else
     <a
         href="{{ $href }}"
         @if ($navigate) wire:navigate @endif
+        :title="collapsed ? '{{ $label }}' : ''"
         {{ $attributes->merge(['class' => $classes]) }}
     >
         @if ($icon)
             <x-icon :name="$icon" class="h-5 w-5 shrink-0" />
         @endif
-        <span class="flex-1 truncate">{{ $label }}</span>
+        <span class="flex-1 truncate whitespace-nowrap" x-show="!collapsed" x-transition.opacity>{{ $label }}</span>
         {{ $slot }}
     </a>
 @endif

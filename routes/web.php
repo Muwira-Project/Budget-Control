@@ -70,7 +70,7 @@ use App\Models\FundTransfer;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', fn () => redirect()->route('dashboard'))
+Route::get('/', fn() => redirect()->route('dashboard'))
     ->middleware('auth')
     ->name('home');
 
@@ -136,7 +136,7 @@ Route::middleware(['auth', 'verified', 'draft-staff'])->group(function () {
             return redirect()->route('login');
         }
 
-        return $user->isAdmin()
+        return $user->role?->value === 'admin'
             ? redirect()->route('realisasi.detail')
             : redirect()->route('realisasi.summary');
     })->name('realisasi.index');
@@ -191,6 +191,8 @@ Route::middleware(['auth', 'verified', 'draft-staff'])->group(function () {
     Route::get('/export/realisasi/file', [ExportController::class, 'realisasi'])->name('exports.realisasi');
     Route::get('/export/akun-vs-realisasi/file', [ExportController::class, 'akunVsRealisasi'])->name('exports.vs');
     Route::get('/export/monitoring-summary/file', [ExportController::class, 'monitoringSummary'])->name('exports.monitoring-summary');
+    Route::get('/export/monitoring-variance/file/{period}', [ExportController::class, 'monitoringVariance'])->name('exports.monitoring-variance');
+    Route::get('/export/monitoring-variance-detail/file/{period}', [ExportController::class, 'monitoringVarianceDetail'])->name('exports.monitoring-variance-detail');
     Route::get('/export/receivables/file', [ExportController::class, 'receivables'])->name('exports.receivables');
     Route::get('/export/payables/file', [ExportController::class, 'payables'])->name('exports.payables');
     Route::get('/export/cashflows/file', [ExportController::class, 'cashflows'])->name('exports.cashflows');
@@ -198,4 +200,4 @@ Route::middleware(['auth', 'verified', 'draft-staff'])->group(function () {
     Route::view('profile', 'profile')->name('profile');
 });
 
-require __DIR__.'/auth.php';
+require __DIR__ . '/auth.php';

@@ -16,11 +16,11 @@
         <!-- Scripts -->
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="overflow-x-clip font-sans antialiased">
+    <body class="overflow-x-clip font-sans antialiased" x-data="{ collapsed: localStorage.getItem('sidebar_collapsed') === 'true' }" @sidebar-toggled.window="collapsed = $event.detail.collapsed">
         <div class="page-shell">
             <livewire:layout.navigation />
 
-            <div class="min-w-0 lg:pl-[248px]">
+            <div class="min-w-0 transition-all duration-300" :class="collapsed ? 'lg:pl-[68px]' : 'lg:pl-[248px]'">
                 <main class="mx-auto max-w-[1440px] px-4 pb-12 pt-6 sm:px-6 lg:px-8">
                     @if (isset($header))
                         <div class="mb-6">

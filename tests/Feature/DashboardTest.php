@@ -4,12 +4,16 @@ namespace Tests\Feature;
 
 use App\Livewire\Dashboard;
 use App\Models\Akun;
+use App\Models\BudgetPlan;
+use App\Models\BudgetPlanItem;
 use App\Models\Cashflow;
+use App\Models\MonitoringPeriod;
 use App\Models\Project;
 use App\Models\ProjectAkun;
 use App\Models\Realisasi;
 use App\Models\User;
 use App\Services\DashboardService;
+use App\Services\MonitoringPeriodService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -118,15 +122,26 @@ class DashboardTest extends TestCase
     public function test_dashboard_service_returns_expected_shape(): void
     {
         $expected = [
-            'total_projects', 'projects_barang', 'projects_jasa',
-            'total_budget', 'total_allocation', 'total_realisasi', 'total_sisa',
-            'total_nilai', 'total_pajak', 'persentase',
+            'total_projects',
+            'projects_barang',
+            'projects_jasa',
+            'total_budget',
+            'total_allocation',
+            'total_realisasi',
+            'total_sisa',
+            'total_nilai',
+            'total_pajak',
+            'persentase',
             'kategori_breakdown',
-            'cash_in', 'cash_out', 'saldo_kas',
-            'outstanding_ar', 'outstanding_ap',
+            'cash_in',
+            'cash_out',
+            'saldo_kas',
+            'outstanding_ar',
+            'outstanding_ap',
             'ar_breakdown',
             'ap_breakdown',
-            'total_profit', 'profit_projects',
+            'total_profit',
+            'profit_projects',
             'chart_budget_realisasi',
         ];
 
@@ -159,6 +174,58 @@ class DashboardTest extends TestCase
             ->set('endDate', '2026-06-30')
             ->assertSee('25.000.000', false)
             ->assertSee('25.000.000', false);
+    }
+
+    public function test_dashboard_budget_matches_monitoring_budget_for_same_period(): void
+    {
+        $project = Project::factory()->create();
+        $akun = Akun::factory()->create();
+
+        ProjectAkun::create([
+            'project_id' => $project->id,
+            'akun_id' => $akun->id,
+            'budget' => 200000000,
+            'allocation' => 200000000,
+        ]);
+
+        $budgetPlan = BudgetPlan::create([
+            'project_id' => $project->id,
+            'periode' => '2026-01',
+            'nomor' => 'BP-2026-01',
+            'estimasi_pendapatan' => 0,
+            'estimasi_biaya' => 0,
+            'target_laba' => 0,
+        ]);
+
+        BudgetPlanItem::create([
+            'budget_plan_id' => $budgetPlan->id,
+            'akun_id' => $akun->id,
+            'nominal' => 100000000,
+            'tanggal_mulai' => '2026-01-01',
+            'tanggal_selesai' => '2026-01-31',
+        ]);
+
+        Realisasi::factory()->create([
+            'project_id' => $project->id,
+            'akun_id' => $akun->id,
+            'tanggal' => '2026-01-15',
+            'nominal' => 30000000,
+        ]);
+
+        $period = MonitoringPeriod::create([
+            'project_id' => $project->id,
+            'nomor' => 'MON-2026-001',
+            'tanggal_mulai' => '2026-01-01',
+            'tanggal_selesai' => '2026-01-31',
+        ]);
+
+        $stats = app(DashboardService::class)->statistics('2026-01-01', '2026-01-31');
+        $monitoringBudget = app(MonitoringPeriodService::class)->budgetTotal($period);
+
+        $this->assertSame(100000000.0, $monitoringBudget);
+        $this->assertSame($monitoringBudget, $stats['total_budget']);
+        $this->assertSame(30000000.0, $stats['total_realisasi']);
+        $this->assertSame(70000000.0, $stats['total_sisa']);
     }
 
     public function test_dashboard_uses_livewire_for_filter_changes(): void

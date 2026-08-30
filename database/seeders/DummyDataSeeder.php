@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Enums\CashflowSumber;
 use App\Enums\ProjectJenis;
 use App\Enums\ProjectStatus;
+use App\Enums\UserRole;
 use App\Models\Akun;
 use App\Models\BudgetPlan;
 use App\Models\BudgetPlanItem;
@@ -32,6 +33,7 @@ use App\Services\PaymentService;
 use App\Services\ReceivableService;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class DummyDataSeeder extends Seeder
 {
@@ -249,14 +251,18 @@ class DummyDataSeeder extends Seeder
      */
     protected function seedUsers(): void
     {
-        User::updateOrCreate(
-            ['email' => 'admin@muwira.test'],
-            ['name' => 'Admin myfinance', 'password' => 'password', 'role' => 'admin'],
-        );
+        $this->seedDemoUser('admin@muwira.test', 'Admin myfinance', UserRole::Admin);
+        $this->seedDemoUser('staff@muwira.test', 'Staff myfinance', UserRole::Staff);
+    }
 
+    /**
+     * Seed a demo account with a Laravel-safe hashed password.
+     */
+    protected function seedDemoUser(string $email, string $name, UserRole $role): void
+    {
         User::updateOrCreate(
-            ['email' => 'staff@muwira.test'],
-            ['name' => 'Staff myfinance', 'password' => 'password', 'role' => 'staff'],
+            ['email' => $email],
+            ['name' => $name, 'password' => Hash::make('password'), 'role' => $role],
         );
     }
 
@@ -274,7 +280,7 @@ class DummyDataSeeder extends Seeder
                 ['kode' => $kode],
                 [
                     'nama' => $nama,
-                    'deskripsi' => $nama.' - pihak transaksi',
+                    'deskripsi' => $nama . ' - pihak transaksi',
                     'flag_ar' => true,
                     'flag_ap' => true,
                     'aktif' => true,
@@ -604,14 +610,14 @@ class DummyDataSeeder extends Seeder
     protected function partyKodeFor(?string $vendorNama, ?string $supplierNama): string
     {
         if ($supplierNama !== null) {
-            $item = MasterItem::whereHas('masterType', fn ($query) => $query->where('kode', 'SUPPLIER'))
+            $item = MasterItem::whereHas('masterType', fn($query) => $query->where('kode', 'SUPPLIER'))
                 ->where('nama', $supplierNama)
                 ->first();
 
             return $item?->kode ?? 'SPL-001';
         }
 
-        $item = MasterItem::whereHas('masterType', fn ($query) => $query->where('kode', 'VENDOR'))
+        $item = MasterItem::whereHas('masterType', fn($query) => $query->where('kode', 'VENDOR'))
             ->where('nama', $vendorNama)
             ->first();
 
@@ -651,7 +657,7 @@ class DummyDataSeeder extends Seeder
                     ->latest('id')
                     ->first();
                 $sequence = ($lastPlan?->id ?? 0) + 1;
-                $plan->update(['nomor' => 'BP/'.$projectCode.'/'.$periode.'/'.$sequence]);
+                $plan->update(['nomor' => 'BP/' . $projectCode . '/' . $periode . '/' . $sequence]);
             }
 
             // Rebuild the plan items from the approved allocations and keep
@@ -705,23 +711,51 @@ class DummyDataSeeder extends Seeder
      */
     protected function seedMonitoringPeriods(): void
     {
-        $project = Project::orderBy('id')->first();
+        $projects = Project::query()->with('realisasi')->orderBy('id')->get();
 
+        if ($projects->isEmpty()) {
+            return;
+        }
+
+        foreach ($projects as $index => $project) {
+            $startDate = $project->realisasi()->min('tanggal')
+                ?? $project->tanggal_mulai
+                ?? now()->startOfMonth()->toDateString();
+            $endDate = $project->realisasi()->max('tanggal')
+                ?? $project->target_selesai
+                ?? now()->endOfMonth()->toDateString();
+
+            $start = \Carbon\Carbon::parse($startDate)->startOfMonth();
+            $end   = \Carbon\Carbon::parse($endDate)->endOfMonth();
+            $nomor = 'MON-' . $start->format('Y') . '-' . str_pad((string) ($index + 1), 3, '0', STR_PAD_LEFT);
+
+            MonitoringPeriod::firstOrCreate(
+                ['nomor' => $nomor],
+                [
+                    'project_id'      => $project->id,
+                    'tanggal_mulai'   => $start->toDateString(),
+                    'tanggal_selesai' => $end->toDateString(),
+                ],
+            );
+        }
+
+        // Monitoring Period untuk Juli 2026 (berisi transaksi Cashflow Juli & non-project)
         MonitoringPeriod::firstOrCreate(
-            ['nomor' => 'MON-2026-001'],
+            ['nomor' => 'MON-2026-003'],
             [
-                'project_id' => $project?->id,
-                'tanggal_mulai' => now()->startOfMonth()->toDateString(),
-                'tanggal_selesai' => now()->startOfMonth()->addDays(13)->toDateString(),
+                'project_id'      => null,
+                'tanggal_mulai'   => '2026-07-01',
+                'tanggal_selesai' => '2026-07-31',
             ],
         );
 
+        // Global period (Agustus 2026 / bulan berjalan)
         MonitoringPeriod::firstOrCreate(
-            ['nomor' => 'MON-2026-002'],
+            ['nomor' => 'MON-2026-004'],
             [
-                'project_id' => null,
-                'tanggal_mulai' => now()->startOfMonth()->addDays(14)->toDateString(),
-                'tanggal_selesai' => now()->startOfMonth()->addDays(27)->toDateString(),
+                'project_id'      => null,
+                'tanggal_mulai'   => now()->startOfMonth()->toDateString(),
+                'tanggal_selesai' => now()->endOfMonth()->toDateString(),
             ],
         );
     }
@@ -735,6 +769,8 @@ class DummyDataSeeder extends Seeder
             ?? Akun::where('jenis_akun', 'pengeluaran')->first();
 
         $keluar = [
+            ['tanggal' => '2026-03-15', 'nominal' => 3500000, 'akun_id' => $akunOperasional?->id, 'keterangan' => 'Listrik kantor Maret (non-project)'],
+            ['tanggal' => '2026-03-22', 'nominal' => 1500000, 'akun_id' => $akunOperasional?->id, 'keterangan' => 'ATK kantor Maret (non-project)'],
             ['tanggal' => now()->startOfMonth()->toDateString(), 'nominal' => 3500000, 'akun_id' => $akunOperasional?->id, 'keterangan' => 'Listrik kantor bulan berjalan'],
             ['tanggal' => now()->startOfMonth()->subDays(20)->toDateString(), 'nominal' => 1500000, 'akun_id' => $akunOperasional?->id, 'keterangan' => 'ATK kantor'],
         ];
@@ -753,6 +789,8 @@ class DummyDataSeeder extends Seeder
         }
 
         $pendapatan = [
+            ['tanggal' => '2026-03-02', 'nominal' => 150000000, 'keterangan' => 'Setoran modal investor PT Mitra Investama (Maret)'],
+            ['tanggal' => '2026-03-20', 'nominal' => 50000000, 'keterangan' => 'Pendapatan termin 1 Renovasi Ruang Rapat (Maret)'],
             ['tanggal' => '2026-07-05', 'nominal' => 250000000, 'keterangan' => 'Pendapatan termin 1 Pembangunan Gedung Kantor'],
             ['tanggal' => '2026-06-28', 'nominal' => 100000000, 'keterangan' => 'Pendapatan Renovasi Ruang Rapat'],
         ];
@@ -780,7 +818,7 @@ class DummyDataSeeder extends Seeder
             app(PayableService::class)->syncFromRealisasi($realisasi);
         }
 
-        $receivable = Receivable::whereHas('project', fn ($query) => $query->where('kode', 'PRJ-2025-002'))->first();
+        $receivable = Receivable::whereHas('project', fn($query) => $query->where('kode', 'PRJ-2025-002'))->first();
 
         if ($receivable && Payment::where('keterangan', 'Pelunasan sebagian piutang renovasi')->doesntExist()) {
             app(PaymentService::class)->createForReceivable($receivable, [
@@ -791,7 +829,7 @@ class DummyDataSeeder extends Seeder
         }
 
         $payable = Payable::whereNotNull('supplier_id')->orderBy('id')->first()
-            ?? Payable::whereHas('pihakItem.masterType', fn ($query) => $query->where('kode', 'SUPPLIER'))->orderBy('id')->first();
+            ?? Payable::whereHas('pihakItem.masterType', fn($query) => $query->where('kode', 'SUPPLIER'))->orderBy('id')->first();
 
         if ($payable && Payment::where('keterangan', 'Pelunasan penuh material')->doesntExist()) {
             app(PaymentService::class)->createForPayable($payable, [
@@ -946,7 +984,7 @@ class DummyDataSeeder extends Seeder
      */
     protected function nextAkunKode(): string
     {
-        return 'AKN-'.str_pad((string) ++$this->akunCounter, 3, '0', STR_PAD_LEFT);
+        return 'AKN-' . str_pad((string) ++$this->akunCounter, 3, '0', STR_PAD_LEFT);
     }
 
     /**

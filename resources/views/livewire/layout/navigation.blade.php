@@ -68,34 +68,50 @@ new class extends Component
 
 <div x-data="{
     sidebarOpen: false,
-    collapsed: @entangle('sidebarCollapsed').defer,
+    collapsed: @entangle('sidebarCollapsed'),
     init() {
+        if (localStorage.getItem('sidebar_collapsed') !== null) {
+            this.collapsed = localStorage.getItem('sidebar_collapsed') === 'true';
+        }
         this.$watch('collapsed', (value) => {
             localStorage.setItem('sidebar_collapsed', value);
         });
     },
     toggleCollapse() {
-        this.collapsed = !this.collapsed;
+        $wire.toggleSidebarCollapse();
     }
 }" x-init="init()">
     {{-- Desktop Sidebar --}}
-    <aside class="fixed inset-y-0 left-0 z-40 hidden w-[248px] flex-col border-r border-white/5 bg-brand-950 lg:flex">
-        <a href="{{ route('dashboard') }}" wire:navigate class="flex h-16 shrink-0 items-center gap-3 border-b border-white/5 px-5">
-            <x-application-logo class="h-8 w-auto shrink-0 fill-current text-emerald-300" />
-            <span class="leading-tight">
-                <span class="block text-[15px] font-bold tracking-tight text-white">ERGE</span>
-                <span class="block text-[10px] font-semibold uppercase tracking-[0.24em] text-emerald-300/80">MyFinance</span>
-            </span>
-        </a>
+    <aside 
+        class="fixed inset-y-0 left-0 z-40 hidden flex-col border-r border-white/5 bg-brand-950 transition-all duration-300 lg:flex"
+        :class="collapsed ? 'w-[68px]' : 'w-[248px]'"
+    >
+        <div class="flex h-16 shrink-0 items-center justify-between border-b border-white/5 px-4">
+            <a href="{{ route('dashboard') }}" wire:navigate class="flex items-center gap-3 overflow-hidden">
+                <x-application-logo class="h-8 w-auto shrink-0 fill-current text-emerald-300" />
+                <span x-show="!collapsed" x-transition.opacity class="leading-tight whitespace-nowrap">
+                    <span class="block text-[15px] font-bold tracking-tight text-white">ERGE</span>
+                    <span class="block text-[10px] font-semibold uppercase tracking-[0.24em] text-emerald-300/80">MyFinance</span>
+                </span>
+            </a>
+            <button 
+                type="button" 
+                @click="toggleCollapse()" 
+                class="hidden rounded-lg p-1.5 text-slate-400 transition hover:bg-white/10 hover:text-white lg:block"
+                :title="collapsed ? 'Expand Sidebar' : 'Collapse Sidebar'"
+            >
+                <x-icon name="arrows-right-left" class="h-4 w-4" />
+            </button>
+        </div>
 
         <div class="flex-1 overflow-y-auto px-3 py-4">
             <x-sidebar-menu />
         </div>
 
         <div class="shrink-0 border-t border-white/5 p-3">
-            <button wire:click="logout" class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white">
+            <button wire:click="logout" class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white" :title="collapsed ? 'Logout' : ''">
                 <x-icon name="logout" class="h-5 w-5 shrink-0" />
-                Logout
+                <span x-show="!collapsed" x-transition.opacity class="whitespace-nowrap">Logout</span>
             </button>
         </div>
     </aside>
@@ -128,7 +144,10 @@ new class extends Component
     </div>
 
     {{-- Top Bar --}}
-    <header class="sticky top-0 z-30 border-b border-slate-200/70 bg-white/90 shadow-topbar backdrop-blur-xl lg:pl-[248px]">
+    <header 
+        class="sticky top-0 z-30 border-b border-slate-200/70 bg-white/90 shadow-topbar backdrop-blur-xl transition-all duration-300"
+        :class="collapsed ? 'lg:pl-[68px]' : 'lg:pl-[248px]'"
+    >
         <div class="flex h-16 items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
             <div class="flex min-w-0 items-center gap-3">
                 <button type="button" @click="sidebarOpen = true" class="rounded-lg p-2 text-slate-500 hover:bg-slate-100 lg:hidden" aria-label="Open menu">
