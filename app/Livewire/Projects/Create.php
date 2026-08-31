@@ -65,8 +65,8 @@ class Create extends Component
         // For create, we only check if draft can go to the new status
         $currentStatus = ProjectStatus::Draft;
         $newStatus = ProjectStatus::tryFrom($this->status);
-        
-        if ($newStatus && !$currentStatus->canTransitionTo($newStatus)) {
+
+        if ($newStatus && ! $currentStatus->canTransitionTo($newStatus)) {
             $this->addError('status', "Tidak bisa mengubah status dari {$currentStatus->label()} ke {$newStatus->label()}.");
             $this->status = $currentStatus->value;
         } else {

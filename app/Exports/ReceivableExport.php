@@ -5,14 +5,14 @@ namespace App\Exports;
 use App\Models\Receivable;
 use Illuminate\Database\Eloquent\Builder;
 use Maatwebsite\Excel\Concerns\FromQuery;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 
 /**
  * Export Receivables (AR) to Excel/CSV.
  */
-class ReceivableExport implements FromQuery, WithHeadings, WithMapping, ShouldAutoSize
+class ReceivableExport implements FromQuery, ShouldAutoSize, WithHeadings, WithMapping
 {
     protected array $filters;
 
@@ -80,7 +80,7 @@ class ReceivableExport implements FromQuery, WithHeadings, WithMapping, ShouldAu
         // PO Number filter
         if (! empty($this->filters['po_number'])) {
             $query->whereHas('project', function ($q) {
-                $q->where('po_number', 'like', '%' . $this->filters['po_number'] . '%');
+                $q->where('po_number', 'like', '%'.$this->filters['po_number'].'%');
             });
         }
 

@@ -9,12 +9,13 @@ use App\Services\DashboardService;
 use App\Services\ReceivableService;
 use Database\Factories\ProjectFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Validation\ValidationException;
 
 #[Fillable(['kode', 'po_number', 'nama', 'lokasi', 'division_id', 'pic', 'project_category_id', 'sub_work', 'periode', 'jenis', 'qty', 'satuan', 'harga_satuan', 'pajak', 'tanggal_mulai', 'target_selesai', 'status', 'revisi_reason', 'revisi_at', 'revisi_by'])]
 class Project extends Model
@@ -37,13 +38,13 @@ class Project extends Model
         static::updating(function (Project $project): void {
             if ($project->isDirty('status')) {
                 $originalStatus = $project->getOriginal('status');
-                $oldStatus = $originalStatus instanceof ProjectStatus 
-                    ? $originalStatus 
+                $oldStatus = $originalStatus instanceof ProjectStatus
+                    ? $originalStatus
                     : ProjectStatus::tryFrom($originalStatus);
                 $newStatus = $project->status;
 
-                if ($oldStatus && !$oldStatus->canTransitionTo($newStatus)) {
-                    throw \Illuminate\Validation\ValidationException::withMessages([
+                if ($oldStatus && ! $oldStatus->canTransitionTo($newStatus)) {
+                    throw ValidationException::withMessages([
                         'status' => "Tidak bisa mengubah status dari {$oldStatus->label()} ke {$newStatus->label()}.",
                     ]);
                 }
@@ -52,13 +53,13 @@ class Project extends Model
                 if ($newStatus === ProjectStatus::Revisi) {
                     // Moving TO revisi - require reason
                     if (blank($project->revisi_reason)) {
-                        throw \Illuminate\Validation\ValidationException::withMessages([
+                        throw ValidationException::withMessages([
                             'revisi_reason' => 'Alasan revisi wajib diisi saat mengubah status ke Revisi.',
                         ]);
                     }
                     $project->revisi_at = now();
                     $project->revisi_by = auth()->id();
-                    
+
                     // Log specific revisi activity
                     $project->recordActivity('moved_to_revisi', [
                         'reason' => $project->revisi_reason,
@@ -222,6 +223,7 @@ class Project extends Model
         if ($this->status->isDone()) {
             return $this->po_number ? 'billed' : 'unbilled';
         }
+
         return 'inprogress';
     }
 

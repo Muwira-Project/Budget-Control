@@ -2,18 +2,23 @@
 
 namespace Tests\Feature;
 
+use App\Enums\KasStatus;
 use App\Enums\PaymentJenis;
+use App\Exports\MonitoringVarianceDetailExport;
 use App\Models\Akun;
 use App\Models\BudgetPlan;
 use App\Models\BudgetPlanItem;
+use App\Models\Cashflow;
+use App\Models\Kategori;
 use App\Models\MasterItem;
 use App\Models\MasterType;
 use App\Models\MonitoringPeriod;
 use App\Models\Payment;
 use App\Models\Project;
-use App\Models\Receivable;
 use App\Models\Realisasi;
+use App\Models\Receivable;
 use App\Models\User;
+use App\Services\MonitoringPeriodService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -56,7 +61,7 @@ class MonitoringVarianceDetailExportTest extends TestCase
         $response = $this->actingAs($user)->get(route('exports.monitoring-variance-detail', ['period' => $period, 'format' => 'xlsx']));
 
         $response->assertOk();
-        $this->assertStringContainsString('Monitoring_Variance_Detail_' . $period->nomor . '_' . now()->format('Ymd') . '.xlsx', $response->headers->get('content-disposition'));
+        $this->assertStringContainsString('Monitoring_Variance_Detail_'.$period->nomor.'_'.now()->format('Ymd').'.xlsx', $response->headers->get('content-disposition'));
     }
 
     public function test_variance_calculation_is_precise_and_not_double_counted(): void
@@ -65,41 +70,41 @@ class MonitoringVarianceDetailExportTest extends TestCase
         // Variance harus TEPAT 70jt — bukan 40jt (jika dihitung double) atau salah lainnya.
         $project = Project::factory()->create(['kode' => 'PRJ-CALC', 'nama' => 'Calc Test']);
         $period = MonitoringPeriod::factory()->create([
-            'project_id'      => $project->id,
-            'tanggal_mulai'   => '2026-08-01',
+            'project_id' => $project->id,
+            'tanggal_mulai' => '2026-08-01',
             'tanggal_selesai' => '2026-08-31',
         ]);
 
         $akun = Akun::factory()->create([
-            'kode_akun'  => '5-CALC',
-            'nama_akun'  => 'Biaya Uji Hitung',
+            'kode_akun' => '5-CALC',
+            'nama_akun' => 'Biaya Uji Hitung',
             'jenis_akun' => 'pengeluaran',
         ]);
 
         $budgetPlan = BudgetPlan::factory()->create(['project_id' => $project->id]);
         BudgetPlanItem::factory()->create([
-            'budget_plan_id'  => $budgetPlan->id,
-            'akun_id'         => $akun->id,
-            'nominal'         => 100_000_000,
-            'tanggal_mulai'   => '2026-08-01',
+            'budget_plan_id' => $budgetPlan->id,
+            'akun_id' => $akun->id,
+            'nominal' => 100_000_000,
+            'tanggal_mulai' => '2026-08-01',
             'tanggal_selesai' => '2026-08-31',
         ]);
 
         // Dua transaksi realisasi terpisah
         Realisasi::factory()->create([
             'project_id' => $project->id,
-            'akun_id'    => $akun->id,
-            'tanggal'    => '2026-08-10',
-            'nominal'    => 20_000_000,
+            'akun_id' => $akun->id,
+            'tanggal' => '2026-08-10',
+            'nominal' => 20_000_000,
         ]);
         Realisasi::factory()->create([
             'project_id' => $project->id,
-            'akun_id'    => $akun->id,
-            'tanggal'    => '2026-08-20',
-            'nominal'    => 10_000_000,
+            'akun_id' => $akun->id,
+            'tanggal' => '2026-08-20',
+            'nominal' => 10_000_000,
         ]);
 
-        $rows = app(\App\Services\MonitoringPeriodService::class)->varianceDetailRows($period);
+        $rows = app(MonitoringPeriodService::class)->varianceDetailRows($period);
 
         $budgetRows = collect($rows)->where('type', 'Budget');
         $actualRows = collect($rows)->where('type', 'Actual Out');
@@ -110,8 +115,8 @@ class MonitoringVarianceDetailExportTest extends TestCase
         $budgetRow = $budgetRows->first();
 
         // Variance TEPAT 70jt (100jt - 30jt) — bukan 40jt (double-count) atau 100jt (miss actual)
-        $this->assertEquals(100_000_000.0, $budgetRow['budget'],   'Budget harus 100jt');
-        $this->assertEquals(70_000_000.0,  $budgetRow['variance'], 'Variance harus tepat 70jt');
+        $this->assertEquals(100_000_000.0, $budgetRow['budget'], 'Budget harus 100jt');
+        $this->assertEquals(70_000_000.0, $budgetRow['variance'], 'Variance harus tepat 70jt');
 
         // Total Actual Out rows harus 30jt
         $this->assertEquals(30_000_000.0, $actualRows->sum('actual_out'), 'Total Actual Out harus 30jt');
@@ -176,7 +181,7 @@ class MonitoringVarianceDetailExportTest extends TestCase
             'jenis' => PaymentJenis::Masuk,
         ]);
 
-        $rows = app(\App\Services\MonitoringPeriodService::class)->varianceDetailRows($period);
+        $rows = app(MonitoringPeriodService::class)->varianceDetailRows($period);
 
         $this->assertNotEmpty($rows);
         $pihakList = implode(' ', array_column($rows, 'pihak'));
@@ -189,14 +194,14 @@ class MonitoringVarianceDetailExportTest extends TestCase
         // Global period (no project_id) — semua realisasi dalam rentang masuk,
         // termasuk realisasi dari project manapun (periode global tidak mem-filter per project)
         $period = MonitoringPeriod::factory()->create([
-            'project_id'      => null,
-            'tanggal_mulai'   => '2026-08-01',
+            'project_id' => null,
+            'tanggal_mulai' => '2026-08-01',
             'tanggal_selesai' => '2026-08-31',
         ]);
 
         $akun = Akun::factory()->create([
-            'kode_akun'  => '6-999',
-            'nama_akun'  => 'Biaya Listrik',
+            'kode_akun' => '6-999',
+            'nama_akun' => 'Biaya Listrik',
             'jenis_akun' => 'pengeluaran',
         ]);
 
@@ -205,13 +210,13 @@ class MonitoringVarianceDetailExportTest extends TestCase
         // Realisasi biaya listrik di project umum — global period harus menangkap ini
         Realisasi::factory()->create([
             'project_id' => $project->id,
-            'akun_id'    => $akun->id,
-            'tanggal'    => '2026-08-20',
-            'nominal'    => 5000000,
+            'akun_id' => $akun->id,
+            'tanggal' => '2026-08-20',
+            'nominal' => 5000000,
             'keterangan' => 'Bayar listrik kantor',
         ]);
 
-        $rows = app(\App\Services\MonitoringPeriodService::class)->varianceDetailRows($period);
+        $rows = app(MonitoringPeriodService::class)->varianceDetailRows($period);
 
         $this->assertNotEmpty($rows);
         $types = array_column($rows, 'type');
@@ -228,8 +233,8 @@ class MonitoringVarianceDetailExportTest extends TestCase
         // Receivables selalu terikat ke project (DB NOT NULL constraint),
         // tapi period global tidak mem-filter project sehingga semua AR masuk.
         $period = MonitoringPeriod::factory()->create([
-            'project_id'      => null,
-            'tanggal_mulai'   => '2026-08-01',
+            'project_id' => null,
+            'tanggal_mulai' => '2026-08-01',
             'tanggal_selesai' => '2026-08-31',
         ]);
 
@@ -240,21 +245,21 @@ class MonitoringVarianceDetailExportTest extends TestCase
 
         // Receivable tanpa project (investor setoran modal global)
         $receivable = Receivable::factory()->create([
-            'project_id'    => $project->id,
+            'project_id' => $project->id,
             'pihak_type_id' => $investorType->id,
             'pihak_item_id' => $investor->id,
-            'tanggal'       => '2026-08-03',
-            'nominal'       => 200000000,
+            'tanggal' => '2026-08-03',
+            'nominal' => 200000000,
         ]);
 
         Payment::factory()->create([
             'receivable_id' => $receivable->id,
-            'tanggal'       => '2026-08-10',
-            'nominal'       => 200000000,
-            'jenis'         => PaymentJenis::Masuk,
+            'tanggal' => '2026-08-10',
+            'nominal' => 200000000,
+            'jenis' => PaymentJenis::Masuk,
         ]);
 
-        $rows = app(\App\Services\MonitoringPeriodService::class)->varianceDetailRows($period);
+        $rows = app(MonitoringPeriodService::class)->varianceDetailRows($period);
 
         $this->assertNotEmpty($rows);
         $types = array_column($rows, 'type');
@@ -270,50 +275,50 @@ class MonitoringVarianceDetailExportTest extends TestCase
         // Period dengan budget plan, tapi ada realisasi di akun LAIN (non-budgeted) — misal bayar listrik
         $project = Project::factory()->create(['kode' => 'PRJ-003', 'nama' => 'Office Project']);
         $period = MonitoringPeriod::factory()->create([
-            'project_id'      => $project->id,
-            'tanggal_mulai'   => '2026-08-01',
+            'project_id' => $project->id,
+            'tanggal_mulai' => '2026-08-01',
             'tanggal_selesai' => '2026-08-31',
         ]);
 
         $akunBudget = Akun::factory()->create([
-            'kode_akun'  => '5-001',
-            'nama_akun'  => 'Biaya Material',
+            'kode_akun' => '5-001',
+            'nama_akun' => 'Biaya Material',
             'jenis_akun' => 'pengeluaran',
         ]);
 
         $akunListrik = Akun::factory()->create([
-            'kode_akun'  => '5-999',
-            'nama_akun'  => 'Biaya Listrik',
+            'kode_akun' => '5-999',
+            'nama_akun' => 'Biaya Listrik',
             'jenis_akun' => 'pengeluaran',
         ]);
 
         $budgetPlan = BudgetPlan::factory()->create(['project_id' => $project->id]);
         BudgetPlanItem::factory()->create([
-            'budget_plan_id'  => $budgetPlan->id,
-            'akun_id'         => $akunBudget->id,
-            'nominal'         => 50000000,
-            'tanggal_mulai'   => '2026-08-01',
+            'budget_plan_id' => $budgetPlan->id,
+            'akun_id' => $akunBudget->id,
+            'nominal' => 50000000,
+            'tanggal_mulai' => '2026-08-01',
             'tanggal_selesai' => '2026-08-31',
         ]);
 
         // Realisasi akun yang ADA di budget
         Realisasi::factory()->create([
             'project_id' => $project->id,
-            'akun_id'    => $akunBudget->id,
-            'tanggal'    => '2026-08-10',
-            'nominal'    => 20000000,
+            'akun_id' => $akunBudget->id,
+            'tanggal' => '2026-08-10',
+            'nominal' => 20000000,
         ]);
 
         // Realisasi akun yang TIDAK ADA di budget (biaya listrik non-budgeted)
         Realisasi::factory()->create([
             'project_id' => $project->id,
-            'akun_id'    => $akunListrik->id,
-            'tanggal'    => '2026-08-15',
-            'nominal'    => 3000000,
+            'akun_id' => $akunListrik->id,
+            'tanggal' => '2026-08-15',
+            'nominal' => 3000000,
             'keterangan' => 'Bayar listrik bulan Agustus',
         ]);
 
-        $rows = app(\App\Services\MonitoringPeriodService::class)->varianceDetailRows($period);
+        $rows = app(MonitoringPeriodService::class)->varianceDetailRows($period);
 
         $actualRows = collect($rows)->where('type', 'Actual Out')->values();
         $this->assertCount(2, $actualRows, 'Both budgeted and non-budgeted realisasi must appear');
@@ -330,32 +335,32 @@ class MonitoringVarianceDetailExportTest extends TestCase
         // Cashflow manual Posted tanpa project/pihak tag (misal bayar listrik kantor langsung)
         // HARUS muncul di export sebagai 'Cash Activity (Out)' dan tidak double-count
         $period = MonitoringPeriod::factory()->create([
-            'project_id'      => null,
-            'tanggal_mulai'   => '2026-08-01',
+            'project_id' => null,
+            'tanggal_mulai' => '2026-08-01',
             'tanggal_selesai' => '2026-08-31',
         ]);
 
         $akun = Akun::factory()->create([
-            'kode_akun'  => '5-CFT',
-            'nama_akun'  => 'Biaya Operasional Kantor',
+            'kode_akun' => '5-CFT',
+            'nama_akun' => 'Biaya Operasional Kantor',
             'jenis_akun' => 'pengeluaran',
         ]);
 
         // Cashflow manual TANPA project_id dan pihak — tidak ter-sync ke Realisasi
-        \App\Models\Cashflow::factory()->create([
-            'tanggal'    => '2026-08-18',
-            'jenis'      => 'keluar',
-            'sumber'     => 'pengeluaran_lain',
-            'akun_id'    => $akun->id,
+        Cashflow::factory()->create([
+            'tanggal' => '2026-08-18',
+            'jenis' => 'keluar',
+            'sumber' => 'pengeluaran_lain',
+            'akun_id' => $akun->id,
             'project_id' => null,
             'pihak_item_id' => null,
-            'nominal'    => 8_000_000,
-            'status'     => \App\Enums\KasStatus::Posted,
+            'nominal' => 8_000_000,
+            'status' => KasStatus::Posted,
             'payment_id' => null,
             'keterangan' => 'Bayar listrik & air kantor Agustus',
         ]);
 
-        $rows = app(\App\Services\MonitoringPeriodService::class)->varianceDetailRows($period);
+        $rows = app(MonitoringPeriodService::class)->varianceDetailRows($period);
 
         $this->assertNotEmpty($rows);
         $types = array_column($rows, 'type');
@@ -373,28 +378,28 @@ class MonitoringVarianceDetailExportTest extends TestCase
         // Export harus menampilkan SEKALI saja (via Realisasi), bukan dua kali
         $project = Project::factory()->create(['kode' => 'PRJ-DBLCK', 'nama' => 'Double Check']);
         $period = MonitoringPeriod::factory()->create([
-            'project_id'      => $project->id,
-            'tanggal_mulai'   => '2026-08-01',
+            'project_id' => $project->id,
+            'tanggal_mulai' => '2026-08-01',
             'tanggal_selesai' => '2026-08-31',
         ]);
 
         $akun = Akun::factory()->create([
-            'kode_akun'  => '5-SYNC',
-            'nama_akun'  => 'Biaya Vendor Sync',
+            'kode_akun' => '5-SYNC',
+            'nama_akun' => 'Biaya Vendor Sync',
             'jenis_akun' => 'pengeluaran',
         ]);
 
-        $kategori = \App\Models\Kategori::factory()->create(['nama' => 'Pengeluaran']);
+        $kategori = Kategori::factory()->create(['nama' => 'Pengeluaran']);
 
         // Cashflow sudah punya Realisasi (sumber=manual, sumber_id=cf_id) → sudah ter-sync
-        $cf = \App\Models\Cashflow::factory()->create([
-            'tanggal'    => '2026-08-12',
-            'jenis'      => 'keluar',
-            'sumber'     => 'pengeluaran_lain',
-            'akun_id'    => $akun->id,
+        $cf = Cashflow::factory()->create([
+            'tanggal' => '2026-08-12',
+            'jenis' => 'keluar',
+            'sumber' => 'pengeluaran_lain',
+            'akun_id' => $akun->id,
             'project_id' => $project->id,
-            'nominal'    => 15_000_000,
-            'status'     => \App\Enums\KasStatus::Posted,
+            'nominal' => 15_000_000,
+            'status' => KasStatus::Posted,
             'payment_id' => null,
             'keterangan' => 'Bayar vendor sync',
         ]);
@@ -402,20 +407,20 @@ class MonitoringVarianceDetailExportTest extends TestCase
         // Buat Realisasi yang sudah di-sync dari cashflow ini (sumber=manual, sumber_id=cf->id)
         Realisasi::factory()->create([
             'project_id' => $project->id,
-            'akun_id'    => $akun->id,
-            'tanggal'    => '2026-08-12',
-            'nominal'    => 15_000_000,
-            'sumber'     => Realisasi::SUMBER_MANUAL,
-            'sumber_id'  => $cf->id,
-            'keterangan' => 'Dari cashflow #' . $cf->id,
+            'akun_id' => $akun->id,
+            'tanggal' => '2026-08-12',
+            'nominal' => 15_000_000,
+            'sumber' => Realisasi::SUMBER_MANUAL,
+            'sumber_id' => $cf->id,
+            'keterangan' => 'Dari cashflow #'.$cf->id,
             'kategori_id' => $kategori->id,
         ]);
 
-        $rows = app(\App\Services\MonitoringPeriodService::class)->varianceDetailRows($period);
+        $rows = app(MonitoringPeriodService::class)->varianceDetailRows($period);
 
         // Hanya ada 1 row Actual Out (dari Realisasi), bukan 2
         $actualRows = collect($rows)->where('type', 'Actual Out');
-        $caRows     = collect($rows)->where('type', 'Cash Activity (Out)');
+        $caRows = collect($rows)->where('type', 'Cash Activity (Out)');
 
         $this->assertCount(1, $actualRows, 'Hanya 1 baris Actual Out dari Realisasi');
         $this->assertCount(0, $caRows, 'Tidak boleh ada baris Cash Activity (sudah ter-sync ke Realisasi)');
@@ -426,68 +431,68 @@ class MonitoringVarianceDetailExportTest extends TestCase
     {
         $project = Project::factory()->create(['kode' => 'PRJ-TOTAL', 'nama' => 'Consolidation Test']);
         $period = MonitoringPeriod::factory()->create([
-            'project_id'      => $project->id,
-            'tanggal_mulai'   => '2026-08-01',
+            'project_id' => $project->id,
+            'tanggal_mulai' => '2026-08-01',
             'tanggal_selesai' => '2026-08-31',
         ]);
 
         $akunBudget = Akun::factory()->create([
-            'kode_akun'  => '5-BG',
-            'nama_akun'  => 'Biaya Material Proyek',
+            'kode_akun' => '5-BG',
+            'nama_akun' => 'Biaya Material Proyek',
             'jenis_akun' => 'pengeluaran',
         ]);
 
         $akunNonProject = Akun::factory()->create([
-            'kode_akun'  => '5-OP',
-            'nama_akun'  => 'Biaya Operasional Umum',
+            'kode_akun' => '5-OP',
+            'nama_akun' => 'Biaya Operasional Umum',
             'jenis_akun' => 'pengeluaran',
         ]);
 
         // 1. Budget Plan: 100jt
         $budgetPlan = BudgetPlan::factory()->create(['project_id' => $project->id]);
         BudgetPlanItem::factory()->create([
-            'budget_plan_id'  => $budgetPlan->id,
-            'akun_id'         => $akunBudget->id,
-            'nominal'         => 100_000_000,
-            'tanggal_mulai'   => '2026-08-01',
+            'budget_plan_id' => $budgetPlan->id,
+            'akun_id' => $akunBudget->id,
+            'nominal' => 100_000_000,
+            'tanggal_mulai' => '2026-08-01',
             'tanggal_selesai' => '2026-08-31',
         ]);
 
         // 2. Realisasi Proyek: 40jt
         Realisasi::factory()->create([
             'project_id' => $project->id,
-            'akun_id'    => $akunBudget->id,
-            'tanggal'    => '2026-08-10',
-            'nominal'    => 40_000_000,
+            'akun_id' => $akunBudget->id,
+            'tanggal' => '2026-08-10',
+            'nominal' => 40_000_000,
         ]);
 
         // 3. Cashflow Keluar Non-Project (Listrik): 5jt
-        \App\Models\Cashflow::factory()->create([
-            'tanggal'    => '2026-08-15',
-            'jenis'      => 'keluar',
-            'sumber'     => 'pengeluaran_lain',
-            'akun_id'    => $akunNonProject->id,
+        Cashflow::factory()->create([
+            'tanggal' => '2026-08-15',
+            'jenis' => 'keluar',
+            'sumber' => 'pengeluaran_lain',
+            'akun_id' => $akunNonProject->id,
             'project_id' => null,
-            'nominal'    => 5_000_000,
-            'status'     => \App\Enums\KasStatus::Posted,
+            'nominal' => 5_000_000,
+            'status' => KasStatus::Posted,
             'payment_id' => null,
             'keterangan' => 'Listrik kantor Agustus',
         ]);
 
         // 4. Cashflow Masuk (Investor): 50jt
-        \App\Models\Cashflow::factory()->create([
-            'tanggal'    => '2026-08-05',
-            'jenis'      => 'masuk',
-            'sumber'     => 'pemasukan_manual',
+        Cashflow::factory()->create([
+            'tanggal' => '2026-08-05',
+            'jenis' => 'masuk',
+            'sumber' => 'pemasukan_manual',
             'project_id' => null,
-            'nominal'    => 50_000_000,
-            'status'     => \App\Enums\KasStatus::Posted,
+            'nominal' => 50_000_000,
+            'status' => KasStatus::Posted,
             'payment_id' => null,
             'keterangan' => 'Setoran modal investor',
         ]);
 
-        $service = app(\App\Services\MonitoringPeriodService::class);
-        $export = new \App\Exports\MonitoringVarianceDetailExport($period);
+        $service = app(MonitoringPeriodService::class);
+        $export = new MonitoringVarianceDetailExport($period);
         $collection = $export->collection();
 
         // Verifikasi Total UI
@@ -515,44 +520,44 @@ class MonitoringVarianceDetailExportTest extends TestCase
     {
         $project = Project::factory()->create(['kode' => 'PRJ-BN', 'nama' => 'Budget No Test']);
         $period = MonitoringPeriod::factory()->create([
-            'project_id'      => $project->id,
-            'tanggal_mulai'   => '2026-08-01',
+            'project_id' => $project->id,
+            'tanggal_mulai' => '2026-08-01',
             'tanggal_selesai' => '2026-08-31',
         ]);
 
         $akun = Akun::factory()->create([
-            'kode_akun'  => '5-BN',
-            'nama_akun'  => 'Akun Budget No',
+            'kode_akun' => '5-BN',
+            'nama_akun' => 'Akun Budget No',
             'jenis_akun' => 'pengeluaran',
         ]);
 
         $budgetPlan = BudgetPlan::factory()->create([
             'project_id' => $project->id,
-            'nomor'      => 'BP/PRJ-BN/2026-08/01',
+            'nomor' => 'BP/PRJ-BN/2026-08/01',
         ]);
 
         BudgetPlanItem::factory()->create([
-            'budget_plan_id'  => $budgetPlan->id,
-            'akun_id'         => $akun->id,
-            'nominal'         => 80_000_000,
-            'tanggal_mulai'   => '2026-08-01',
+            'budget_plan_id' => $budgetPlan->id,
+            'akun_id' => $akun->id,
+            'nominal' => 80_000_000,
+            'tanggal_mulai' => '2026-08-01',
             'tanggal_selesai' => '2026-08-31',
         ]);
 
         Realisasi::factory()->create([
             'project_id' => $project->id,
-            'akun_id'    => $akun->id,
-            'tanggal'    => '2026-08-15',
-            'nominal'    => 25_000_000,
+            'akun_id' => $akun->id,
+            'tanggal' => '2026-08-15',
+            'nominal' => 25_000_000,
         ]);
 
-        $export = new \App\Exports\MonitoringVarianceDetailExport($period);
+        $export = new MonitoringVarianceDetailExport($period);
         $headings = $export->headings();
 
         $this->assertContains('Budget No.', $headings);
         $this->assertEquals('Budget No.', $headings[0], 'Budget No. harus menjadi kolom pertama pada headings');
 
-        $rows = app(\App\Services\MonitoringPeriodService::class)->varianceDetailRows($period);
+        $rows = app(MonitoringPeriodService::class)->varianceDetailRows($period);
         $budgetRow = collect($rows)->firstWhere('type', 'Budget');
         $actualRow = collect($rows)->firstWhere('type', 'Actual Out');
 
@@ -566,4 +571,3 @@ class MonitoringVarianceDetailExportTest extends TestCase
         $this->assertEquals('BP/PRJ-BN/2026-08/01', $mappedBudget[0]);
     }
 }
-

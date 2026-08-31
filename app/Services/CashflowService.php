@@ -175,7 +175,7 @@ class CashflowService
         int $perPage = 10,
     ): LengthAwarePaginator {
         return Cashflow::query()
-            ->with(['cashAccount', 'voucher', 'submittedBy', 'akun', 'project.budgetPlans' => fn($q) => $q->select('id', 'project_id', 'nomor')->orderBy('periode')])
+            ->with(['cashAccount', 'voucher', 'submittedBy', 'akun', 'project.budgetPlans' => fn ($q) => $q->select('id', 'project_id', 'nomor')->orderBy('periode')])
             ->when($jenis, fn ($query) => $query->where('jenis', $jenis))
             ->when($sumber, fn ($query) => $query->where('sumber', $sumber))
             ->when($cashAccountId, fn ($query) => $query->where('cash_account_id', $cashAccountId))

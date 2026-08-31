@@ -5,12 +5,14 @@ namespace Tests\Feature;
 use App\Exports\AkunExport;
 use App\Exports\AkunVsRealisasiExport;
 use App\Exports\MonitoringPeriodVarianceExport;
-use App\Exports\MonitoringSummaryExport;
 use App\Exports\RealisasiExport;
 use App\Models\Akun;
+use App\Models\BudgetPlan;
+use App\Models\BudgetPlanItem;
 use App\Models\Kategori;
 use App\Models\MasterItem;
 use App\Models\MasterType;
+use App\Models\MonitoringPeriod;
 use App\Models\Project;
 use App\Models\ProjectAkun;
 use App\Models\Realisasi;
@@ -86,26 +88,26 @@ class ExportTest extends TestCase
     public function test_monitoring_variance_excel_download(): void
     {
         $user = User::factory()->admin()->create();
-        $period = \App\Models\MonitoringPeriod::factory()->create();
+        $period = MonitoringPeriod::factory()->create();
         $project = $period->project;
 
-        $kategori = \App\Models\Kategori::factory()->create(['nama' => 'Material']);
-        $akun = \App\Models\Akun::factory()->create([
+        $kategori = Kategori::factory()->create(['nama' => 'Material']);
+        $akun = Akun::factory()->create([
             'kode_akun' => 'AKN-001',
             'nama_akun' => 'Biaya Material',
             'jenis_akun' => 'pengeluaran',
             'kategori_id' => $kategori->id,
         ]);
 
-        \App\Models\BudgetPlanItem::factory()->create([
-            'budget_plan_id' => \App\Models\BudgetPlan::factory()->create(['project_id' => $project->id])->id,
+        BudgetPlanItem::factory()->create([
+            'budget_plan_id' => BudgetPlan::factory()->create(['project_id' => $project->id])->id,
             'akun_id' => $akun->id,
             'nominal' => 100000000,
             'tanggal_mulai' => $period->tanggal_mulai->format('Y-m-d'),
             'tanggal_selesai' => $period->tanggal_selesai->format('Y-m-d'),
         ]);
 
-        \App\Models\Realisasi::factory()->create([
+        Realisasi::factory()->create([
             'project_id' => $project->id,
             'akun_id' => $akun->id,
             'tanggal' => $period->tanggal_mulai->format('Y-m-d'),
@@ -122,26 +124,26 @@ class ExportTest extends TestCase
     public function test_monitoring_variance_csv_download(): void
     {
         $user = User::factory()->admin()->create();
-        $period = \App\Models\MonitoringPeriod::factory()->create();
+        $period = MonitoringPeriod::factory()->create();
         $project = $period->project;
 
-        $kategori = \App\Models\Kategori::factory()->create(['nama' => 'Material']);
-        $akun = \App\Models\Akun::factory()->create([
+        $kategori = Kategori::factory()->create(['nama' => 'Material']);
+        $akun = Akun::factory()->create([
             'kode_akun' => 'AKN-001',
             'nama_akun' => 'Biaya Material',
             'jenis_akun' => 'pengeluaran',
             'kategori_id' => $kategori->id,
         ]);
 
-        \App\Models\BudgetPlanItem::factory()->create([
-            'budget_plan_id' => \App\Models\BudgetPlan::factory()->create(['project_id' => $project->id])->id,
+        BudgetPlanItem::factory()->create([
+            'budget_plan_id' => BudgetPlan::factory()->create(['project_id' => $project->id])->id,
             'akun_id' => $akun->id,
             'nominal' => 100000000,
             'tanggal_mulai' => $period->tanggal_mulai->format('Y-m-d'),
             'tanggal_selesai' => $period->tanggal_selesai->format('Y-m-d'),
         ]);
 
-        \App\Models\Realisasi::factory()->create([
+        Realisasi::factory()->create([
             'project_id' => $project->id,
             'akun_id' => $akun->id,
             'tanggal' => $period->tanggal_mulai->format('Y-m-d'),
@@ -157,26 +159,26 @@ class ExportTest extends TestCase
     public function test_monitoring_variance_pdf_download(): void
     {
         $user = User::factory()->admin()->create();
-        $period = \App\Models\MonitoringPeriod::factory()->create();
+        $period = MonitoringPeriod::factory()->create();
         $project = $period->project;
 
-        $kategori = \App\Models\Kategori::factory()->create(['nama' => 'Material']);
-        $akun = \App\Models\Akun::factory()->create([
+        $kategori = Kategori::factory()->create(['nama' => 'Material']);
+        $akun = Akun::factory()->create([
             'kode_akun' => 'AKN-001',
             'nama_akun' => 'Biaya Material',
             'jenis_akun' => 'pengeluaran',
             'kategori_id' => $kategori->id,
         ]);
 
-        \App\Models\BudgetPlanItem::factory()->create([
-            'budget_plan_id' => \App\Models\BudgetPlan::factory()->create(['project_id' => $project->id])->id,
+        BudgetPlanItem::factory()->create([
+            'budget_plan_id' => BudgetPlan::factory()->create(['project_id' => $project->id])->id,
             'akun_id' => $akun->id,
             'nominal' => 100000000,
             'tanggal_mulai' => $period->tanggal_mulai->format('Y-m-d'),
             'tanggal_selesai' => $period->tanggal_selesai->format('Y-m-d'),
         ]);
 
-        \App\Models\Realisasi::factory()->create([
+        Realisasi::factory()->create([
             'project_id' => $project->id,
             'akun_id' => $akun->id,
             'tanggal' => $period->tanggal_mulai->format('Y-m-d'),
@@ -193,28 +195,28 @@ class ExportTest extends TestCase
     public function test_monitoring_variance_export_contains_expected_columns(): void
     {
         $user = User::factory()->create();
-        $period = \App\Models\MonitoringPeriod::factory()->create();
-        $project = \App\Models\Project::factory()->create(['kode' => 'PRJ-001', 'nama' => 'Gedung Kantor']);
+        $period = MonitoringPeriod::factory()->create();
+        $project = Project::factory()->create(['kode' => 'PRJ-001', 'nama' => 'Gedung Kantor']);
         $period->project_id = $project->id;
         $period->save();
 
-        $kategori = \App\Models\Kategori::factory()->create(['nama' => 'Material']);
-        $akun = \App\Models\Akun::factory()->create([
+        $kategori = Kategori::factory()->create(['nama' => 'Material']);
+        $akun = Akun::factory()->create([
             'kode_akun' => 'AKN-001',
             'nama_akun' => 'Biaya Material',
             'jenis_akun' => 'pengeluaran',
             'kategori_id' => $kategori->id,
         ]);
 
-        \App\Models\BudgetPlanItem::factory()->create([
-            'budget_plan_id' => \App\Models\BudgetPlan::factory()->create(['project_id' => $project->id])->id,
+        BudgetPlanItem::factory()->create([
+            'budget_plan_id' => BudgetPlan::factory()->create(['project_id' => $project->id])->id,
             'akun_id' => $akun->id,
             'nominal' => 100000000,
             'tanggal_mulai' => $period->tanggal_mulai->format('Y-m-d'),
             'tanggal_selesai' => $period->tanggal_selesai->format('Y-m-d'),
         ]);
 
-        \App\Models\Realisasi::factory()->create([
+        Realisasi::factory()->create([
             'project_id' => $project->id,
             'akun_id' => $akun->id,
             'tanggal' => $period->tanggal_mulai->format('Y-m-d'),

@@ -2,10 +2,10 @@
 
 namespace App\Services;
 
+use App\Enums\ProjectStatus;
 use App\Models\Payment;
 use App\Models\Project;
 use App\Models\Receivable;
-use App\Enums\ProjectStatus;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -162,8 +162,7 @@ class ReceivableService
         ?float $amountMin = null,
         ?float $amountMax = null,
         int $perPage = 10
-    ): LengthAwarePaginator
-    {
+    ): LengthAwarePaginator {
         return Receivable::query()
             ->with(['project', 'pihakType', 'pihakItem'])
             ->when($project, fn ($query) => $query->where('project_id', $project->id))
@@ -227,7 +226,7 @@ class ReceivableService
 
         // First check if there's a soft-deleted receivable for this project
         $trashedReceivable = Receivable::onlyTrashed()->where('project_id', $project->id)->first();
-        
+
         if ($trashedReceivable) {
             // Restore the soft-deleted receivable
             $trashedReceivable->restore();
@@ -236,11 +235,12 @@ class ReceivableService
                 'jatuh_tempo' => null,
                 'nominal' => $project->nilai_total,
                 'nominal_dibayar' => 0,
-                'keterangan' => 'Receivable from contract ' . $project->kode,
+                'keterangan' => 'Receivable from contract '.$project->kode,
                 'pihak_type_id' => $project->customer_type_id ?? null,
                 'pihak_item_id' => $project->customer_item_id ?? null,
                 'nomor_invoice' => $this->generateInvoiceNumber($project),
             ]);
+
             return $trashedReceivable->refresh();
         }
 
@@ -251,7 +251,7 @@ class ReceivableService
                 'jatuh_tempo' => null,
                 'nominal' => $project->nilai_total,
                 'nominal_dibayar' => 0,
-                'keterangan' => 'Receivable from contract ' . $project->kode,
+                'keterangan' => 'Receivable from contract '.$project->kode,
                 'pihak_type_id' => $project->customer_type_id ?? null,
                 'pihak_item_id' => $project->customer_item_id ?? null,
                 'nomor_invoice' => $this->generateInvoiceNumber($project),
@@ -269,7 +269,7 @@ class ReceivableService
         $prefix = 'INV';
         $year = now()->format('Y');
         $sequence = Receivable::whereYear('tanggal', $year)->count() + 1;
-        
+
         return sprintf('%s-%s-%04d', $prefix, $year, $sequence);
     }
 
@@ -300,13 +300,14 @@ class ReceivableService
         ?float $amountMax = null
     ): array {
         $categories = ['billed', 'unbilled', 'inprogress'];
-        
+
         $summary = [];
         $grandTotal = ['nominal' => 0.0, 'paid' => 0.0, 'outstanding' => 0.0, 'count' => 0];
 
         foreach ($categories as $category) {
             if ($arCategory && $arCategory !== $category) {
                 $summary[$category] = ['nominal' => 0.0, 'paid' => 0.0, 'outstanding' => 0.0, 'count' => 0];
+
                 continue;
             }
 

@@ -4,12 +4,15 @@ namespace Tests\Feature\Auth;
 
 use App\Models\User;
 use Database\Seeders\DummyDataSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Tests\TestCase;
 
 class SeededAdminLoginTest extends TestCase
 {
+    use RefreshDatabase;
+
     public function test_demo_accounts_seed_with_hashed_passwords_for_login(): void
     {
         $this->artisan('db:seed', ['--class' => DummyDataSeeder::class])->assertSuccessful();

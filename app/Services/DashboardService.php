@@ -7,6 +7,7 @@ use App\Enums\ProjectJenis;
 use App\Enums\ProjectStatus;
 use App\Models\BudgetPlanItem;
 use App\Models\Kategori;
+use App\Models\MasterType;
 use App\Models\Payable;
 use App\Models\Project;
 use App\Models\ProjectAkun;
@@ -47,15 +48,15 @@ class DashboardService
         $totalAllocation = (float) ProjectAkun::where('status', AllocationStatus::Approved)->sum('allocation');
 
         $realisasiQuery = Realisasi::query()
-            ->when($startDate, fn($query) => $query->whereDate('tanggal', '>=', $startDate))
-            ->when($endDate, fn($query) => $query->whereDate('tanggal', '<=', $endDate));
+            ->when($startDate, fn ($query) => $query->whereDate('tanggal', '>=', $startDate))
+            ->when($endDate, fn ($query) => $query->whereDate('tanggal', '<=', $endDate));
 
         $totalRealisasi = (float) (clone $realisasiQuery)->sum('nominal');
 
         $projects = Project::query()
             ->withSum('projectAkuns as budget_total', 'budget')
-            ->withSum(['projectAkuns as approved_total' => fn(Builder $query) => $query->where('status', AllocationStatus::Approved)], 'allocation')
-            ->withSum(['realisasi as realisasi_total' => fn(Builder $query) => $this->applyDateRange($query, $startDate, $endDate)], 'nominal')
+            ->withSum(['projectAkuns as approved_total' => fn (Builder $query) => $query->where('status', AllocationStatus::Approved)], 'allocation')
+            ->withSum(['realisasi as realisasi_total' => fn (Builder $query) => $this->applyDateRange($query, $startDate, $endDate)], 'nominal')
             ->orderBy('kode')
             ->get();
 
@@ -67,7 +68,7 @@ class DashboardService
         $arBreakdown = $this->arBreakdown($startDate, $endDate);
         $apBreakdown = $this->apBreakdown($startDate, $endDate);
 
-        $profitProjects = $projects->map(fn(Project $project) => [
+        $profitProjects = $projects->map(fn (Project $project) => [
             'kode' => $project->kode,
             'nama' => $project->nama,
             'project_id' => $project->id,
@@ -80,7 +81,7 @@ class DashboardService
             ->sortByDesc('approved_total')
             ->take(10)
             ->values()
-            ->map(fn(Project $project) => [
+            ->map(fn (Project $project) => [
                 'kode' => $project->kode,
                 'nama' => $project->nama,
                 'project_id' => $project->id,
@@ -97,8 +98,8 @@ class DashboardService
             'total_allocation' => $totalAllocation,
             'total_realisasi' => $totalRealisasi,
             'total_sisa' => $totalBudget - $totalRealisasi,
-            'total_nilai' => $projects->sum(fn(Project $project) => $project->nilai_total),
-            'total_pajak' => $projects->sum(fn(Project $project) => $project->nilai_pajak),
+            'total_nilai' => $projects->sum(fn (Project $project) => $project->nilai_total),
+            'total_pajak' => $projects->sum(fn (Project $project) => $project->nilai_pajak),
             'persentase' => $totalBudget > 0 ? round(($totalRealisasi / $totalBudget) * 100, 1) : 0,
             'kategori_breakdown' => $this->kategoriBreakdown($realisasiQuery),
             'cash_in' => $cashflow['total_masuk'],
@@ -127,7 +128,7 @@ class DashboardService
             ->where('status', ProjectStatus::Draft)
             ->orderBy('kode')
             ->get()
-            ->map(fn(Project $project) => [
+            ->map(fn (Project $project) => [
                 'kode' => $project->kode,
                 'nama' => $project->nama,
                 'project_id' => $project->id,
@@ -152,7 +153,7 @@ class DashboardService
             ->where('status', ProjectStatus::Revisi)
             ->orderBy('kode')
             ->get()
-            ->map(fn(Project $project) => [
+            ->map(fn (Project $project) => [
                 'kode' => $project->kode,
                 'nama' => $project->nama,
                 'project_id' => $project->id,
@@ -245,8 +246,8 @@ class DashboardService
      */
     protected function applyDateRange(Builder $query, ?string $startDate, ?string $endDate): Builder
     {
-        return $query->when($startDate, fn(Builder $q) => $q->whereDate('tanggal', '>=', $startDate))
-            ->when($endDate, fn(Builder $q) => $q->whereDate('tanggal', '<=', $endDate));
+        return $query->when($startDate, fn (Builder $q) => $q->whereDate('tanggal', '>=', $startDate))
+            ->when($endDate, fn (Builder $q) => $q->whereDate('tanggal', '<=', $endDate));
     }
 
     /**
@@ -257,14 +258,14 @@ class DashboardService
     protected function kategoriBreakdown(Builder $realisasiQuery): array
     {
         $totals = Kategori::orderBy('kode')->get()
-            ->mapWithKeys(fn(Kategori $kategori) => [$kategori->nama => 0.0])
+            ->mapWithKeys(fn (Kategori $kategori) => [$kategori->nama => 0.0])
             ->all();
 
         foreach ((clone $realisasiQuery)
-                ->join('kategoris', 'kategoris.id', '=', 'realisasi.kategori_id')
-                ->selectRaw('kategoris.nama as nama, COALESCE(SUM(realisasi.nominal), 0) as total')
-                ->groupBy('kategoris.nama')
-                ->get() as $row
+            ->join('kategoris', 'kategoris.id', '=', 'realisasi.kategori_id')
+            ->selectRaw('kategoris.nama as nama, COALESCE(SUM(realisasi.nominal), 0) as total')
+            ->groupBy('kategoris.nama')
+            ->get() as $row
         ) {
             $totals[$row->nama] = (float) $row->total;
         }
@@ -336,7 +337,7 @@ class DashboardService
      */
     protected function apBreakdown(?string $startDate = null, ?string $endDate = null): array
     {
-        $masterTypes = \App\Models\MasterType::where('flag_ap', true)->orderBy('kode')->get(['id', 'kode', 'nama']);
+        $masterTypes = MasterType::where('flag_ap', true)->orderBy('kode')->get(['id', 'kode', 'nama']);
 
         $breakdown = [];
         $grandTotal = ['nominal' => 0.0, 'paid' => 0.0, 'outstanding' => 0.0, 'count' => 0];

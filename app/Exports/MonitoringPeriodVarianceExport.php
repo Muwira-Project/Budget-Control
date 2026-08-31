@@ -3,6 +3,7 @@
 namespace App\Exports;
 
 use App\Models\MonitoringPeriod;
+use App\Services\MonitoringPeriodService;
 use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
@@ -14,7 +15,7 @@ class MonitoringPeriodVarianceExport implements FromCollection, WithHeadings, Wi
 
     public function collection(): Collection
     {
-        return app(\App\Services\MonitoringPeriodService::class)->accountBreakdown($this->period);
+        return app(MonitoringPeriodService::class)->accountBreakdown($this->period);
     }
 
     public function headings(): array

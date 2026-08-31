@@ -302,18 +302,18 @@ class Index extends Component
                     $key .= '-'.md5($allocation->custom_name);
                 }
             }
-            
+
             // Check if this allocation was created from a budget plan
             $budgetingNumber = null;
             if ($allocation->project_id !== null) {
-                $planItem = \App\Models\BudgetPlanItem::whereHas('budgetPlan', function ($q) use ($allocation) {
+                $planItem = BudgetPlanItem::whereHas('budgetPlan', function ($q) use ($allocation) {
                     $q->where('project_id', $allocation->project_id);
                 })->where('akun_id', $allocation->akun_id)->first();
                 if ($planItem) {
                     $budgetingNumber = $planItem->budgetPlan->nomor;
                 }
             }
-            
+
             $byKey[$key] = [
                 'project' => $allocation->project,
                 'is_non_project' => $allocation->project_id === null,

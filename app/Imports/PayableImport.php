@@ -7,7 +7,6 @@ use App\Models\MasterType;
 use App\Models\Payable;
 use App\Models\Project;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Import Payables (AP) from Excel/CSV.

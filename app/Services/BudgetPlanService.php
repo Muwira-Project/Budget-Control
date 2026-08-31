@@ -19,10 +19,10 @@ class BudgetPlanService
     public function create(array $data): BudgetPlan
     {
         return DB::transaction(function () use ($data) {
-            $project = \App\Models\Project::find($data['project_id']);
+            $project = Project::find($data['project_id']);
             $projectCode = $project?->kode ?? 'NP';
             $periode = $data['periode'] ?? '0000-00';
-            
+
             // Generate nomor: BP/PROJECT_CODE/PERIODE/SEQUENCE
             $lastPlan = BudgetPlan::where('project_id', $data['project_id'])
                 ->where('periode', $data['periode'])

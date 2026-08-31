@@ -2,9 +2,10 @@
 
 namespace App\Http\Requests\Project;
 
+use App\Enums\ProjectStatus;
+use App\Models\Project;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
-use App\Enums\ProjectStatus;
 
 class UpdateProjectRequest extends FormRequest
 {
@@ -53,17 +54,17 @@ class UpdateProjectRequest extends FormRequest
     {
         $validator->after(function ($validator) {
             $projectId = $this->route('project')?->id ?? $this->route('id');
-            
+
             if ($projectId) {
-                $project = \App\Models\Project::find($projectId);
-                
+                $project = Project::find($projectId);
+
                 if ($project && $this->input('status') !== $project->status->value) {
                     $oldStatus = $project->status;
                     $newStatus = ProjectStatus::tryFrom($this->input('status'));
-                    
-                    if ($newStatus && !$oldStatus->canTransitionTo($newStatus)) {
+
+                    if ($newStatus && ! $oldStatus->canTransitionTo($newStatus)) {
                         $validator->errors()->add(
-                            'status', 
+                            'status',
                             "Tidak bisa mengubah status dari {$oldStatus->label()} ke {$newStatus->label()}."
                         );
                     }

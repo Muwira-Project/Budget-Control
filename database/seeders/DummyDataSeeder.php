@@ -31,6 +31,7 @@ use App\Services\CashflowService;
 use App\Services\PayableService;
 use App\Services\PaymentService;
 use App\Services\ReceivableService;
+use Carbon\Carbon;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -280,7 +281,7 @@ class DummyDataSeeder extends Seeder
                 ['kode' => $kode],
                 [
                     'nama' => $nama,
-                    'deskripsi' => $nama . ' - pihak transaksi',
+                    'deskripsi' => $nama.' - pihak transaksi',
                     'flag_ar' => true,
                     'flag_ap' => true,
                     'aktif' => true,
@@ -480,7 +481,7 @@ class DummyDataSeeder extends Seeder
                 'nama' => 'Pembangunan Gedung Kantor',
                 'lokasi' => 'Jakarta',
                 'pic' => 'Arian',
-                'division_id' => MasterItem::whereHas('masterType', fn($q) => $q->where('kode', 'DIVISION'))
+                'division_id' => MasterItem::whereHas('masterType', fn ($q) => $q->where('kode', 'DIVISION'))
                     ->where('kode', 'CONSTRUCTION')
                     ->first()?->id,
                 'jenis' => ProjectJenis::Jasa->value,
@@ -508,7 +509,7 @@ class DummyDataSeeder extends Seeder
                 'nama' => 'Renovasi Ruang Rapat',
                 'lokasi' => 'Jakarta',
                 'pic' => 'Budi',
-                'division_id' => MasterItem::whereHas('masterType', fn($q) => $q->where('kode', 'DIVISION'))
+                'division_id' => MasterItem::whereHas('masterType', fn ($q) => $q->where('kode', 'DIVISION'))
                     ->where('kode', 'INTERIOR')
                     ->first()?->id,
                 'jenis' => ProjectJenis::Jasa->value,
@@ -610,14 +611,14 @@ class DummyDataSeeder extends Seeder
     protected function partyKodeFor(?string $vendorNama, ?string $supplierNama): string
     {
         if ($supplierNama !== null) {
-            $item = MasterItem::whereHas('masterType', fn($query) => $query->where('kode', 'SUPPLIER'))
+            $item = MasterItem::whereHas('masterType', fn ($query) => $query->where('kode', 'SUPPLIER'))
                 ->where('nama', $supplierNama)
                 ->first();
 
             return $item?->kode ?? 'SPL-001';
         }
 
-        $item = MasterItem::whereHas('masterType', fn($query) => $query->where('kode', 'VENDOR'))
+        $item = MasterItem::whereHas('masterType', fn ($query) => $query->where('kode', 'VENDOR'))
             ->where('nama', $vendorNama)
             ->first();
 
@@ -657,7 +658,7 @@ class DummyDataSeeder extends Seeder
                     ->latest('id')
                     ->first();
                 $sequence = ($lastPlan?->id ?? 0) + 1;
-                $plan->update(['nomor' => 'BP/' . $projectCode . '/' . $periode . '/' . $sequence]);
+                $plan->update(['nomor' => 'BP/'.$projectCode.'/'.$periode.'/'.$sequence]);
             }
 
             // Rebuild the plan items from the approved allocations and keep
@@ -725,15 +726,15 @@ class DummyDataSeeder extends Seeder
                 ?? $project->target_selesai
                 ?? now()->endOfMonth()->toDateString();
 
-            $start = \Carbon\Carbon::parse($startDate)->startOfMonth();
-            $end   = \Carbon\Carbon::parse($endDate)->endOfMonth();
-            $nomor = 'MON-' . $start->format('Y') . '-' . str_pad((string) ($index + 1), 3, '0', STR_PAD_LEFT);
+            $start = Carbon::parse($startDate)->startOfMonth();
+            $end = Carbon::parse($endDate)->endOfMonth();
+            $nomor = 'MON-'.$start->format('Y').'-'.str_pad((string) ($index + 1), 3, '0', STR_PAD_LEFT);
 
             MonitoringPeriod::firstOrCreate(
                 ['nomor' => $nomor],
                 [
-                    'project_id'      => $project->id,
-                    'tanggal_mulai'   => $start->toDateString(),
+                    'project_id' => $project->id,
+                    'tanggal_mulai' => $start->toDateString(),
                     'tanggal_selesai' => $end->toDateString(),
                 ],
             );
@@ -743,8 +744,8 @@ class DummyDataSeeder extends Seeder
         MonitoringPeriod::firstOrCreate(
             ['nomor' => 'MON-2026-003'],
             [
-                'project_id'      => null,
-                'tanggal_mulai'   => '2026-07-01',
+                'project_id' => null,
+                'tanggal_mulai' => '2026-07-01',
                 'tanggal_selesai' => '2026-07-31',
             ],
         );
@@ -753,8 +754,8 @@ class DummyDataSeeder extends Seeder
         MonitoringPeriod::firstOrCreate(
             ['nomor' => 'MON-2026-004'],
             [
-                'project_id'      => null,
-                'tanggal_mulai'   => now()->startOfMonth()->toDateString(),
+                'project_id' => null,
+                'tanggal_mulai' => now()->startOfMonth()->toDateString(),
                 'tanggal_selesai' => now()->endOfMonth()->toDateString(),
             ],
         );
@@ -818,7 +819,7 @@ class DummyDataSeeder extends Seeder
             app(PayableService::class)->syncFromRealisasi($realisasi);
         }
 
-        $receivable = Receivable::whereHas('project', fn($query) => $query->where('kode', 'PRJ-2025-002'))->first();
+        $receivable = Receivable::whereHas('project', fn ($query) => $query->where('kode', 'PRJ-2025-002'))->first();
 
         if ($receivable && Payment::where('keterangan', 'Pelunasan sebagian piutang renovasi')->doesntExist()) {
             app(PaymentService::class)->createForReceivable($receivable, [
@@ -829,7 +830,7 @@ class DummyDataSeeder extends Seeder
         }
 
         $payable = Payable::whereNotNull('supplier_id')->orderBy('id')->first()
-            ?? Payable::whereHas('pihakItem.masterType', fn($query) => $query->where('kode', 'SUPPLIER'))->orderBy('id')->first();
+            ?? Payable::whereHas('pihakItem.masterType', fn ($query) => $query->where('kode', 'SUPPLIER'))->orderBy('id')->first();
 
         if ($payable && Payment::where('keterangan', 'Pelunasan penuh material')->doesntExist()) {
             app(PaymentService::class)->createForPayable($payable, [
@@ -984,7 +985,7 @@ class DummyDataSeeder extends Seeder
      */
     protected function nextAkunKode(): string
     {
-        return 'AKN-' . str_pad((string) ++$this->akunCounter, 3, '0', STR_PAD_LEFT);
+        return 'AKN-'.str_pad((string) ++$this->akunCounter, 3, '0', STR_PAD_LEFT);
     }
 
     /**

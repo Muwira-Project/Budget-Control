@@ -1,5 +1,6 @@
 <?php
 
+use App\Models\BudgetPlan;
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
@@ -16,7 +17,7 @@ return new class extends Migration
         });
 
         // Generate nomor for existing budget plans
-        \App\Models\BudgetPlan::with('project')->whereNull('nomor')->chunk(100, function ($plans) {
+        BudgetPlan::with('project')->whereNull('nomor')->chunk(100, function ($plans) {
             foreach ($plans as $plan) {
                 $projectCode = $plan->project?->kode ?? 'NP';
                 $periode = $plan->periode ?? '0000-00';

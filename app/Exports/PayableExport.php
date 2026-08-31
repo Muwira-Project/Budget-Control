@@ -5,14 +5,14 @@ namespace App\Exports;
 use App\Models\Payable;
 use Illuminate\Database\Eloquent\Builder;
 use Maatwebsite\Excel\Concerns\FromQuery;
+use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
-use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 
 /**
  * Export Payables (AP) to Excel/CSV.
  */
-class PayableExport implements FromQuery, WithHeadings, WithMapping, ShouldAutoSize
+class PayableExport implements FromQuery, ShouldAutoSize, WithHeadings, WithMapping
 {
     protected array $filters;
 

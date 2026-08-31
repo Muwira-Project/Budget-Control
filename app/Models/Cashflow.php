@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
@@ -226,7 +227,7 @@ class Cashflow extends Model
     /**
      * Get the budget plans associated with this cashflow's project.
      */
-    public function budgetPlans(): \Illuminate\Database\Eloquent\Relations\HasManyThrough
+    public function budgetPlans(): HasManyThrough
     {
         return $this->hasManyThrough(
             BudgetPlan::class,
@@ -249,12 +250,12 @@ class Cashflow extends Model
         }
 
         // No project or budget plans not eager loaded - return empty to avoid lazy loading
-        if (!$this->project_id) {
+        if (! $this->project_id) {
             return [];
         }
 
         // If project is loaded but budgetPlans not, don't lazy load
-        if ($this->relationLoaded('project') && $this->project && !$this->project->relationLoaded('budgetPlans')) {
+        if ($this->relationLoaded('project') && $this->project && ! $this->project->relationLoaded('budgetPlans')) {
             return [];
         }
 
@@ -268,6 +269,7 @@ class Cashflow extends Model
     public function getBudgetNumberAttribute(): ?string
     {
         $numbers = $this->budget_numbers;
+
         return $numbers ? implode(', ', $numbers) : null;
     }
 

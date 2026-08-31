@@ -73,7 +73,7 @@ class MonitoringPeriod extends Model
      */
     public function getBudgetNumberAttribute(): ?string
     {
-        if (!$this->project_id) {
+        if (! $this->project_id) {
             return null;
         }
 

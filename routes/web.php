@@ -70,7 +70,7 @@ use App\Models\FundTransfer;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
 
-Route::get('/', fn() => redirect()->route('dashboard'))
+Route::get('/', fn () => redirect()->route('dashboard'))
     ->middleware('auth')
     ->name('home');
 
@@ -200,4 +200,4 @@ Route::middleware(['auth', 'verified', 'draft-staff'])->group(function () {
     Route::view('profile', 'profile')->name('profile');
 });
 
-require __DIR__ . '/auth.php';
+require __DIR__.'/auth.php';

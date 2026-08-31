@@ -7,7 +7,6 @@ use App\Models\MasterType;
 use App\Models\Project;
 use App\Models\Receivable;
 use Illuminate\Support\Collection;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Import Receivables (AR) from Excel/CSV.

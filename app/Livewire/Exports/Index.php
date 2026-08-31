@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Exports;
 
+use App\Models\CashAccount;
 use App\Models\Project;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -132,7 +133,7 @@ class Index extends Component
     #[Computed]
     public function cashAccounts()
     {
-        return \App\Models\CashAccount::query()->where('status', 'active')->orderBy('kode')->get();
+        return CashAccount::query()->where('status', 'active')->orderBy('kode')->get();
     }
 
     /** Build the download URL for the given format with the current filters. */

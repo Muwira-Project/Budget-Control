@@ -5,16 +5,14 @@ namespace App\Http\Controllers;
 use App\Exports\AkunExport;
 use App\Exports\AkunVsRealisasiExport;
 use App\Exports\CashflowExport;
-use App\Exports\CashflowTemplateExport;
 use App\Exports\MonitoringPeriodVarianceExport;
 use App\Exports\MonitoringSummaryExport;
 use App\Exports\MonitoringVarianceDetailExport;
-use App\Models\MonitoringPeriod;
 use App\Exports\PayableExport;
 use App\Exports\RealisasiExport;
 use App\Exports\ReceivableExport;
+use App\Models\MonitoringPeriod;
 use App\Services\MonitoringPeriodService;
-use App\Services\ReceivableService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
 use Maatwebsite\Excel\Excel;
@@ -64,7 +62,7 @@ class ExportController extends Controller
             app(MonitoringPeriodService::class)->summaryRows($projectId, $search),
         );
 
-        $filename = 'Monitoring_Summary_' . now()->format('Ymd') . '.' . $format;
+        $filename = 'Monitoring_Summary_'.now()->format('Ymd').'.'.$format;
 
         return match ($format) {
             'csv' => app(Excel::class)->download($export, $filename, Excel::CSV),
@@ -82,7 +80,7 @@ class ExportController extends Controller
 
         $export = new MonitoringPeriodVarianceExport($period);
 
-        $filename = 'Monitoring_Variance_' . $period->nomor . '_' . now()->format('Ymd') . '.' . $format;
+        $filename = 'Monitoring_Variance_'.$period->nomor.'_'.now()->format('Ymd').'.'.$format;
 
         return match ($format) {
             'csv' => app(Excel::class)->download($export, $filename, Excel::CSV),
@@ -100,8 +98,8 @@ class ExportController extends Controller
 
         $export = new MonitoringVarianceDetailExport($period);
 
-        $periodLabel = $period->nomor ?: 'period-' . $period->id;
-        $filename = 'Monitoring_Variance_Detail_' . $periodLabel . '_' . now()->format('Ymd') . '.' . $format;
+        $periodLabel = $period->nomor ?: 'period-'.$period->id;
+        $filename = 'Monitoring_Variance_Detail_'.$periodLabel.'_'.now()->format('Ymd').'.'.$format;
 
         return match ($format) {
             'csv' => app(Excel::class)->download($export, $filename, Excel::CSV),
@@ -140,7 +138,7 @@ class ExportController extends Controller
             'cash_account_id' => $request->integer('cash_account_id') ?: null,
         ]);
 
-        $filename = 'Cashflow_' . now()->format('Ymd') . '.' . $format;
+        $filename = 'Cashflow_'.now()->format('Ymd').'.'.$format;
 
         return match ($format) {
             'csv' => app(Excel::class)->download($export, $filename, Excel::CSV),
@@ -215,7 +213,7 @@ class ExportController extends Controller
     private function download(mixed $export, string $baseName, string $format): BinaryFileResponse
     {
         $extension = $format === 'pdf' ? 'pdf' : 'xlsx';
-        $filename = $baseName . now()->format('Ymd') . '.' . $extension;
+        $filename = $baseName.now()->format('Ymd').'.'.$extension;
 
         return $format === 'pdf'
             ? app(Excel::class)->download($export, $filename, Excel::DOMPDF)

@@ -3,6 +3,8 @@
 namespace App\Livewire\Imports;
 
 use App\Imports\PayableImport;
+use Illuminate\Contracts\View\View;
+use Illuminate\Http\RedirectResponse;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Validate;
 use Livewire\Component;
@@ -43,7 +45,7 @@ class ImportPayables extends Component
     }
 
     /** Download the import template. */
-    public function downloadTemplate(): \Illuminate\Http\RedirectResponse
+    public function downloadTemplate(): RedirectResponse
     {
         return redirect()->route('imports.payables.template');
     }
@@ -54,7 +56,7 @@ class ImportPayables extends Component
         return view('livewire.imports.import-payables');
     }
 
-    public function __invoke(): \Illuminate\Contracts\View\View
+    public function __invoke(): View
     {
         return $this->render();
     }

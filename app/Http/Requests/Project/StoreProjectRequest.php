@@ -2,9 +2,9 @@
 
 namespace App\Http\Requests\Project;
 
+use App\Enums\ProjectStatus;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
-use App\Enums\ProjectStatus;
 
 class StoreProjectRequest extends FormRequest
 {
@@ -53,10 +53,10 @@ class StoreProjectRequest extends FormRequest
         $validator->after(function ($validator) {
             // For new projects, current status is implicitly Draft
             $newStatus = ProjectStatus::tryFrom($this->input('status'));
-            
-            if ($newStatus && !ProjectStatus::Draft->canTransitionTo($newStatus)) {
+
+            if ($newStatus && ! ProjectStatus::Draft->canTransitionTo($newStatus)) {
                 $validator->errors()->add(
-                    'status', 
+                    'status',
                     "Tidak bisa membuat project dengan status {$newStatus->label()}. Project baru harus berstatus Draft, In Progress, atau Cancelled."
                 );
             }

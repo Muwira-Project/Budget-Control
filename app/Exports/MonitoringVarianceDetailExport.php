@@ -15,17 +15,9 @@ use Maatwebsite\Excel\Concerns\WithTitle;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
-use PhpOffice\PhpSpreadsheet\Style\NumberFormat;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class MonitoringVarianceDetailExport implements
-    FromCollection,
-    WithHeadings,
-    WithMapping,
-    WithStyles,
-    WithTitle,
-    WithColumnFormatting,
-    ShouldAutoSize
+class MonitoringVarianceDetailExport implements FromCollection, ShouldAutoSize, WithColumnFormatting, WithHeadings, WithMapping, WithStyles, WithTitle
 {
     private int $rowCount = 0;
 
@@ -33,7 +25,7 @@ class MonitoringVarianceDetailExport implements
 
     public function title(): string
     {
-        return 'Variance Detail ' . ($this->period->nomor ?? '');
+        return 'Variance Detail '.($this->period->nomor ?? '');
     }
 
     public function collection(): Collection
@@ -41,30 +33,30 @@ class MonitoringVarianceDetailExport implements
         $rows = app(MonitoringPeriodService::class)->varianceDetailRows($this->period);
 
         if (! empty($rows)) {
-            $totalBudget    = (float) array_sum(array_column($rows, 'budget'));
+            $totalBudget = (float) array_sum(array_column($rows, 'budget'));
             $totalActualOut = (float) array_sum(array_column($rows, 'actual_out'));
-            $totalCashIn    = (float) array_sum(array_column($rows, 'cash_in'));
-            $totalAp        = (float) array_sum(array_column($rows, 'ap_settlement'));
-            $totalVariance  = $totalBudget - $totalActualOut;
+            $totalCashIn = (float) array_sum(array_column($rows, 'cash_in'));
+            $totalAp = (float) array_sum(array_column($rows, 'ap_settlement'));
+            $totalVariance = $totalBudget - $totalActualOut;
 
             $rows[] = [
-                'budget_no'     => '-',
-                'po_number'     => 'TOTAL KONSOLIDASI',
-                'project'       => 'SEMUA TRANSAKSI',
-                'account'       => 'TOTAL AKHIR',
-                'type'          => 'TOTAL',
-                'pihak'         => '-',
-                'periode_week'  => $this->period->nomor,
-                'day_name'      => '-',
-                'budget_date'   => '',
-                'budget'        => $totalBudget,
-                'actual_date'   => '',
-                'actual_out'    => $totalActualOut,
-                'cash_in'       => $totalCashIn,
+                'budget_no' => '-',
+                'po_number' => 'TOTAL KONSOLIDASI',
+                'project' => 'SEMUA TRANSAKSI',
+                'account' => 'TOTAL AKHIR',
+                'type' => 'TOTAL',
+                'pihak' => '-',
+                'periode_week' => $this->period->nomor,
+                'day_name' => '-',
+                'budget_date' => '',
+                'budget' => $totalBudget,
+                'actual_date' => '',
+                'actual_out' => $totalActualOut,
+                'cash_in' => $totalCashIn,
                 'ap_settlement' => $totalAp,
-                'variance'      => $totalVariance,
-                'description'   => 'Total Rencana Anggaran, Realisasi, Cash In, dan AP Pay periode ' . ($this->period->nomor ?? ''),
-                '_is_total'     => true,
+                'variance' => $totalVariance,
+                'description' => 'Total Rencana Anggaran, Realisasi, Cash In, dan AP Pay periode '.($this->period->nomor ?? ''),
+                '_is_total' => true,
             ];
         }
 

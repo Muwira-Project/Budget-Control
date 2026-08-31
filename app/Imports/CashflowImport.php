@@ -3,13 +3,14 @@
 namespace App\Imports;
 
 use App\Enums\CashflowJenis;
-use App\Enums\CashflowSumber;
+use App\Enums\KasStatus;
 use App\Models\Akun;
 use App\Models\CashAccount;
 use App\Models\Cashflow;
 use App\Models\MasterItem;
 use App\Models\MasterType;
 use App\Models\Project;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 /**
@@ -47,7 +48,7 @@ class CashflowImport extends BaseImport
             return [false, null, 'Date is required'];
         }
 
-        if (! \Illuminate\Support\Carbon::hasFormat($date, 'Y-m-d')) {
+        if (! Carbon::hasFormat($date, 'Y-m-d')) {
             return [false, null, 'Date must be in YYYY-MM-DD format'];
         }
 
@@ -134,7 +135,7 @@ class CashflowImport extends BaseImport
                 'pihak_item_id' => $pihakItemId,
                 'nominal' => $nominal,
                 'keterangan' => $keterangan !== '' ? $keterangan : null,
-                'status' => \App\Enums\KasStatus::Draft,
+                'status' => KasStatus::Draft,
                 'created_by' => auth()->id(),
             ],
             null,

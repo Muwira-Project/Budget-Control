@@ -70,14 +70,14 @@ class Edit extends Component
     {
         $currentStatus = $this->project->status;
         $newStatus = ProjectStatus::tryFrom($this->status);
-        
-        if ($newStatus && !$currentStatus->canTransitionTo($newStatus)) {
+
+        if ($newStatus && ! $currentStatus->canTransitionTo($newStatus)) {
             $this->addError('status', "Tidak bisa mengubah status dari {$currentStatus->label()} ke {$newStatus->label()}.");
             $this->status = $currentStatus->value;
         } else {
             $this->resetErrorBag('status');
         }
-        
+
         // Reset revisi reason when not in revisi
         if ($this->status !== ProjectStatus::Revisi->value) {
             $this->revisiReason = null;
