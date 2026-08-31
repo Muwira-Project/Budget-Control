@@ -15,11 +15,8 @@ return new class extends Migration
     {
         // Index payables berikut mereferensikan kolom 'status' yang tidak pernah ada di payables.
         // SQLite memvalidasi index saat DDL berikutnya, jadi drop lebih dulu agar drop column aman.
-        DB::statement('DROP INDEX IF EXISTS payables_status_index');
-        DB::statement('DROP INDEX IF EXISTS payables_status_tanggal_index');
 
         Schema::table('cashflows', function (Blueprint $table) {
-            $table->dropUnique('cashflows_payment_request_unique');
             $table->dropConstrainedForeignId('payment_request_id');
             $table->dropConstrainedForeignId('non_project_expense_id');
             $table->foreignId('akun_id')->nullable()->after('cash_account_id')->constrained('akuns')->nullOnDelete();
