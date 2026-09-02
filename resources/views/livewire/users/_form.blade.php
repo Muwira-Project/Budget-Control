@@ -54,7 +54,7 @@
     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
         <div>
             <x-input-label for="password" :value="__('Password')" />
-            <x-text-input id="password" class="mt-1 block w-full" type="password" wire:model="password" autocomplete="new-password" {{ ($editMode ?? false) ? '' : 'required' }} />
+            <x-text-input id="password" class="mt-1 block w-full" type="password" wire:model="password" autocomplete="new-password" required />
             <x-input-error :messages="$errors->get('password')" class="mt-2" />
             @if (! empty($editMode))
                 <p class="mt-1 text-xs text-gray-500">Leave blank if you do not want to change the password.</p>
