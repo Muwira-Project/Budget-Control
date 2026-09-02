@@ -68,6 +68,17 @@ class Dashboard extends Component
     }
 
     /**
+     * Count of pending approval items (cashflow, fund transfer, settlement void).
+     *
+     * @return int
+     */
+    #[Computed]
+    public function pendingApprovalsCount(): int
+    {
+        return app(DashboardService::class)->pendingApprovalsCount();
+    }
+
+    /**
      * Whether the selected date range is invalid (start after end).
      */
     #[Computed]
@@ -159,8 +170,8 @@ class Dashboard extends Component
         return Realisasi::query()
             ->with(['akun', 'kategori', 'pihakType', 'pihakItem'])
             ->where('project_id', $this->selectedProjectId)
-            ->when($this->startDate, fn ($query) => $query->whereDate('tanggal', '>=', $this->startDate))
-            ->when($this->endDate, fn ($query) => $query->whereDate('tanggal', '<=', $this->endDate))
+            ->when($this->startDate, fn($query) => $query->whereDate('tanggal', '>=', $this->startDate))
+            ->when($this->endDate, fn($query) => $query->whereDate('tanggal', '<=', $this->endDate))
             ->orderByDesc('tanggal')
             ->get();
     }
@@ -177,9 +188,9 @@ class Dashboard extends Component
 
         return Realisasi::query()
             ->with(['akun', 'project', 'pihakType', 'pihakItem'])
-            ->whereHas('kategori', fn ($query) => $query->where('nama', $this->selectedCategoryName))
-            ->when($this->startDate, fn ($query) => $query->whereDate('tanggal', '>=', $this->startDate))
-            ->when($this->endDate, fn ($query) => $query->whereDate('tanggal', '<=', $this->endDate))
+            ->whereHas('kategori', fn($query) => $query->where('nama', $this->selectedCategoryName))
+            ->when($this->startDate, fn($query) => $query->whereDate('tanggal', '>=', $this->startDate))
+            ->when($this->endDate, fn($query) => $query->whereDate('tanggal', '<=', $this->endDate))
             ->orderByDesc('tanggal')
             ->get();
     }
