@@ -68,24 +68,18 @@ return new class extends Migration
 
         // Add indexes to payables table
         Schema::table('payables', function (Blueprint $table) {
-            if (! $this->indexExists('payables', 'payables_status_index')) {
-                $table->index('status');
-            }
             if (! $this->indexExists('payables', 'payables_project_id_index')) {
                 $table->index('project_id');
-            }
-            if (! $this->indexExists('payables', 'payables_status_tanggal_index')) {
-                $table->index(['status', 'tanggal']);
             }
         });
 
         // Add indexes to receivables table
         Schema::table('receivables', function (Blueprint $table) {
             if (! $this->indexExists('receivables', 'receivables_project_id_index')) {
-                $table->index('project_id');
+                $table->index('project_id', 'receivables_project_id_index');
             }
             if (! $this->indexExists('receivables', 'receivables_project_id_tanggal_index')) {
-                $table->index(['project_id', 'tanggal']);
+                $table->index(['project_id', 'tanggal'], 'receivables_project_id_tanggal_index');
             }
         });
 

@@ -41,7 +41,10 @@ return new class extends Migration
                 $table->dropUnique('receivables_project_id_unique');
             }
 
-            $table->index('project_id');
+            // Check if regular index already exists (from performance migration)
+            if (! Schema::hasIndex('receivables', 'receivables_project_id_index')) {
+                $table->index('project_id');
+            }
 
             $table->foreign('project_id')
                 ->references('id')

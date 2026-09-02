@@ -17,6 +17,7 @@ return new class extends Migration
         // SQLite memvalidasi index saat DDL berikutnya, jadi drop lebih dulu agar drop column aman.
 
         Schema::table('cashflows', function (Blueprint $table) {
+            $table->dropUnique('cashflows_payment_request_unique');
             $table->dropConstrainedForeignId('payment_request_id');
             $table->dropConstrainedForeignId('non_project_expense_id');
             $table->foreignId('akun_id')->nullable()->after('cash_account_id')->constrained('akuns')->nullOnDelete();

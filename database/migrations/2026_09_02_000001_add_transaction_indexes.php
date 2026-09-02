@@ -37,7 +37,6 @@ return new class extends Migration
         });
 
         Schema::table('payables', function (Blueprint $table) {
-            $table->index('status', 'idx_payables_status');
             $table->index('nominal_dibayar', 'idx_payables_nominal_dibayar');
         });
 
@@ -82,7 +81,6 @@ return new class extends Migration
         });
 
         Schema::table('payables', function (Blueprint $table) {
-            $table->dropIndex('idx_payables_status');
             $table->dropIndex('idx_payables_nominal_dibayar');
         });
 
