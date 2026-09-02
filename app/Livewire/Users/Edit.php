@@ -6,6 +6,7 @@ use App\Http\Requests\User\UpdateUserRequest;
 use App\Models\User;
 use App\Services\UserService;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -41,7 +42,7 @@ class Edit extends Component
      */
     public function mount(User $user): void
     {
-        if (! auth()->user()->isAdmin()) {
+        if (! Gate::allows('manageUsers', $user)) {
             session()->flash('error', 'Only admins can manage users.');
 
             $this->redirectRoute('dashboard', navigate: true);
@@ -63,7 +64,7 @@ class Edit extends Component
      */
     public function save(UserService $service): void
     {
-        if (! auth()->user()->isAdmin()) {
+        if (! Gate::allows('manageUsers', $this->user)) {
             session()->flash('error', 'Only admins can manage users.');
 
             return;

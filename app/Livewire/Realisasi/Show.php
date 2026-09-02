@@ -14,7 +14,7 @@ class Show extends Component
     public function mount(Realisasi $realisasi): void
     {
         $this->realisasi = $realisasi->load([
-            'project', 'akun', 'kategori', 'vendor', 'supplier', 'mandor', 'investor',
+            'project', 'akun', 'kategori', 'pihakType', 'pihakItem',
         ]);
     }
 

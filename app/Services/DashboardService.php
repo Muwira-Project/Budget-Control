@@ -3,9 +3,16 @@
 namespace App\Services;
 
 use App\Enums\AllocationStatus;
+use App\Enums\KasStatus;
 use App\Enums\ProjectJenis;
+use App\Enums\ProjectStatus;
+use App\Models\BudgetPlanItem;
+use App\Models\Cashflow;
+use App\Models\FundTransfer;
 use App\Models\Kategori;
+use App\Models\MasterType;
 use App\Models\Payable;
+use App\Models\Payment;
 use App\Models\Project;
 use App\Models\ProjectAkun;
 use App\Models\Realisasi;
@@ -41,19 +48,19 @@ class DashboardService
      */
     private function computeStatistics(?string $startDate = null, ?string $endDate = null): array
     {
-        $totalBudget = (float) ProjectAkun::sum('budget');
+        $totalBudget = $this->budgetForDateRange($startDate, $endDate);
         $totalAllocation = (float) ProjectAkun::where('status', AllocationStatus::Approved)->sum('allocation');
 
         $realisasiQuery = Realisasi::query()
-            ->when($startDate, fn ($query) => $query->whereDate('tanggal', '>=', $startDate))
-            ->when($endDate, fn ($query) => $query->whereDate('tanggal', '<=', $endDate));
+            ->when($startDate, fn($query) => $query->whereDate('tanggal', '>=', $startDate))
+            ->when($endDate, fn($query) => $query->whereDate('tanggal', '<=', $endDate));
 
         $totalRealisasi = (float) (clone $realisasiQuery)->sum('nominal');
 
         $projects = Project::query()
             ->withSum('projectAkuns as budget_total', 'budget')
-            ->withSum(['projectAkuns as approved_total' => fn (Builder $query) => $query->where('status', AllocationStatus::Approved)], 'allocation')
-            ->withSum(['realisasi as realisasi_total' => fn ($query) => $this->applyDateRange($query, $startDate, $endDate)], 'nominal')
+            ->withSum(['projectAkuns as approved_total' => fn(Builder $query) => $query->where('status', AllocationStatus::Approved)], 'allocation')
+            ->withSum(['realisasi as realisasi_total' => fn(Builder $query) => $this->applyDateRange($query, $startDate, $endDate)], 'nominal')
             ->orderBy('kode')
             ->get();
 
@@ -62,7 +69,10 @@ class DashboardService
         $outstandingAr = (float) Receivable::selectRaw('COALESCE(SUM(nominal - nominal_dibayar), 0) as total')->value('total');
         $outstandingAp = (float) Payable::selectRaw('COALESCE(SUM(nominal - nominal_dibayar), 0) as total')->value('total');
 
-        $profitProjects = $projects->map(fn (Project $project) => [
+        $arBreakdown = $this->arBreakdown($startDate, $endDate);
+        $apBreakdown = $this->apBreakdown($startDate, $endDate);
+
+        $profitProjects = $projects->map(fn(Project $project) => [
             'kode' => $project->kode,
             'nama' => $project->nama,
             'project_id' => $project->id,
@@ -75,7 +85,7 @@ class DashboardService
             ->sortByDesc('approved_total')
             ->take(10)
             ->values()
-            ->map(fn (Project $project) => [
+            ->map(fn(Project $project) => [
                 'kode' => $project->kode,
                 'nama' => $project->nama,
                 'project_id' => $project->id,
@@ -92,8 +102,8 @@ class DashboardService
             'total_allocation' => $totalAllocation,
             'total_realisasi' => $totalRealisasi,
             'total_sisa' => $totalBudget - $totalRealisasi,
-            'total_nilai' => $projects->sum(fn (Project $project) => $project->nilai_total),
-            'total_pajak' => $projects->sum(fn (Project $project) => $project->nilai_pajak),
+            'total_nilai' => $projects->sum(fn(Project $project) => $project->nilai_total),
+            'total_pajak' => $projects->sum(fn(Project $project) => $project->nilai_pajak),
             'persentase' => $totalBudget > 0 ? round(($totalRealisasi / $totalBudget) * 100, 1) : 0,
             'kategori_breakdown' => $this->kategoriBreakdown($realisasiQuery),
             'cash_in' => $cashflow['total_masuk'],
@@ -101,9 +111,74 @@ class DashboardService
             'saldo_kas' => $cashflow['saldo'],
             'outstanding_ar' => $outstandingAr,
             'outstanding_ap' => $outstandingAp,
+            'ar_breakdown' => $arBreakdown,
+            'ap_breakdown' => $apBreakdown,
             'total_profit' => array_sum(array_column($profitProjects, 'profit')),
             'profit_projects' => $profitProjects,
             'chart_budget_realisasi' => $chartBudgetRealisasi,
+        ];
+    }
+
+    /**
+     * Projects ready for submission (status = draft).
+     * Returns array of project summary data.
+     *
+     * @return array<array{kode: string, nama: string, project_id: int, status: string, division: string|null, nilai_total: float}>
+     */
+    public function projectsToSubmit(): array
+    {
+        return Project::query()
+            ->with('division')
+            ->where('status', ProjectStatus::Draft)
+            ->orderBy('kode')
+            ->get()
+            ->map(fn(Project $project) => [
+                'kode' => $project->kode,
+                'nama' => $project->nama,
+                'project_id' => $project->id,
+                'status' => $project->status->label(),
+                'division' => $project->division?->nama,
+                'nilai_total' => $project->nilai_total,
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Projects needing revision (status = revisi).
+     * Returns array of project summary data.
+     *
+     * @return array<array{kode: string, nama: string, project_id: int, status: string, division: string|null, nilai_total: float}>
+     */
+    public function projectsToRevisi(): array
+    {
+        return Project::query()
+            ->with('division')
+            ->where('status', ProjectStatus::Revisi)
+            ->orderBy('kode')
+            ->get()
+            ->map(fn(Project $project) => [
+                'kode' => $project->kode,
+                'nama' => $project->nama,
+                'project_id' => $project->id,
+                'status' => $project->status->label(),
+                'division' => $project->division?->nama,
+                'nilai_total' => $project->nilai_total,
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Counts for submit and revisi widgets.
+     *
+     * @return array{submit_count: int, revisi_count: int}
+     */
+    public function submitRevisiCounts(): array
+    {
+        return [
+            'submit_count' => Project::query()->where('status', ProjectStatus::Draft)->count(),
+            'revisi_count' => Project::query()->where('status', ProjectStatus::Revisi)->count(),
         ];
     }
 
@@ -141,12 +216,42 @@ class DashboardService
     }
 
     /**
+     * Budget total for the selected range, using the same overlapping budget-plan
+     * logic as the monitoring period to keep dashboard and monitoring aligned.
+     */
+    protected function budgetForDateRange(?string $startDate, ?string $endDate): float
+    {
+        if ($startDate === null && $endDate === null) {
+            return (float) ProjectAkun::sum('budget');
+        }
+
+        $rangeStart = $startDate ?? $endDate ?? now()->toDateString();
+        $rangeEnd = $endDate ?? $startDate ?? now()->toDateString();
+
+        $rangeBudget = (float) BudgetPlanItem::query()
+            ->join('budget_plans', 'budget_plans.id', '=', 'budget_plan_items.budget_plan_id')
+            ->where(function ($query) use ($rangeStart, $rangeEnd) {
+                $query->whereNotNull('budget_plan_items.tanggal_mulai')
+                    ->whereNotNull('budget_plan_items.tanggal_selesai')
+                    ->whereDate('budget_plan_items.tanggal_mulai', '<=', $rangeEnd)
+                    ->whereDate('budget_plan_items.tanggal_selesai', '>=', $rangeStart)
+                    ->orWhere(function ($legacy) {
+                        $legacy->whereNull('budget_plan_items.tanggal_mulai')
+                            ->orWhereNull('budget_plan_items.tanggal_selesai');
+                    });
+            })
+            ->sum('budget_plan_items.nominal');
+
+        return $rangeBudget > 0 ? $rangeBudget : (float) ProjectAkun::sum('budget');
+    }
+
+    /**
      * Apply the date range filter to a query.
      */
-    protected function applyDateRange($query, ?string $startDate, ?string $endDate): void
+    protected function applyDateRange(Builder $query, ?string $startDate, ?string $endDate): Builder
     {
-        $query->when($startDate, fn ($q) => $q->whereDate('tanggal', '>=', $startDate))
-            ->when($endDate, fn ($q) => $q->whereDate('tanggal', '<=', $endDate));
+        return $query->when($startDate, fn(Builder $q) => $q->whereDate('tanggal', '>=', $startDate))
+            ->when($endDate, fn(Builder $q) => $q->whereDate('tanggal', '<=', $endDate));
     }
 
     /**
@@ -154,20 +259,147 @@ class DashboardService
      *
      * @return array<string, float>
      */
-    protected function kategoriBreakdown($realisasiQuery): array
+    protected function kategoriBreakdown(Builder $realisasiQuery): array
     {
         $totals = Kategori::orderBy('kode')->get()
-            ->mapWithKeys(fn (Kategori $kategori) => [$kategori->nama => 0.0])
+            ->mapWithKeys(fn(Kategori $kategori) => [$kategori->nama => 0.0])
             ->all();
 
         foreach ((clone $realisasiQuery)
-            ->join('kategoris', 'kategoris.id', '=', 'realisasi.kategori_id')
-            ->selectRaw('kategoris.nama as nama, COALESCE(SUM(realisasi.nominal), 0) as total')
-            ->groupBy('kategoris.nama')
-            ->get() as $row) {
+                ->join('kategoris', 'kategoris.id', '=', 'realisasi.kategori_id')
+                ->selectRaw('kategoris.nama as nama, COALESCE(SUM(realisasi.nominal), 0) as total')
+                ->groupBy('kategoris.nama')
+                ->get() as $row
+        ) {
             $totals[$row->nama] = (float) $row->total;
         }
 
         return $totals;
+    }
+
+    /**
+     * AR Breakdown by category (billed, unbilled, inprogress) with grand total.
+     * Respects the dashboard date range filter.
+     *
+     * @return array<string, array{nominal: float, paid: float, outstanding: float, count: int}>
+     */
+    protected function arBreakdown(?string $startDate = null, ?string $endDate = null): array
+    {
+        $categories = ['billed', 'unbilled', 'inprogress'];
+
+        $breakdown = [];
+        $grandTotal = ['nominal' => 0.0, 'paid' => 0.0, 'outstanding' => 0.0, 'count' => 0];
+
+        foreach ($categories as $category) {
+            $query = Receivable::query()->whereHas('project', function ($q) use ($category) {
+                match ($category) {
+                    'billed' => $q->where('status', ProjectStatus::Done)->whereNotNull('po_number'),
+                    'unbilled' => $q->where('status', ProjectStatus::Done)->whereNull('po_number'),
+                    'inprogress' => $q->where('status', '!=', ProjectStatus::Done),
+                    default => $q,
+                };
+            });
+
+            // Apply date range filter on receivable tanggal
+            if ($startDate) {
+                $query->whereDate('tanggal', '>=', $startDate);
+            }
+            if ($endDate) {
+                $query->whereDate('tanggal', '<=', $endDate);
+            }
+
+            $aggregates = $query->selectRaw(
+                'COALESCE(SUM(nominal), 0) as total_nominal,
+                 COALESCE(SUM(nominal_dibayar), 0) as total_paid,
+                 COALESCE(SUM(nominal - nominal_dibayar), 0) as total_outstanding,
+                 COUNT(*) as total_count'
+            )->first();
+
+            $breakdown[$category] = [
+                'nominal' => (float) $aggregates->total_nominal,
+                'paid' => (float) $aggregates->total_paid,
+                'outstanding' => (float) $aggregates->total_outstanding,
+                'count' => (int) $aggregates->total_count,
+            ];
+
+            $grandTotal['nominal'] += $breakdown[$category]['nominal'];
+            $grandTotal['paid'] += $breakdown[$category]['paid'];
+            $grandTotal['outstanding'] += $breakdown[$category]['outstanding'];
+            $grandTotal['count'] += $breakdown[$category]['count'];
+        }
+
+        $breakdown['total'] = $grandTotal;
+
+        return $breakdown;
+    }
+
+    /**
+     * AP Breakdown by MasterType (Vendor, Supplier, Mandor, Investor) with grand total.
+     * Respects the dashboard date range filter.
+     *
+     * @return array<string, array{nominal: float, paid: float, outstanding: float, count: int}>
+     */
+    protected function apBreakdown(?string $startDate = null, ?string $endDate = null): array
+    {
+        $masterTypes = MasterType::where('flag_ap', true)->orderBy('kode')->get(['id', 'kode', 'nama']);
+
+        $breakdown = [];
+        $grandTotal = ['nominal' => 0.0, 'paid' => 0.0, 'outstanding' => 0.0, 'count' => 0];
+
+        foreach ($masterTypes as $masterType) {
+            $query = Payable::query()->where('pihak_type_id', $masterType->id);
+
+            // Apply date range filter on payable tanggal
+            if ($startDate) {
+                $query->whereDate('tanggal', '>=', $startDate);
+            }
+            if ($endDate) {
+                $query->whereDate('tanggal', '<=', $endDate);
+            }
+
+            $aggregates = $query->selectRaw(
+                'COALESCE(SUM(nominal), 0) as total_nominal,
+                 COALESCE(SUM(nominal_dibayar), 0) as total_paid,
+                 COALESCE(SUM(nominal - nominal_dibayar), 0) as total_outstanding,
+                 COUNT(*) as total_count'
+            )->first();
+
+            $breakdown[$masterType->kode] = [
+                'label' => $masterType->nama,
+                'nominal' => (float) $aggregates->total_nominal,
+                'paid' => (float) $aggregates->total_paid,
+                'outstanding' => (float) $aggregates->total_outstanding,
+                'count' => (int) $aggregates->total_count,
+            ];
+
+            $grandTotal['nominal'] += $breakdown[$masterType->kode]['nominal'];
+            $grandTotal['paid'] += $breakdown[$masterType->kode]['paid'];
+            $grandTotal['outstanding'] += $breakdown[$masterType->kode]['outstanding'];
+            $grandTotal['count'] += $breakdown[$masterType->kode]['count'];
+        }
+
+        $breakdown['total'] = array_merge($grandTotal, ['label' => 'Total']);
+
+        return $breakdown;
+    }
+
+    /**
+     * Count pending approval items for dashboard widget.
+     * Includes:
+     * - Waiting Cashflow entries
+     * - Waiting Fund Transfers
+     * - Pending Settlement Void requests
+     *
+     * @return int
+     */
+    public function pendingApprovalsCount(): int
+    {
+        $waitingCashflows = Cashflow::where('status', KasStatus::Waiting)->count();
+        $waitingTransfers = FundTransfer::where('status', 'waiting')->count();
+        $pendingVoids = Payment::whereNotNull('void_requested_by')
+            ->whereNull('void_reviewed_by')
+            ->count();
+
+        return $waitingCashflows + $waitingTransfers + $pendingVoids;
     }
 }

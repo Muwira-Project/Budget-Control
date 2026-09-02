@@ -9,12 +9,15 @@ use App\Services\DashboardService;
 use App\Services\ReceivableService;
 use Database\Factories\ProjectFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Validation\ValidationException;
 
-#[Fillable(['kode', 'nama', 'lokasi', 'jenis', 'qty', 'satuan', 'harga_satuan', 'pajak', 'tanggal_mulai', 'target_selesai', 'status'])]
+#[Fillable(['kode', 'po_number', 'nama', 'lokasi', 'division_id', 'pic', 'project_category_id', 'sub_work', 'periode', 'jenis', 'qty', 'satuan', 'harga_satuan', 'pajak', 'tanggal_mulai', 'target_selesai', 'status', 'revisi_reason', 'revisi_at', 'revisi_by'])]
 class Project extends Model
 {
     /** @use HasFactory<ProjectFactory> */
@@ -30,6 +33,47 @@ class Project extends Model
         static::created(fn ($model) => DashboardService::clearCache());
         static::updated(fn ($model) => DashboardService::clearCache());
         static::deleted(fn ($model) => DashboardService::clearCache());
+
+        // Enforce status transition rules
+        static::updating(function (Project $project): void {
+            if ($project->isDirty('status')) {
+                $originalStatus = $project->getOriginal('status');
+                $oldStatus = $originalStatus instanceof ProjectStatus
+                    ? $originalStatus
+                    : ProjectStatus::tryFrom($originalStatus);
+                $newStatus = $project->status;
+
+                if ($oldStatus && ! $oldStatus->canTransitionTo($newStatus)) {
+                    throw ValidationException::withMessages([
+                        'status' => "Tidak bisa mengubah status dari {$oldStatus->label()} ke {$newStatus->label()}.",
+                    ]);
+                }
+
+                // Handle revisi fields and audit log
+                if ($newStatus === ProjectStatus::Revisi) {
+                    // Moving TO revisi - require reason
+                    if (blank($project->revisi_reason)) {
+                        throw ValidationException::withMessages([
+                            'revisi_reason' => 'Alasan revisi wajib diisi saat mengubah status ke Revisi.',
+                        ]);
+                    }
+                    $project->revisi_at = now();
+                    $project->revisi_by = auth()->id();
+
+                    // Log specific revisi activity
+                    $project->recordActivity('moved_to_revisi', [
+                        'reason' => $project->revisi_reason,
+                        'from_status' => $oldStatus->label(),
+                    ]);
+                } elseif ($oldStatus === ProjectStatus::Revisi && $newStatus !== ProjectStatus::Revisi) {
+                    // Moving FROM revisi
+                    $project->recordActivity('exited_revisi', [
+                        'from_status' => 'Revisi',
+                        'to_status' => $newStatus->label(),
+                    ]);
+                }
+            }
+        });
     }
 
     /**
@@ -75,6 +119,22 @@ class Project extends Model
     }
 
     /**
+     * Get the project category (dynamic master item).
+     */
+    public function projectCategory(): BelongsTo
+    {
+        return $this->belongsTo(MasterItem::class, 'project_category_id');
+    }
+
+    /**
+     * Get the project division (dynamic master item).
+     */
+    public function division(): BelongsTo
+    {
+        return $this->belongsTo(MasterItem::class, 'division_id');
+    }
+
+    /**
      * Get the per-akun allocations for the project.
      */
     public function projectAkuns(): HasMany
@@ -111,7 +171,7 @@ class Project extends Model
      */
     public function syncReceivable(): void
     {
-        if ($this->status === ProjectStatus::Completed) {
+        if ($this->status->isDone()) {
             app(ReceivableService::class)->createForProject($this);
         }
     }
@@ -150,6 +210,42 @@ class Project extends Model
         return $value !== null
             ? (float) $value
             : (float) $this->realisasi()->sum('realisasi.nominal');
+    }
+
+    /**
+     * AR Category based on project status and PO number.
+     * - billed: Done + PO Number exists
+     * - unbilled: Done + no PO Number
+     * - inprogress: Not Done (InProgress, Draft, Cancelled)
+     */
+    public function getArCategoryAttribute(): string
+    {
+        if ($this->status->isDone()) {
+            return $this->po_number ? 'billed' : 'unbilled';
+        }
+
+        return 'inprogress';
+    }
+
+    /**
+     * Scope to filter projects by AR category.
+     */
+    public function scopeArCategory($query, string $category): Builder
+    {
+        return match ($category) {
+            'billed' => $query->where('status', ProjectStatus::Done)->whereNotNull('po_number'),
+            'unbilled' => $query->where('status', ProjectStatus::Done)->whereNull('po_number'),
+            'inprogress' => $query->where('status', '!=', ProjectStatus::Done),
+            default => $query,
+        };
+    }
+
+    /**
+     * Backward compatibility accessor for old 'devisi' string field.
+     */
+    public function getDevisiAttribute(): ?string
+    {
+        return $this->division?->nama;
     }
 
     /**

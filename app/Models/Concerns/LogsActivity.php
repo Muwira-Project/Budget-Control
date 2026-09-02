@@ -20,33 +20,38 @@ trait LogsActivity
     /**
      * Record an activity entry for the model.
      */
-    protected function recordActivity(string $action): void
+    protected function recordActivity(string $action, array $extraProperties = []): void
     {
         Activity::create([
             'user_id' => auth()->id(),
             'subject_type' => $this->getMorphClass(),
             'subject_id' => $this->getKey(),
             'action' => $action,
-            'description' => $this->activityDescription($action),
-            'properties' => match ($action) {
-                'updated' => [
-                    'before' => $this->getOriginal(),
-                    'after' => $this->getChanges(),
-                ],
-                default => $this->getAttributes(),
-            },
+            'description' => $this->activityDescription($action, $extraProperties),
+            'properties' => array_merge(
+                match ($action) {
+                    'updated' => [
+                        'before' => $this->getOriginal(),
+                        'after' => $this->getChanges(),
+                    ],
+                    default => $this->getAttributes(),
+                },
+                $extraProperties
+            ),
         ]);
     }
 
     /**
      * Build the human-readable activity description.
      */
-    protected function activityDescription(string $action): string
+    protected function activityDescription(string $action, array $extraProperties = []): string
     {
         return match ($action) {
             'created' => 'Created '.$this->activitySubjectLabel(),
             'updated' => 'Updated '.$this->activitySubjectLabel(),
             'deleted' => 'Deleted '.$this->activitySubjectLabel(),
+            'moved_to_revisi' => 'Moved '.$this->activitySubjectLabel().' to Revisi: '.($extraProperties['reason'] ?? 'No reason provided'),
+            'exited_revisi' => 'Moved '.$this->activitySubjectLabel().' from Revisi to '.($extraProperties['to_status'] ?? 'Unknown'),
             default => 'Activity '.$this->activitySubjectLabel(),
         };
     }

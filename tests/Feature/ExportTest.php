@@ -4,13 +4,18 @@ namespace Tests\Feature;
 
 use App\Exports\AkunExport;
 use App\Exports\AkunVsRealisasiExport;
+use App\Exports\MonitoringPeriodVarianceExport;
 use App\Exports\RealisasiExport;
 use App\Models\Akun;
+use App\Models\BudgetPlan;
+use App\Models\BudgetPlanItem;
 use App\Models\Kategori;
+use App\Models\MasterItem;
+use App\Models\MasterType;
+use App\Models\MonitoringPeriod;
 use App\Models\Project;
 use App\Models\ProjectAkun;
 use App\Models\Realisasi;
-use App\Models\Supplier;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -78,6 +83,150 @@ class ExportTest extends TestCase
         $response->assertOk();
         $this->assertStringContainsString('Monitoring_Summary_'.now()->format('Ymd').'.pdf', $response->headers->get('content-disposition'));
         $this->assertStringContainsString('application/pdf', $response->headers->get('content-type'));
+    }
+
+    public function test_monitoring_variance_excel_download(): void
+    {
+        $user = User::factory()->admin()->create();
+        $period = MonitoringPeriod::factory()->create();
+        $project = $period->project;
+
+        $kategori = Kategori::factory()->create(['nama' => 'Material']);
+        $akun = Akun::factory()->create([
+            'kode_akun' => 'AKN-001',
+            'nama_akun' => 'Biaya Material',
+            'jenis_akun' => 'pengeluaran',
+            'kategori_id' => $kategori->id,
+        ]);
+
+        BudgetPlanItem::factory()->create([
+            'budget_plan_id' => BudgetPlan::factory()->create(['project_id' => $project->id])->id,
+            'akun_id' => $akun->id,
+            'nominal' => 100000000,
+            'tanggal_mulai' => $period->tanggal_mulai->format('Y-m-d'),
+            'tanggal_selesai' => $period->tanggal_selesai->format('Y-m-d'),
+        ]);
+
+        Realisasi::factory()->create([
+            'project_id' => $project->id,
+            'akun_id' => $akun->id,
+            'tanggal' => $period->tanggal_mulai->format('Y-m-d'),
+            'nominal' => 30000000,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('exports.monitoring-variance', ['period' => $period, 'format' => 'xlsx']));
+
+        $response->assertOk();
+        $this->assertStringContainsString('Monitoring_Variance_'.$period->nomor.'_'.now()->format('Ymd').'.xlsx', $response->headers->get('content-disposition'));
+        $this->assertStringContainsString('spreadsheetml', $response->headers->get('content-type'));
+    }
+
+    public function test_monitoring_variance_csv_download(): void
+    {
+        $user = User::factory()->admin()->create();
+        $period = MonitoringPeriod::factory()->create();
+        $project = $period->project;
+
+        $kategori = Kategori::factory()->create(['nama' => 'Material']);
+        $akun = Akun::factory()->create([
+            'kode_akun' => 'AKN-001',
+            'nama_akun' => 'Biaya Material',
+            'jenis_akun' => 'pengeluaran',
+            'kategori_id' => $kategori->id,
+        ]);
+
+        BudgetPlanItem::factory()->create([
+            'budget_plan_id' => BudgetPlan::factory()->create(['project_id' => $project->id])->id,
+            'akun_id' => $akun->id,
+            'nominal' => 100000000,
+            'tanggal_mulai' => $period->tanggal_mulai->format('Y-m-d'),
+            'tanggal_selesai' => $period->tanggal_selesai->format('Y-m-d'),
+        ]);
+
+        Realisasi::factory()->create([
+            'project_id' => $project->id,
+            'akun_id' => $akun->id,
+            'tanggal' => $period->tanggal_mulai->format('Y-m-d'),
+            'nominal' => 30000000,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('exports.monitoring-variance', ['period' => $period, 'format' => 'csv']));
+
+        $response->assertOk();
+        $this->assertStringContainsString('Monitoring_Variance_'.$period->nomor.'_'.now()->format('Ymd').'.csv', $response->headers->get('content-disposition'));
+    }
+
+    public function test_monitoring_variance_pdf_download(): void
+    {
+        $user = User::factory()->admin()->create();
+        $period = MonitoringPeriod::factory()->create();
+        $project = $period->project;
+
+        $kategori = Kategori::factory()->create(['nama' => 'Material']);
+        $akun = Akun::factory()->create([
+            'kode_akun' => 'AKN-001',
+            'nama_akun' => 'Biaya Material',
+            'jenis_akun' => 'pengeluaran',
+            'kategori_id' => $kategori->id,
+        ]);
+
+        BudgetPlanItem::factory()->create([
+            'budget_plan_id' => BudgetPlan::factory()->create(['project_id' => $project->id])->id,
+            'akun_id' => $akun->id,
+            'nominal' => 100000000,
+            'tanggal_mulai' => $period->tanggal_mulai->format('Y-m-d'),
+            'tanggal_selesai' => $period->tanggal_selesai->format('Y-m-d'),
+        ]);
+
+        Realisasi::factory()->create([
+            'project_id' => $project->id,
+            'akun_id' => $akun->id,
+            'tanggal' => $period->tanggal_mulai->format('Y-m-d'),
+            'nominal' => 30000000,
+        ]);
+
+        $response = $this->actingAs($user)->get(route('exports.monitoring-variance', ['period' => $period, 'format' => 'pdf']));
+
+        $response->assertOk();
+        $this->assertStringContainsString('Monitoring_Variance_'.$period->nomor.'_'.now()->format('Ymd').'.pdf', $response->headers->get('content-disposition'));
+        $this->assertStringContainsString('application/pdf', $response->headers->get('content-type'));
+    }
+
+    public function test_monitoring_variance_export_contains_expected_columns(): void
+    {
+        $user = User::factory()->create();
+        $period = MonitoringPeriod::factory()->create();
+        $project = Project::factory()->create(['kode' => 'PRJ-001', 'nama' => 'Gedung Kantor']);
+        $period->project_id = $project->id;
+        $period->save();
+
+        $kategori = Kategori::factory()->create(['nama' => 'Material']);
+        $akun = Akun::factory()->create([
+            'kode_akun' => 'AKN-001',
+            'nama_akun' => 'Biaya Material',
+            'jenis_akun' => 'pengeluaran',
+            'kategori_id' => $kategori->id,
+        ]);
+
+        BudgetPlanItem::factory()->create([
+            'budget_plan_id' => BudgetPlan::factory()->create(['project_id' => $project->id])->id,
+            'akun_id' => $akun->id,
+            'nominal' => 100000000,
+            'tanggal_mulai' => $period->tanggal_mulai->format('Y-m-d'),
+            'tanggal_selesai' => $period->tanggal_selesai->format('Y-m-d'),
+        ]);
+
+        Realisasi::factory()->create([
+            'project_id' => $project->id,
+            'akun_id' => $akun->id,
+            'tanggal' => $period->tanggal_mulai->format('Y-m-d'),
+            'nominal' => 30000000,
+        ]);
+
+        $export = new MonitoringPeriodVarianceExport($period);
+        $mapped = $export->map($export->collection()->first());
+
+        $this->assertSame(['AKN-001', 'Biaya Material', 100000000.0, 30000000.0, 70000000.0], $mapped);
     }
 
     public function test_akun_pdf_download(): void
@@ -156,12 +305,21 @@ class ExportTest extends TestCase
         $user = User::factory()->create();
         $project = Project::factory()->create(['kode' => 'PRJ-001', 'nama' => 'Gedung Kantor']);
         $akun = Akun::factory()->create(['kode_akun' => 'AKN-001', 'nama_akun' => 'Biaya Material']);
-        $supplier = Supplier::factory()->create(['nama' => 'PT Toko Barang']);
+        $supplierType = MasterType::firstOrCreate(
+            ['kode' => 'SUPPLIER'],
+            ['nama' => 'Supplier', 'flag_ar' => true, 'flag_ap' => true, 'aktif' => true, 'is_system' => true],
+        );
+        $supplier = MasterItem::factory()->create([
+            'master_type_id' => $supplierType->id,
+            'nama' => 'PT Toko Barang',
+            'flag_ar' => true,
+            'flag_ap' => true,
+        ]);
         Realisasi::factory()->create([
             'project_id' => $project->id,
             'akun_id' => $akun->id,
-            'vendor_id' => null,
-            'supplier_id' => $supplier->id,
+            'pihak_type_id' => $supplierType->id,
+            'pihak_item_id' => $supplier->id,
             'kategori_id' => null,
             'tanggal' => '2026-07-01',
             'nominal' => 30000000,
@@ -172,7 +330,7 @@ class ExportTest extends TestCase
         $row = $export->query()->get()->first();
 
         $this->assertSame(
-            ['PRJ-001 - Gedung Kantor', 'AKN-001 - Biaya Material', null, '2026-07-01', null, 'PT Toko Barang', null, null, 30000000.0, 'Pembayaran'],
+            ['PRJ-001 - Gedung Kantor', 'AKN-001 - Biaya Material', null, '2026-07-01', 'PT Toko Barang', 30000000.0, 'Pembayaran'],
             $export->map($row),
         );
     }

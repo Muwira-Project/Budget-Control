@@ -66,7 +66,7 @@ class Resume extends Component
         }
 
         return Realisasi::query()
-            ->with(['akun', 'kategori', 'vendor', 'supplier', 'mandor', 'investor', 'project'])
+            ->with(['akun', 'kategori', 'pihakType', 'pihakItem', 'project'])
             ->where('akun_id', $this->selectedAkunId)
             ->when($this->monitoringPeriod->project_id, fn ($query) => $query->where('project_id', $this->monitoringPeriod->project_id))
             ->whereDate('tanggal', '>=', $this->monitoringPeriod->tanggal_mulai->format('Y-m-d'))

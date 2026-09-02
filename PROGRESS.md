@@ -1,4 +1,4 @@
-﻿# Catatan Progres - Muwira Budget Control (MBC)
+# Catatan Progres - Muwira Budget Control (MBC)
 
 Tanggal catatan: 2026-08-03
 Status: aktif dikembangkan, belum diserahkan ke klien.
@@ -354,3 +354,131 @@ php artisan serve
 - Profile slow queries and add targeted indexes
 - Implement query result pagination for large datasets
 - Consider materialized views for complex aggregations
+
+---
+
+## Eksekusi Review Feedback 2026-08-15 (2026-08-16)
+
+> Status: dieksekusi di branch `draft/excel-project-template` (commit lokal, belum push).
+
+### Step 1 - Modul Kas/Cash Activity terpadu (+ hold/release dua sisi)
+- Menu `Cashflow` diganti nama jadi **Cash Activity** (route tetap `cashflows.*`).
+- Non-Project Expense otomatis masuk Cash Activity (sinkron `cashflows.non_project_expense_id`, sumber `non_project_expense`).
+- Cash Activity punya filter baru: lokasi dana (rekening), sumber, jenis, periode; kolom Voucher + Rekening.
+- **Hold/Release dua sisi (K1)**: Payment Request (tahan pengeluaran) & Receivable (tahan penerimaan) - kolom `hold_reason/held_by/held_at`; PR yang di-hold tidak bisa di-mark paid, receivable yang di-hold tidak bisa dibayar.
+
+### Step 2 - Buku besar (rekening) + Fund Transfer
+- Tabel `cash_accounts` (kode, nama, jenis kas/bank, saldo_awal, is_default, status) + halaman CRUD + saldo berjalan (saldo_awal + cash in/out + transfer masuk/keluar).
+- Tabel `fund_transfers` + halaman create/index; validasi rekening sumber != tujuan.
+- `cashflows.cash_account_id` untuk lokasi dana; entri otomatis memakai rekening default.
+
+### Step 3 - Voucher (K4)
+- Tabel `vouchers` (nomor seri otomatis `VC-YYYY-####` + tanggal + jenis) digenerate otomatis untuk setiap catatan kas.
+- Halaman Voucher (filter tanggal & jenis) + nomor voucher tampil di Cash Activity.
+
+### Step 4 - Workflow approval Settlement (K2)
+- Payment = **Settlement History** (label menu + breadcrumb).
+- `payments.status` (active / pending_cancel / cancelled) + kolom void (alasan, request, review).
+- Pembatalan wajib approval admin: request -> pending_cancel -> approve (balik saldo + hapus) atau reject (kembali aktif + catatan).
+
+### Step 5 - Master data dinamis + flag AR/AP (K3)
+- Tabel `master_types` (flag_ar, flag_ap, aktif) + `master_items` (per type).
+- CRUD generik: Dynamic Master (type) + Master Items, masuk menu Master.
+
+### Step 6 - Sinkron dua arah AR/AP <-> Budget (K5)
+- Koreksi Payable -> update `realisasi.nominal` (AP -> Budget).
+- Koreksi `realisasi.nominal` -> update Payable (Budget -> AP, sudah ada, diperkuat).
+- Koreksi Receivable -> sesuaikan `harga_satuan` project agar nilai kontrak (incl. pajak) sama dengan AR.
+
+### Database
+- 7 migration baru (2026_08_16_*): cash_accounts, cashflows lokasi, fund_transfers, vouchers, payments void, hold PR/receivable, master_types+items - sudah dijalankan.
+
+### Pengujian
+- Test baru `tests/Feature/CashModuleTest.php` (12 test: voucher, NPE sync, saldo rekening, transfer, void workflow, hold PR/receivable, sync 2 arah, master CRUD, render halaman baru).
+- Status: seluruh suite **296 passed / 773 assertions** (bertambah 12 test baru dari modul kas + master dinamis).
+## Tambahan Field Project (2026-08-16)
+
+- **PIC** (`pic`, string) - nama penanggung jawab project.
+- **Project Category** (`project_category_id`, FK ke `master_items`) - pilihan dari master dinamis **Project Category** (kode `PROJECT_CATEGORY`, di-seed otomatis). Kategori dikelola lewat Dynamic Master.
+- **Sub Work** (`sub_work`, string max 500) - rincian sub pekerjaan.
+- **Period** (`periode`, string max 100) - label periode (contoh `2026`).
+- **Status** `done` / `progress` / `cancel` (English: Done / In Progress / Cancelled).
+  - Nilai lama dimigrasi: `active` -> `progress`, `completed` -> `done`; default baru `progress`.
+  - Receivable otomatis dibuat saat status **Done** (sebelumnya `completed`).
+- Form (create/edit), daftar project (badge 3 warna + kolom PIC) dan modal detail (PIC/Category/Sub Work/Period) diupdate.
+- Filter status Export & template Excel Project (draft) ikut disesuaikan.
+## Review Kualitas & Stabilitas (2026-08-16)
+
+Scope: bug, error, N+1, validasi, security, route, middleware, penamaan, PSR-12, struktur folder. Tanpa fitur baru.
+
+### Temuan & Perbaikan
+- **PSR-12 / Pint**: 59 file dirapikan (`vendor/bin/pint`) - EOF newline, line ending LF, urutan import, spacing unary operator. `pint --test` sekarang lulus untuk seluruh project.
+- **Bug validasi (fixed)**: `StoreCashflowRequest` belum memvalidasi `cash_account_id`; akibatnya pilihan rekening pada form manual cash-in DIABAIKAN (selalu jatuh ke rekening default) dan input ilegal berisiko FK violation 500. Sekarang divalidasi `nullable|integer|exists:cash_accounts,id`.
+- **Security hardening (fixed)**: `PerPagePagination::updatedPerPage()` meng-clamp nilai 1-100, mencegah query pagination tak terbatas dari parameter yang dimanipulasi.
+- **Konsistensi UI (fixed)**: delete catatan kas manual dikembalikan lewat modal konfirmasi (konsisten dengan halaman lain).
+- **N+1**: hasil audit bersih - index/modal sudah eager-load (Akun, BudgetPlan, Dashboard, Monitoring batch, Payments/PR/Receivables/Payables/NPE/Cashflows, modal detail Akun & Project). Tidak ada perbaikan yang diperlukan.
+- **Security**: staff dibatasi middleware `EnsureDraftStaffAccess` (403) termasuk halaman baru (cash-accounts, fund-transfers, vouchers, master-types, master-items) yang otomatis admin-only; ownership check pada Edit PaymentRequest/Allokasi staff; tidak ada route registrasi publik; upload divalidasi (xlsx/xls, 10MB); output Blade terekap (escaped), `{!! !!}` hanya untuk konstanta icon/vendor.
+- **Route**: semua route dalam grup `auth + verified + draft-staff`; penamaan snake_case konsisten.
+- **Struktur folder**: Livewire per fitur, views kebab-case, services flat, models + enums + requests terpisah - konsisten.
+
+### Status
+- `php -l` 320 file: 0 error.
+- `pint --test`: passed.
+- Full suite: 296 test passed / 773 assertions.
+## Fase A - Konsistensi Kamus Status (2026-08-16)
+
+- Standardisasi nilai status project: `cancel` -> `cancelled` (enum, request validation, form, badge, filter export, template Excel draft). Migration 2026_08_16_000009 memigrasi data existing.
+- Warna badge diseragamkan: `cancelled` = red (project, Payment Request, Settlement).
+- Dokumen acuan baru `docs/KAMUS-STATUS.md` (nilai DB, label UI, warna, makna, istilah accrual/cash).
+- Catatan: sempat terjadi korupsi karakter akibat bug skrip edit (indexing string PowerShell); sudah di-restore dari git dan diedit ulang dengan aman, diverifikasi php -l + pint + full test.
+## Fase B - Approval Terpusat (2026-08-16)
+
+- Alur status kegiatan kas (Manual Cash In, Non-Project Expense, Fund Transfer): `draft -> waiting -> approved -> posted / rejected` (enum `KasStatus`).
+  - Saldo rekening, statistik kas, dan voucher HANYA terpengaruh saat status `posted`.
+  - Draft/approved/rejected tidak masuk buku besar.
+  - Non-Project Expense baru ter-mirror ke Cash Activity saat `posted`.
+- **Approval Center** (`/approvals`, admin-only): satu halaman terpusat menampilkan rincian terkait untuk:
+  - Manual Cash In, Non-Project Expense, Fund Transfer (pending + approved-ready-to-post dengan aksi Post/Reject).
+  - Payment Request waiting (Approve/Reject).
+  - Settlement void `pending_cancel` (Approve/Reject pembatalan).
+- Aksi Submit tersedia di halaman masing-masing (Cash Activity, Non-Project Expense, Fund Transfer); notifikasi dikirim ke admin saat submit.
+- Kolom workflow baru: status, submitted_by, approved_by/at, posted_by/at, rejected_by/at, rejection_reason (+ `created_by` di cashflows). 4 migration baru (000010-000013).
+- Dokumen kamus diperbarui (status rejected + catatan approve/post terpisah).
+- Test: +4 skenario alur approval & posted; NonProjectExpenseTest/CashflowTest/CashModuleTest disesuaikan.
+- Status: 300 test / 788 assertions hijau.
+## Fase C - Pelaporan (2026-08-16)
+
+- **Label basis anti-ambigu**: Dashboard & Monitoring kini menandai basis laporan secara eksplisit
+  (Accrual untuk Budget/Realisasi/Profit, Cash untuk Arus Kas/Saldo rekening).
+- **Laporan baru (menu Reports, admin-only)**:
+  - `Profit & Loss` (Accrual): nilai kontrak (revenue) vs biaya realisasi (cost) per project,
+    profit + margin, filter periode & project.
+  - `Cash Flow per Account` (Cash): saldo awal, masuk, keluar, transfer in/out, saldo akhir
+    per rekening - hanya entri posted.
+  - `Aging AR/AP`: sisa piutang/hutang per bucket jatuh tempo (Current, 1-30, 31-60, 61-90, >90),
+    filter as-of date.
+- Service baru `ReportService` (aggregasi batch); routes `reports.{profit-loss,cash-flow,aging}`.
+- Test baru `ReportTest` (5 skenario: admin-only, P&L, arus kas posted-only, bucket aging).
+- Status: 305 test / 807 assertions hijau.
+## Review Kualitas & Stabilitas II (2026-08-16, setelah Fase A/B/C)
+
+### Temuan & Perbaikan
+- **CRITICAL (fixed)**: `StoreCashflowRequest` belum memvalidasi `status`. Karena `Validator::validate()`
+  hanya mengembalikan atribut yang ada di rules, `'status' => 'draft'` dari form manual cash-in terbuang,
+  sehingga entri kas manual dibuat langsung berstatus **posted** (masuk buku besar tanpa approval) -
+  melemahkan Fase B. Sekarang rule `status in ['draft']` ditambahkan; test manual create diperkuat
+  (assert `status = draft`).
+- **Hardening (fixed)**: `NonProjectExpenses\Edit` kini abort 403 untuk status non-editable
+  (approved/rejected/posted), konsisten dengan guard di service & penyembunyian tombol di UI.
+
+### Verifikasi Bersih
+- `php -l` 343 file: 0 error; `pint --test`: passed; full suite: **305 test / 807 assertions hijau**.
+- N+1: semua jalur baru (Approval Center, Reports, index kas) eager-load/batched, tanpa N+1.
+- Validasi: form baru (cash account, fund transfer, master, project) sudah ter-validasi; approve/reject
+  ter-guard status; catatan penolakan wajib.
+- Security: `reports.*` & `approvals` admin-only (middleware 403 untuk staff sudah dites); output Blade
+  terekap.
+- Route: rute baru di dalam grup `auth + verified + draft-staff`; penamaan konsisten.
+- Middleware: tidak ada whitelist bocor untuk halaman admin baru.
+- Penamaan & struktur folder: konsisten (`KasStatus`, `App\Livewire\Reports`, `App\Livewire\Approvals`).
+- Karakter/UTF-8: tidak ada mojibake (verifikasi byte-level).

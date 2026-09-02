@@ -39,4 +39,12 @@ class User extends Authenticatable
     {
         return $this->role === UserRole::Admin;
     }
+
+    /**
+     * Determine whether the user has the staff role.
+     */
+    public function isStaff(): bool
+    {
+        return $this->role === UserRole::Staff;
+    }
 }

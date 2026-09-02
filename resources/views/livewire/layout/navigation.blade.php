@@ -1,9 +1,15 @@
 <?php
 
 use App\Livewire\Actions\Logout;
+use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 use Livewire\Attributes\Computed;
 use Livewire\Volt\Component;
 
+/**
+ * Navigation component for the application layout.
+ * @var User $user
+ */
 new class extends Component
 {
     /**
@@ -13,6 +19,16 @@ new class extends Component
     public function unreadNotifications()
     {
         return auth()->user()->unreadNotifications()->take(8)->get();
+    }
+
+    /**
+     * Sidebar collapsed state (persisted in user preferences and localStorage).
+     */
+    public bool $sidebarCollapsed = false;
+
+    public function mount(): void
+    {
+        $this->sidebarCollapsed = auth()->user()->dashboard_preferences['sidebar_collapsed'] ?? false;
     }
 
     /**
@@ -32,6 +48,19 @@ new class extends Component
     }
 
     /**
+     * Toggle sidebar collapsed state.
+     */
+    public function toggleSidebarCollapse(): void
+    {
+        $this->sidebarCollapsed = !$this->sidebarCollapsed;
+
+        // Persist to user preferences
+        $preferences = auth()->user()->dashboard_preferences ?? [];
+        $preferences['sidebar_collapsed'] = $this->sidebarCollapsed;
+        auth()->user()->update(['dashboard_preferences' => $preferences]);
+    }
+
+    /**
      * Log the current user out of the application.
      */
     public function logout(Logout $logout): void
@@ -43,25 +72,50 @@ new class extends Component
 };
 ?>
 
-<div x-data="{ sidebarOpen: false }">
+<div x-data="{
+    sidebarOpen: false,
+    collapsed: @entangle('sidebarCollapsed'),
+    init() {
+        if (localStorage.getItem('sidebar_collapsed') !== null) {
+            this.collapsed = localStorage.getItem('sidebar_collapsed') === 'true';
+        }
+        this.$watch('collapsed', (value) => {
+            localStorage.setItem('sidebar_collapsed', value);
+        });
+    },
+    toggleCollapse() {
+        $wire.toggleSidebarCollapse();
+    }
+}" x-init="init()">
     {{-- Desktop Sidebar --}}
-    <aside class="fixed inset-y-0 left-0 z-40 hidden w-[248px] flex-col border-r border-white/5 bg-brand-950 lg:flex">
-        <a href="{{ route('dashboard') }}" wire:navigate class="flex h-16 shrink-0 items-center gap-3 border-b border-white/5 px-5">
-            <x-application-logo class="h-8 w-auto shrink-0 fill-current text-emerald-300" />
-            <span class="leading-tight">
-                <span class="block text-[15px] font-bold tracking-tight text-white">ERGE</span>
-                <span class="block text-[10px] font-semibold uppercase tracking-[0.24em] text-emerald-300/80">MyFinance</span>
-            </span>
-        </a>
+    <aside
+        class="fixed inset-y-0 left-0 z-40 hidden flex-col border-r border-white/5 bg-brand-950 transition-all duration-300 lg:flex"
+        :class="collapsed ? 'w-[68px]' : 'w-[248px]'">
+        <div class="flex h-16 shrink-0 items-center justify-between border-b border-white/5 px-4">
+            <a href="{{ route('dashboard') }}" wire:navigate class="flex items-center gap-3 overflow-hidden">
+                <x-application-logo class="h-8 w-auto shrink-0 fill-current text-emerald-300" />
+                <span x-show="!collapsed" x-transition.opacity class="leading-tight whitespace-nowrap">
+                    <span class="block text-[15px] font-bold tracking-tight text-white">ERGE</span>
+                    <span class="block text-[10px] font-semibold uppercase tracking-[0.24em] text-emerald-300/80">MyFinance</span>
+                </span>
+            </a>
+            <button
+                type="button"
+                @click="toggleCollapse()"
+                class="hidden rounded-lg p-1.5 text-slate-400 transition hover:bg-white/10 hover:text-white lg:block"
+                :title="collapsed ? 'Expand Sidebar' : 'Collapse Sidebar'">
+                <x-icon name="arrows-right-left" class="h-4 w-4" />
+            </button>
+        </div>
 
         <div class="flex-1 overflow-y-auto px-3 py-4">
             <x-sidebar-menu />
         </div>
 
         <div class="shrink-0 border-t border-white/5 p-3">
-            <button wire:click="logout" class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white">
+            <button wire:click="logout" class="flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium text-slate-300 transition hover:bg-white/5 hover:text-white" :title="collapsed ? 'Logout' : ''">
                 <x-icon name="logout" class="h-5 w-5 shrink-0" />
-                Logout
+                <span x-show="!collapsed" x-transition.opacity class="whitespace-nowrap">Logout</span>
             </button>
         </div>
     </aside>
@@ -94,26 +148,51 @@ new class extends Component
     </div>
 
     {{-- Top Bar --}}
-    <header class="sticky top-0 z-30 border-b border-slate-200/70 bg-white/90 shadow-topbar backdrop-blur-xl">
+    <header
+        class="sticky top-0 z-30 border-b border-slate-200/70 bg-white/90 shadow-topbar backdrop-blur-xl transition-all duration-300"
+        :class="collapsed ? 'lg:pl-[68px]' : 'lg:pl-[248px]'">
         <div class="flex h-16 items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
-            <div class="flex min-w-0 items-center gap-3">
+            <div class="flex min-w-0 items-center gap-2">
+                {{-- Mobile Menu Toggle --}}
                 <button type="button" @click="sidebarOpen = true" class="rounded-lg p-2 text-slate-500 hover:bg-slate-100 lg:hidden" aria-label="Open menu">
                     <x-icon name="menu" class="h-6 w-6" />
                 </button>
+
+                {{-- Desktop Sidebar Toggle --}}
+                <button
+                    type="button"
+                    @click="toggleCollapse()"
+                    class="hidden rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 lg:block"
+                    :title="collapsed ? 'Expand Sidebar' : 'Collapse Sidebar'"
+                    aria-label="Toggle Sidebar">
+                    <x-icon name="arrows-right-left" class="h-5 w-5" />
+                </button>
+
+                {{-- Back Button --}}
+                <button
+                    type="button"
+                    onclick="window.history.back()"
+                    class="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
+                    title="Go Back"
+                    aria-label="Go Back">
+                    <x-icon name="arrow-left" class="h-5 w-5" />
+                </button>
+
+                {{-- Breadcrumb --}}
                 <div class="hidden min-w-0 md:block">
                     <x-breadcrumb />
                 </div>
             </div>
 
             <div class="flex shrink-0 items-center gap-2 sm:gap-4">
-                <span class="hidden text-sm font-semibold text-slate-700 lg:block">{{ auth()->user()->name }}</span>
+                <span class="hidden text-sm font-semibold text-slate-700 xl:block">{{ auth()->user()->name }}</span>
 
                 {{-- Notifications --}}
                 <div x-data="{ notifOpen: false }" @click.outside="notifOpen = false" class="relative">
                     <button type="button" @click="notifOpen = ! notifOpen" class="relative rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700" title="Notifications" aria-label="Notifications">
                         <x-icon name="bell" class="h-5 w-5" />
                         @if (count($this->unreadNotifications) > 0)
-                            <span class="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-600 px-1 text-[10px] font-bold text-white ring-2 ring-white">{{ count($this->unreadNotifications) }}</span>
+                        <span class="absolute right-1 top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-brand-600 px-1 text-[10px] font-bold text-white ring-2 ring-white">{{ count($this->unreadNotifications) }}</span>
                         @endif
                     </button>
 
@@ -121,18 +200,18 @@ new class extends Component
                         <div class="flex items-center justify-between border-b border-slate-100 px-4 py-3">
                             <p class="text-sm font-semibold text-slate-800">Notifications</p>
                             @if (count($this->unreadNotifications) > 0)
-                                <button wire:click="markAllNotificationsAsRead" class="text-xs font-medium text-brand-600 hover:text-brand-700">Mark all as read</button>
+                            <button wire:click="markAllNotificationsAsRead" class="text-xs font-medium text-brand-600 hover:text-brand-700">Mark all as read</button>
                             @endif
                         </div>
                         <div class="max-h-80 overflow-y-auto">
                             @forelse ($this->unreadNotifications as $notification)
-                                <a href="{{ $notification->data['url'] ?? '#' }}" wire:click.prevent="markNotificationAsRead('{{ $notification->id }}')" class="block border-b border-slate-50 px-4 py-3 transition hover:bg-slate-50">
-                                    <p class="text-sm font-medium text-slate-800">{{ $notification->data['title'] ?? 'Notification' }}</p>
-                                    <p class="mt-0.5 line-clamp-2 text-xs text-slate-500">{{ $notification->data['message'] ?? '' }}</p>
-                                    <p class="mt-1 text-[10px] text-slate-400">{{ $notification->created_at->diffForHumans() }}</p>
-                                </a>
+                            <a href="{{ $notification->data['url'] ?? '#' }}" wire:click.prevent="markNotificationAsRead('{{ $notification->id }}')" class="block border-b border-slate-50 px-4 py-3 transition hover:bg-slate-50">
+                                <p class="text-sm font-medium text-slate-800">{{ $notification->data['title'] ?? 'Notification' }}</p>
+                                <p class="mt-0.5 line-clamp-2 text-xs text-slate-500">{{ $notification->data['message'] ?? '' }}</p>
+                                <p class="mt-1 text-[10px] text-slate-400">{{ $notification->created_at->diffForHumans() }}</p>
+                            </a>
                             @empty
-                                <p class="px-4 py-8 text-center text-sm text-slate-500">No unread notifications.</p>
+                            <p class="px-4 py-8 text-center text-sm text-slate-500">No unread notifications.</p>
                             @endforelse
                         </div>
                     </div>

@@ -6,6 +6,7 @@ use App\Http\Requests\MonitoringPeriod\UpdateMonitoringPeriodRequest;
 use App\Models\MonitoringPeriod;
 use App\Models\Project;
 use App\Services\MonitoringPeriodService;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Validator;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -24,7 +25,7 @@ class Edit extends Component
 
     public function mount(MonitoringPeriod $monitoringPeriod): void
     {
-        abort_unless(auth()->user()->isAdmin(), 403);
+        abort_unless(Gate::allows('manageMonitoring', $monitoringPeriod), 403);
 
         $this->monitoringPeriod = $monitoringPeriod;
         $this->projectId = $monitoringPeriod->project_id;

@@ -22,11 +22,19 @@ class Index extends Component
 
     public string $statusFilter = '';
 
+    public string $agingFilter = '';
+
     /**
      * Delete a payable.
      */
     public function delete(Payable $payable, PayableService $service): void
     {
+        if (! auth()->user()->isAdmin()) {
+            session()->flash('error', 'Only admins can delete payables.');
+
+            return;
+        }
+
         $service->delete($payable);
 
         session()->flash('status', 'Payable deleted successfully.');
@@ -49,6 +57,14 @@ class Index extends Component
     }
 
     /**
+     * Reset the pagination when the aging filter changes.
+     */
+    public function updatedAgingFilter(): void
+    {
+        $this->resetPage();
+    }
+
+    /**
      * The paginated list of payables.
      */
     #[Computed]
@@ -56,7 +72,7 @@ class Index extends Component
     {
         $project = $this->projectId ? Project::find($this->projectId) : null;
 
-        return app(PayableService::class)->paginate($project, $this->statusFilter !== '' ? $this->statusFilter : null, $this->perPage);
+        return app(PayableService::class)->paginate($project, $this->statusFilter !== '' ? $this->statusFilter : null, $this->agingFilter !== '' ? $this->agingFilter : null, $this->perPage);
     }
 
     /**
@@ -84,6 +100,23 @@ class Index extends Component
     }
 
     /**
+     * The aging buckets available for filtering.
+     *
+     * @return array<string, string>
+     */
+    #[Computed]
+    public function agingBuckets(): array
+    {
+        return [
+            'current' => 'Current (not due)',
+            '1_30' => '1-30 days overdue',
+            '31_60' => '31-60 days overdue',
+            '61_90' => '61-90 days overdue',
+            'over_90' => 'Over 90 days',
+        ];
+    }
+
+    /**
      * Render the payable index page.
      */
     protected function bulkCollectionProperty(): string
@@ -93,6 +126,12 @@ class Index extends Component
 
     public function deleteSelected(PayableService $service): void
     {
+        if (! auth()->user()->isAdmin()) {
+            session()->flash('error', 'Only admins can delete payables.');
+
+            return;
+        }
+
         $count = 0;
         foreach ($this->selectedIds as $id) {
             if ($payable = Payable::find($id)) {

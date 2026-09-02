@@ -21,74 +21,32 @@
         <x-input-error :messages="$errors->get('akun_id')" class="mt-2" />
     </div>
 
-    <div>
-        <x-input-label for="pihak_jenis" :value="__('Party Type')" />
-        <div class="mt-1 flex gap-4">
-            <label class="inline-flex items-center">
-                <input type="radio" wire:model.live="pihakJenis" value="vendor" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-                <span class="ms-2 text-sm text-gray-700">Vendor (Services)</span>
-            </label>
-            <label class="inline-flex items-center">
-                <input type="radio" wire:model.live="pihakJenis" value="supplier" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-                <span class="ms-2 text-sm text-gray-700">Supplier (Goods)</span>
-            </label>
-            <label class="inline-flex items-center">
-                <input type="radio" wire:model.live="pihakJenis" value="mandor" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-                <span class="ms-2 text-sm text-gray-700">Mandor</span>
-            </label>
-            <label class="inline-flex items-center">
-                <input type="radio" wire:model.live="pihakJenis" value="investor" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
-                <span class="ms-2 text-sm text-gray-700">Investor</span>
-            </label>
-        </div>
-    </div>
-
     <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
-        @if ($pihakJenis === 'vendor')
             <div>
-                <x-input-label for="vendor_id" :value="__('Vendor (Services)')" />
-                <select id="vendor_id" wire:model="vendorId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
-                    <option value="">-- Select Vendor --</option>
-                    @foreach ($this->vendors as $vendor)
-                        <option value="{{ $vendor->id }}">{{ $vendor->kode }} - {{ $vendor->nama }}</option>
+                <x-input-label for="pihak_type_id" :value="__('Party Type (optional)' )" />
+                <select id="pihak_type_id" wire:model.live="pihakTypeId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <option value="">-- No Party --</option>
+                    @foreach ($this->partyTypes as $type)
+                        <option value="{{ $type->id }}">{{ $type->nama }}</option>
                     @endforeach
                 </select>
-                <x-input-error :messages="$errors->get('vendor_id')" class="mt-2" />
+                <x-input-error :messages="$errors->get('pihak_type_id')" class="mt-2" />
             </div>
-        @elseif ($pihakJenis === 'supplier')
-            <div>
-                <x-input-label for="supplier_id" :value="__('Supplier (Goods)')" />
-                <select id="supplier_id" wire:model="supplierId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
-                    <option value="">-- Select Supplier --</option>
-                    @foreach ($this->suppliers as $supplier)
-                        <option value="{{ $supplier->id }}">{{ $supplier->kode }} - {{ $supplier->nama }}</option>
-                    @endforeach
-                </select>
-                <x-input-error :messages="$errors->get('supplier_id')" class="mt-2" />
-            </div>
-        @elseif ($pihakJenis === 'mandor')
-            <div>
-                <x-input-label for="mandor_id" :value="__('Mandor')" />
-                <select id="mandor_id" wire:model="mandorId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
-                    <option value="">-- Select Mandor --</option>
-                    @foreach ($this->mandors as $mandor)
-                        <option value="{{ $mandor->id }}">{{ $mandor->kode }} - {{ $mandor->nama }}</option>
-                    @endforeach
-                </select>
-                <x-input-error :messages="$errors->get('mandor_id')" class="mt-2" />
-            </div>
-        @elseif ($pihakJenis === 'investor')
-            <div>
-                <x-input-label for="investor_id" :value="__('Investor')" />
-                <select id="investor_id" wire:model="investorId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
-                    <option value="">-- Select Investor --</option>
-                    @foreach ($this->investors as $investor)
-                        <option value="{{ $investor->id }}">{{ $investor->kode }} - {{ $investor->nama }}</option>
-                    @endforeach
-                </select>
-                <x-input-error :messages="$errors->get('investor_id')" class="mt-2" />
-            </div>
-        @endif
+
+            @if ($this->pihakTypeId !== null)
+                <div>
+                    <x-input-label for="pihak_item_id" :value="__('Party' )" />
+                    <select id="pihak_item_id" wire:model="pihakItemId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                        <option value="">-- Select Party --</option>
+                        @foreach ($this->partyItems as $item)
+                            <option value="{{ $item->id }}">{{ $item->kode }} - {{ $item->nama }}</option>
+                        @endforeach
+                    </select>
+                    <x-input-error :messages="$errors->get('pihak_item_id')" class="mt-2" />
+                    <p class="mt-1 text-xs text-gray-500">Hanya menampilkan item dengan flag AP (hutang) atau netral.</p>
+                </div>
+            @endif
+        </div>
 
         <div>
             <x-input-label for="kategori_id" :value="__('Category (optional)')" />

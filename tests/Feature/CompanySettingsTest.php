@@ -2,11 +2,13 @@
 
 namespace Tests\Feature;
 
+use App\Livewire\CompanySettings\Index as IndexCompanySettings;
 use App\Models\CompanySetting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
+use Livewire\Livewire;
 use Livewire\Volt\Volt;
 use Tests\TestCase;
 
@@ -89,5 +91,25 @@ class CompanySettingsTest extends TestCase
         Volt::actingAs($staff)
             ->test('profile.company-settings-form')
             ->assertForbidden();
+    }
+
+    public function test_login_illustration_can_be_uploaded_via_company_settings_page(): void
+    {
+        Storage::fake('public');
+
+        $admin = User::factory()->admin()->create();
+
+        Livewire::actingAs($admin)
+            ->test(IndexCompanySettings::class)
+            ->set('companyName', 'PT Muwira Karya')
+            ->set('loginIllustration', UploadedFile::fake()->image('login.png', 1200, 600))
+            ->call('save')
+            ->assertHasNoErrors();
+
+        $settings = CompanySetting::query()->firstOrFail();
+
+        $this->assertNotNull($settings->login_illustration_path);
+        Storage::disk('public')->assertExists($settings->login_illustration_path);
+        $this->assertStringContainsString('/storage/', $settings->login_illustration_url);
     }
 }

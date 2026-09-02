@@ -35,7 +35,7 @@ class ProjectFactory extends Factory
             'target_selesai' => $tanggalMulai
                 ? Carbon::parse($tanggalMulai)->addDays(fake()->numberBetween(30, 365))->format('Y-m-d')
                 : null,
-            'status' => fake()->randomElement([ProjectStatus::Active, ProjectStatus::Completed]),
+            'status' => ProjectStatus::InProgress,
         ];
     }
 }

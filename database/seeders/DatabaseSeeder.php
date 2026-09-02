@@ -2,9 +2,11 @@
 
 namespace Database\Seeders;
 
+use App\Enums\UserRole;
 use App\Models\User;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 
 class DatabaseSeeder extends Seeder
 {
@@ -18,10 +20,13 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        User::factory()->create([
-            'name' => 'Admin myfinance',
-            'email' => 'admin@muwira.test',
-            'role' => 'admin',
-        ]);
+        User::updateOrCreate(
+            ['email' => 'admin@muwira.test'],
+            [
+                'name' => 'Admin myfinance',
+                'password' => Hash::make('password'),
+                'role' => UserRole::Admin,
+            ],
+        );
     }
 }

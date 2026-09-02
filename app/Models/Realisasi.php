@@ -11,62 +11,64 @@ use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['project_id', 'akun_id', 'vendor_id', 'supplier_id', 'mandor_id', 'investor_id', 'kategori_id', 'tanggal', 'nominal', 'keterangan', 'sumber', 'sumber_id'])]
+#[Fillable(['project_id', 'akun_id', 'pihak_type_id', 'pihak_item_id', 'kategori_id', 'tanggal', 'nominal', 'keterangan', 'sumber', 'sumber_id'])]
 class Realisasi extends Model
 {
     public const SUMBER_MANUAL = 'manual';
 
-    public const SUMBER_PAYMENT_REQUEST = 'payment_request';
-
     public const SUMBER_AP_PAYMENT = 'pelunasan_ap';
 
+    public const SUMBER_AR_PAYMENT = 'pelunasan_ar';
+
     /** @use HasFactory<RealisasiFactory> */
-    use HasFactory, LogsActivity;
-
-    /**
-     * Boot the payable auto-generation from realisasi.
-     */
-    protected static function booted(): void
-    {
-        static::saving(function (Realisasi $realisasi): void {
-            $partyCount = collect([
-                $realisasi->vendor_id,
-                $realisasi->supplier_id,
-                $realisasi->mandor_id,
-                $realisasi->investor_id,
-            ])->filter(fn ($value) => $value !== null)->count();
-
-            if ($partyCount !== 1) {
-                throw new \InvalidArgumentException('A realisasi must reference exactly one party.');
-            }
-        });
-
-        static::created(fn (Realisasi $realisasi) => $realisasi->sumber === null
-            ? app(PayableService::class)->syncFromRealisasi($realisasi)
-            : null);
-        static::updated(fn (Realisasi $realisasi) => $realisasi->sumber === null
-            ? app(PayableService::class)->syncFromRealisasi($realisasi)
-            : null);
-
-        static::created(function (Realisasi $realisasi): void {
-            app(NotificationService::class)->notifyIfOverBudget($realisasi);
-        });
-
-        static::updated(function (Realisasi $realisasi): void {
-            app(NotificationService::class)->notifyIfOverBudget($realisasi);
-        });
-
-        // Clear dashboard cache when realisasi is created, updated, or deleted
-        static::created(fn (Realisasi $realisasi) => DashboardService::clearCache());
-        static::updated(fn (Realisasi $realisasi) => DashboardService::clearCache());
-        static::deleted(fn (Realisasi $realisasi) => DashboardService::clearCache());
-    }
+    use HasFactory, LogsActivity, SoftDeletes;
 
     /**
      * The table associated with the model.
      */
     protected $table = 'realisasi';
+
+    /**
+     * Keep the dashboard cache in sync and auto-generate payables from
+     * project realisasi.
+     */
+    protected static function booted(): void
+    {
+        static::created(fn ($model) => DashboardService::clearCache());
+        static::updated(fn ($model) => DashboardService::clearCache());
+        static::deleted(fn ($model) => DashboardService::clearCache());
+        static::restored(fn ($model) => DashboardService::clearCache());
+
+        static::saving(function (Realisasi $realisasi): void {
+            $partyCount = collect([
+                $realisasi->pihak_type_id,
+                $realisasi->pihak_item_id,
+            ])->filter(fn ($value) => $value !== null)->count();
+
+            if ($partyCount !== 0 && $partyCount !== 2) {
+                throw new \InvalidArgumentException('Party type and party item must be provided together.');
+            }
+        });
+
+        static::created(function (Realisasi $realisasi): void {
+            app(NotificationService::class)->notifyIfOverBudget($realisasi);
+
+            if ($realisasi->sumber === null || $realisasi->sumber === self::SUMBER_MANUAL) {
+                app(PayableService::class)->syncFromRealisasi($realisasi);
+            }
+        });
+
+        static::updated(function (Realisasi $realisasi): void {
+            app(NotificationService::class)->notifyIfOverBudget($realisasi);
+
+            if ($realisasi->sumber === null || $realisasi->sumber === self::SUMBER_MANUAL) {
+                app(PayableService::class)->syncFromRealisasi($realisasi->refresh());
+            }
+        });
+    }
 
     /**
      * Get the attributes that should be cast.
@@ -82,7 +84,7 @@ class Realisasi extends Model
     }
 
     /**
-     * Get the project that owns the realisasi.
+     * Get the project.
      */
     public function project(): BelongsTo
     {
@@ -90,99 +92,66 @@ class Realisasi extends Model
     }
 
     /**
-     * Get the akun that owns the realisasi.
+     * Get the akun (COA).
      */
     public function akun(): BelongsTo
     {
-        return $this->belongsTo(Akun::class, 'akun_id');
+        return $this->belongsTo(Akun::class);
     }
 
     /**
-     * Get the vendor for the realisasi.
-     */
-    public function vendor(): BelongsTo
-    {
-        return $this->belongsTo(Vendor::class);
-    }
-
-    /**
-     * Get the supplier for the realisasi.
-     */
-    public function supplier(): BelongsTo
-    {
-        return $this->belongsTo(Supplier::class);
-    }
-
-    public function mandor(): BelongsTo
-    {
-        return $this->belongsTo(Mandor::class);
-    }
-
-    public function investor(): BelongsTo
-    {
-        return $this->belongsTo(Investor::class);
-    }
-
-    /**
-     * Display label of the transaction party (vendor or supplier).
-     */
-    public function getPihakAttribute(): ?string
-    {
-        return $this->vendor?->nama ?? $this->supplier?->nama ?? $this->mandor?->nama ?? $this->investor?->nama;
-    }
-
-    /**
-     * Display label of the party type: vendor or supplier.
-     */
-    public function getPihakJenisAttribute(): ?string
-    {
-        if ($this->vendor_id !== null) {
-            return 'vendor';
-        }
-
-        if ($this->supplier_id !== null) {
-            return 'supplier';
-        }
-
-        if ($this->mandor_id !== null) {
-            return 'mandor';
-        }
-
-        if ($this->investor_id !== null) {
-            return 'investor';
-        }
-
-        return null;
-    }
-
-    /**
-     * Get the kategori for the realisasi.
+     * Get the category.
      */
     public function kategori(): BelongsTo
     {
-        return $this->belongsTo(Kategori::class);
+        return $this->belongsTo(Kategori::class, 'kategori_id');
     }
 
     /**
-     * Short label used in the activity log.
+     * Get the party type (Vendor/Supplier/Mandor/Investor).
      */
-    /**
-     * Short label used in the activity log.
-     */
-    protected function activityLabel(): string
+    public function pihakType(): BelongsTo
     {
-        return 'Actual #'.$this->id;
+        return $this->belongsTo(MasterType::class, 'pihak_type_id');
     }
 
     /**
-     * Display label of the actual source (auto-generated vs manual).
+     * Get the party item (the concrete vendor/supplier/… record).
      */
-    public function getSumberLabelAttribute(): string
+    public function pihakItem(): BelongsTo
     {
-        return match ($this->sumber) {
-            self::SUMBER_PAYMENT_REQUEST => 'Payment Request',
-            self::SUMBER_AP_PAYMENT => 'AP Payment',
-            default => 'Manual',
-        };
+        return $this->belongsTo(MasterItem::class, 'pihak_item_id');
+    }
+
+    /**
+     * The manually-created payable for this realisasi.
+     */
+    public function payable(): HasOne
+    {
+        return $this->hasOne(Payable::class);
+    }
+
+    /**
+     * Display label of the party (vendor, supplier, mandor, investor).
+     */
+    public function getPihakAttribute(): ?string
+    {
+        return $this->pihakItem?->nama;
+    }
+
+    /**
+     * Normalized party kind ('vendor', 'supplier', 'mandor', 'investor').
+     */
+    public function getPihakJenisAttribute(): ?string
+    {
+        return $this->pihakType?->kode ? strtolower($this->pihakType->kode) : null;
+    }
+
+    /**
+     * True when this row is an AR/AP settlement (auto-generated).
+     */
+    public function getIsPaymentAttribute(): bool
+    {
+        return $this->sumber !== null;
     }
 }

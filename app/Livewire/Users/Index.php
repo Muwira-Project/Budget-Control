@@ -7,6 +7,7 @@ use App\Livewire\Concerns\PerPagePagination;
 use App\Models\User;
 use App\Services\UserService;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
 use Livewire\Component;
@@ -24,7 +25,7 @@ class Index extends Component
      */
     public function mount(): void
     {
-        if (! auth()->user()->isAdmin()) {
+        if (! Gate::allows('manageUsers', User::class)) {
             session()->flash('error', 'Only admins can manage users.');
 
             $this->redirectRoute('dashboard', navigate: true);
@@ -36,7 +37,7 @@ class Index extends Component
      */
     public function delete(User $user, UserService $service): void
     {
-        if (! auth()->user()->isAdmin()) {
+        if (! Gate::allows('manageUsers', $user)) {
             session()->flash('error', 'Only admins can manage users.');
 
             return;
@@ -92,7 +93,9 @@ class Index extends Component
             if (! $user = User::find($id)) {
                 continue;
             }
-            if ($user->id === auth()->id() || ($user->isAdmin() && User::where('role', 'admin')->count() <= 1)) {
+            if (! Gate::allows('manageUsers', $user)
+                || $user->id === auth()->id()
+                || ($user->isAdmin() && User::where('role', 'admin')->count() <= 1)) {
                 $skipped++;
 
                 continue;

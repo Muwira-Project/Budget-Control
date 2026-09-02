@@ -22,8 +22,15 @@ class UpdateProjectAkunRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'project_id' => ['required', 'exists:projects,id'],
+            'project_id' => ['nullable', 'exists:projects,id'],
             'akun_id' => ['required', 'exists:akuns,id'],
+            'type' => ['required', 'in:ap,ar,other_income,other_outcome'],
+            'pihak_type_id' => ['nullable', 'exists:master_types,id'],
+            'pihak_item_id' => ['nullable', 'exists:master_items,id'],
+            'payable_id' => ['nullable', 'exists:payables,id'],
+            'receivable_id' => ['nullable', 'exists:receivables,id'],
+            'custom_name' => ['nullable', 'string', 'max:255'],
+            'outstanding_balance' => ['nullable', 'numeric', 'min:0'],
             'budget' => ['required', 'numeric', 'min:0'],
             'allocation' => ['required', 'numeric', 'min:0', 'lte:budget'],
         ];

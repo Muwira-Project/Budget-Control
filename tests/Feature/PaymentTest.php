@@ -7,6 +7,7 @@ use App\Livewire\Receivables\Pay as PayReceivable;
 use App\Models\Cashflow;
 use App\Models\Payable;
 use App\Models\Payment;
+use App\Models\Realisasi;
 use App\Models\Receivable;
 use App\Models\User;
 use App\Services\PaymentService;
@@ -70,6 +71,27 @@ class PaymentTest extends TestCase
         $this->assertDatabaseHas('realisasi', ['sumber' => 'pelunasan_ap', 'sumber_id' => $payment->id]);
     }
 
+    public function test_paying_payable_from_manual_realisasi_does_not_double_count_actual(): void
+    {
+        // Sebuah realisasi manual otomatis membuat payable (realisasi_id terhubung).
+        $realisasi = Realisasi::factory()->create(['nominal' => 75000000]);
+        $payable = Payable::where('realisasi_id', $realisasi->id)->first();
+
+        $this->assertNotNull($payable);
+
+        // Payable tersebut dilunasi.
+        $payment = app(PaymentService::class)->createForPayable($payable, [
+            'tanggal' => '2026-07-22',
+            'nominal' => 75000000,
+            'keterangan' => 'Lunas',
+        ]);
+
+        // Konsolidasi: total realisasi tetap 1 baris (baris manual asal),
+        // TIDAK dibuat baris realisasi kedua dari AP settlement.
+        $this->assertSame(1, Realisasi::count());
+        $this->assertNull(Realisasi::where('sumber', Realisasi::SUMBER_AP_PAYMENT)->first());
+    }
+
     public function test_payment_delete_reverses_amount_and_cashflow(): void
     {
         $user = User::factory()->create();
@@ -86,8 +108,8 @@ class PaymentTest extends TestCase
 
         $this->assertSame(0.0, (float) $receivable->fresh()->nominal_dibayar);
         $this->assertSame('belum_dibayar', $receivable->fresh()->status->value);
-        $this->assertDatabaseMissing('payments', ['id' => $payment->id]);
-        $this->assertDatabaseMissing('cashflows', ['payment_id' => $payment->id]);
+        $this->assertSoftDeleted('payments', ['id' => $payment->id]);
+        $this->assertSoftDeleted('cashflows', ['payment_id' => $payment->id]);
     }
 
     public function test_receivable_payment_cannot_exceed_sisa(): void
@@ -117,20 +139,32 @@ class PaymentTest extends TestCase
         ]);
     }
 
-    public function test_payment_can_be_deleted_from_index(): void
+    public function test_payment_requires_admin_approval_to_be_voided(): void
     {
-        $user = User::factory()->create();
+        $staff = User::factory()->create();
+        $admin = User::factory()->admin()->create();
         $receivable = Receivable::factory()->create(['nominal' => 100000000, 'nominal_dibayar' => 0]);
         $payment = app(PaymentService::class)->createForReceivable($receivable, [
             'tanggal' => '2026-07-20',
             'nominal' => 40000000,
         ]);
 
-        Livewire::actingAs($user)
+        // Staff meminta pembatalan -> status pending_cancel.
+        Livewire::actingAs($staff)
             ->test(IndexPayment::class)
-            ->call('delete', $payment->id);
+            ->call('requestVoid', $payment->id)
+            ->set('voidReason', 'Salah input nominal')
+            ->call('confirmVoid');
 
-        $this->assertDatabaseMissing('payments', ['id' => $payment->id]);
+        $this->assertSame('pending_cancel', $payment->fresh()->status->value);
+        $this->assertDatabaseHas('payments', ['id' => $payment->id]);
+
+        // Admin menyetujui pembatalan -> settlement dihapus + saldo dikembalikan.
+        Livewire::actingAs($admin)
+            ->test(IndexPayment::class)
+            ->call('approveVoid', $payment->id);
+
+        $this->assertSoftDeleted('payments', ['id' => $payment->id]);
         $this->assertSame(0.0, (float) $receivable->fresh()->nominal_dibayar);
     }
 }

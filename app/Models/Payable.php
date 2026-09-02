@@ -12,33 +12,41 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['project_id', 'realisasi_id', 'payment_request_id', 'akun_id', 'vendor_id', 'supplier_id', 'mandor_id', 'investor_id', 'tanggal', 'jatuh_tempo', 'nominal', 'jenis_pajak', 'pajak_include', 'nominal_dibayar', 'keterangan'])]
+#[Fillable(['project_id', 'realisasi_id', 'akun_id', 'pihak_type_id', 'pihak_item_id', 'tanggal', 'nomor_invoice', 'jatuh_tempo', 'nominal', 'jenis_pajak', 'pajak_include', 'nominal_dibayar', 'keterangan'])]
 class Payable extends Model
 {
     /** @use HasFactory<PayableFactory> */
-    use HasFactory, LogsActivity;
+    use HasFactory, LogsActivity, SoftDeletes;
 
     /**
-     * Ensure a payable always has one, and only one, counterparty.
+     * Ensure a payable always has a counterparty (both parts of the party pair),
+     * unless it is a legacy row (old FK columns may still hold the data).
      */
     protected static function booted(): void
     {
         static::saving(function (Payable $payable): void {
-            $partyCount = collect([
-                $payable->vendor_id,
-                $payable->supplier_id,
-                $payable->mandor_id,
-                $payable->investor_id,
-            ])->filter(fn ($value) => $value !== null)->count();
-
-            if ($partyCount !== 1) {
-                throw new \InvalidArgumentException('A payable must reference exactly one party.');
+            if ($payable->pihak_type_id === null || $payable->pihak_item_id === null) {
+                throw new \InvalidArgumentException('A payable must reference exactly one party (pihak_type_id + pihak_item_id).');
             }
         });
         static::created(fn ($model) => DashboardService::clearCache());
         static::updated(fn ($model) => DashboardService::clearCache());
         static::deleted(fn ($model) => DashboardService::clearCache());
+        static::restored(fn ($model) => DashboardService::clearCache());
+
+        static::updated(function (Payable $payable): void {
+            if (! $payable->wasChanged('nominal') || $payable->realisasi_id === null) {
+                return;
+            }
+
+            $realisasi = $payable->realisasi;
+
+            if ($realisasi !== null && (float) $realisasi->nominal !== (float) $payable->nominal) {
+                $realisasi->update(['nominal' => $payable->nominal]);
+            }
+        });
     }
 
     /**
@@ -75,14 +83,6 @@ class Payable extends Model
     }
 
     /**
-     * Get the payment request that generated this payable (when synced).
-     */
-    public function paymentRequest(): BelongsTo
-    {
-        return $this->belongsTo(PaymentRequest::class);
-    }
-
-    /**
      * Get the master akun.
      */
     public function akun(): BelongsTo
@@ -91,29 +91,19 @@ class Payable extends Model
     }
 
     /**
-     * Get the vendor for the payable.
+     * Get the party type (Vendor/Supplier/Mandor/Investor) of the payable.
      */
-    public function vendor(): BelongsTo
+    public function pihakType(): BelongsTo
     {
-        return $this->belongsTo(Vendor::class);
+        return $this->belongsTo(MasterType::class, 'pihak_type_id');
     }
 
     /**
-     * Get the supplier for the payable.
+     * Get the party item (the concrete vendor/supplier/… record) of the payable.
      */
-    public function supplier(): BelongsTo
+    public function pihakItem(): BelongsTo
     {
-        return $this->belongsTo(Supplier::class);
-    }
-
-    public function mandor(): BelongsTo
-    {
-        return $this->belongsTo(Mandor::class);
-    }
-
-    public function investor(): BelongsTo
-    {
-        return $this->belongsTo(Investor::class);
+        return $this->belongsTo(MasterItem::class, 'pihak_item_id');
     }
 
     /**
@@ -147,32 +137,20 @@ class Payable extends Model
     }
 
     /**
-     * Display label of the party (vendor or supplier).
+     * Display label of the party (vendor, supplier, mandor, or investor).
      */
     public function getPihakAttribute(): ?string
     {
-        return $this->vendor?->nama ?? $this->supplier?->nama ?? $this->mandor?->nama ?? $this->investor?->nama;
+        return $this->pihakItem?->nama;
     }
 
     /**
-     * Display label of the party type: vendor or supplier.
+     * Display label of the party type: vendor, supplier, mandor, or investor.
      */
     public function getPihakJenisAttribute(): ?string
     {
-        if ($this->vendor_id !== null) {
-            return 'vendor';
-        }
-
-        if ($this->supplier_id !== null) {
-            return 'supplier';
-        }
-
-        if ($this->mandor_id !== null) {
-            return 'mandor';
-        }
-
-        if ($this->investor_id !== null) {
-            return 'investor';
+        if ($this->pihak_type_id !== null && $this->pihakType !== null) {
+            return strtolower((string) $this->pihakType->kode);
         }
 
         return null;

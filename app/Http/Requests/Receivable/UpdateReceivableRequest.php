@@ -24,6 +24,7 @@ class UpdateReceivableRequest extends FormRequest
         return [
             'project_id' => ['required', 'exists:projects,id'],
             'tanggal' => ['required', 'date'],
+            'nomor_invoice' => ['nullable', 'string', 'max:100'],
             'jatuh_tempo' => ['nullable', 'date', 'after_or_equal:tanggal'],
             'nominal' => ['required', 'numeric', 'min:0'],
             'keterangan' => ['nullable', 'string', 'max:1000'],

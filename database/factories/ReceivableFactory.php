@@ -19,7 +19,7 @@ class ReceivableFactory extends Factory
     public function definition(): array
     {
         return [
-            'project_id' => Project::factory()->state(['status' => 'active']),
+            'project_id' => Project::factory()->state(['status' => 'progress']),
             'tanggal' => fake()->dateTimeBetween('-3 months', 'now'),
             'jatuh_tempo' => fake()->optional()->dateTimeBetween('now', '+3 months'),
             'nominal' => fake()->numberBetween(50_000_000, 500_000_000),

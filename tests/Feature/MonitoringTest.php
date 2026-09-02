@@ -8,13 +8,13 @@ use App\Livewire\Monitoring\Index as IndexMonitoring;
 use App\Models\Akun;
 use App\Models\BudgetPlan;
 use App\Models\BudgetPlanItem;
+use App\Models\MasterItem;
+use App\Models\MasterType;
 use App\Models\MonitoringPeriod;
-use App\Models\NonProjectExpense;
 use App\Models\Project;
 use App\Models\ProjectAkun;
 use App\Models\Realisasi;
 use App\Models\User;
-use App\Models\Vendor;
 use App\Services\MonitoringPeriodService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
@@ -123,53 +123,6 @@ class MonitoringTest extends TestCase
         $this->assertDatabaseHas('monitoring_periods', ['nomor' => 'MON-2026-002']);
     }
 
-    public function test_global_period_actual_out_includes_non_project_expense(): void
-    {
-        $akun = Akun::factory()->create();
-
-        $period = MonitoringPeriod::factory()->create([
-            'project_id' => null,
-            'tanggal_mulai' => '2026-03-01',
-            'tanggal_selesai' => '2026-03-31',
-        ]);
-
-        NonProjectExpense::factory()->create([
-            'akun_id' => $akun->id,
-            'tanggal' => '2026-03-10',
-            'nominal' => 7500000,
-        ]);
-
-        $service = app(MonitoringPeriodService::class);
-
-        $this->assertSame(7500000.0, $service->actualTotal($period));
-
-        $totals = $service->totalsForPeriods(collect([$period]));
-        $this->assertSame(7500000.0, $totals[$period->id]['actual']);
-        $this->assertSame(-7500000.0, $totals[$period->id]['variance']);
-    }
-
-    public function test_project_period_actual_out_excludes_non_project_expense(): void
-    {
-        $project = Project::factory()->create();
-        $akun = Akun::factory()->create();
-
-        $period = MonitoringPeriod::factory()->create([
-            'project_id' => $project->id,
-            'tanggal_mulai' => '2026-03-01',
-            'tanggal_selesai' => '2026-03-31',
-        ]);
-
-        NonProjectExpense::factory()->create([
-            'akun_id' => $akun->id,
-            'tanggal' => '2026-03-10',
-            'nominal' => 7500000,
-        ]);
-
-        $service = app(MonitoringPeriodService::class);
-
-        $this->assertSame(0.0, $service->actualTotal($period));
-    }
-
     public function test_staff_cannot_create_monitoring_period(): void
     {
         $staff = User::factory()->create();
@@ -195,11 +148,17 @@ class MonitoringTest extends TestCase
             'tanggal_selesai' => '2026-03-31',
         ]);
 
+        $vendorType = MasterType::firstOrCreate(
+            ['kode' => 'VENDOR'],
+            ['nama' => 'Vendor', 'flag_ar' => true, 'flag_ap' => true, 'aktif' => true, 'is_system' => true],
+        );
+        $vendor = MasterItem::factory()->create(['master_type_id' => $vendorType->id]);
+
         Realisasi::factory()->create([
             'project_id' => $project->id,
             'akun_id' => $akun->id,
-            'vendor_id' => Vendor::factory()->create()->id,
-            'supplier_id' => null,
+            'pihak_type_id' => $vendorType->id,
+            'pihak_item_id' => $vendor->id,
             'tanggal' => '2026-03-05',
             'nominal' => 30000000,
         ]);

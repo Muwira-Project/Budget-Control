@@ -5,6 +5,8 @@ namespace Tests\Feature;
 use App\Livewire\Projects\Create as CreateProject;
 use App\Livewire\Projects\Edit as EditProject;
 use App\Livewire\Projects\Index as IndexProject;
+use App\Models\MasterItem;
+use App\Models\MasterType;
 use App\Models\Project;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -15,6 +17,43 @@ class ProjectTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function seedMasterData(): void
+    {
+        // Create master type for Division (idempotent)
+        $divisionType = MasterType::firstOrCreate(
+            ['kode' => 'DIVISION'],
+            [
+                'kode' => 'DIVISION',
+                'nama' => 'Division',
+                'flag_project' => true,
+                'aktif' => true,
+                'is_system' => true,
+                'sort' => 5,
+            ]
+        );
+
+        // Create master items for divisions (idempotent)
+        MasterItem::firstOrCreate(
+            ['master_type_id' => $divisionType->id, 'kode' => 'CONSTRUCTION'],
+            [
+                'master_type_id' => $divisionType->id,
+                'kode' => 'CONSTRUCTION',
+                'nama' => 'Construction',
+                'aktif' => true,
+            ]
+        );
+
+        MasterItem::firstOrCreate(
+            ['master_type_id' => $divisionType->id, 'kode' => 'CIVIL'],
+            [
+                'master_type_id' => $divisionType->id,
+                'kode' => 'CIVIL',
+                'nama' => 'Civil',
+                'aktif' => true,
+            ]
+        );
+    }
+
     public function test_guest_is_redirected_to_login(): void
     {
         $this->get(route('projects.index'))->assertRedirect(route('login'));
@@ -22,6 +61,7 @@ class ProjectTest extends TestCase
 
     public function test_index_page_renders_for_authenticated_user(): void
     {
+        $this->seedMasterData();
         $user = User::factory()->admin()->create();
         Project::factory()->create();
 
@@ -32,6 +72,7 @@ class ProjectTest extends TestCase
 
     public function test_project_can_be_created(): void
     {
+        $this->seedMasterData();
         $user = User::factory()->create();
 
         Livewire::actingAs($user)
@@ -40,7 +81,7 @@ class ProjectTest extends TestCase
             ->set('nama', 'Gedung Kantor')
             ->set('lokasi', 'Jakarta')
             ->set('jenis', 'barang')
-            ->set('status', 'active')
+            ->set('status', 'progress')
             ->call('save')
             ->assertHasNoErrors()
             ->assertRedirect(route('projects.index'));
@@ -50,6 +91,7 @@ class ProjectTest extends TestCase
 
     public function test_project_with_empty_optional_fields_stores_null(): void
     {
+        $this->seedMasterData();
         $user = User::factory()->create();
 
         Livewire::actingAs($user)
@@ -62,7 +104,7 @@ class ProjectTest extends TestCase
             ->set('pajak', '')
             ->set('tanggalMulai', '')
             ->set('targetSelesai', '')
-            ->set('status', 'active')
+            ->set('status', 'progress')
             ->call('save')
             ->assertHasNoErrors()
             ->assertRedirect(route('projects.index'));
@@ -79,6 +121,7 @@ class ProjectTest extends TestCase
 
     public function test_project_kode_must_be_unique(): void
     {
+        $this->seedMasterData();
         $user = User::factory()->create();
         Project::factory()->create(['kode' => 'PRJ-001']);
 
@@ -93,6 +136,7 @@ class ProjectTest extends TestCase
 
     public function test_project_can_be_updated(): void
     {
+        $this->seedMasterData();
         $user = User::factory()->create();
         $project = Project::factory()->create();
 
@@ -108,6 +152,7 @@ class ProjectTest extends TestCase
 
     public function test_project_can_be_deleted(): void
     {
+        $this->seedMasterData();
         $user = User::factory()->create();
         $project = Project::factory()->create();
 
@@ -120,9 +165,10 @@ class ProjectTest extends TestCase
 
     public function test_project_can_be_searched_by_kode_or_nama(): void
     {
+        $this->seedMasterData();
         $user = User::factory()->create();
-        Project::factory()->create(['kode' => 'PRJ-001', 'nama' => 'Gedung Kantor']);
-        Project::factory()->create(['kode' => 'PRJ-002', 'nama' => 'Gudang Logistik']);
+        Project::factory()->create(['kode' => 'PRJ-001', 'nama' => 'Gedung Kantor', 'division_id' => MasterItem::where('kode', 'CONSTRUCTION')->first()?->id]);
+        Project::factory()->create(['kode' => 'PRJ-002', 'nama' => 'Gudang Logistik', 'division_id' => MasterItem::where('kode', 'CIVIL')->first()?->id]);
 
         $component = Livewire::actingAs($user)->test(IndexProject::class)
             ->assertSee('Gedung Kantor')
@@ -139,6 +185,7 @@ class ProjectTest extends TestCase
 
     public function test_project_can_be_created_with_jenis_pricing_and_dates(): void
     {
+        $this->seedMasterData();
         $user = User::factory()->create();
 
         Livewire::actingAs($user)
@@ -153,7 +200,7 @@ class ProjectTest extends TestCase
             ->set('pajak', '2')
             ->set('tanggalMulai', '2026-09-01')
             ->set('targetSelesai', '2027-03-31')
-            ->set('status', 'active')
+            ->set('status', 'progress')
             ->call('save')
             ->assertHasNoErrors()
             ->assertRedirect(route('projects.index'));
@@ -171,6 +218,7 @@ class ProjectTest extends TestCase
 
     public function test_pajak_defaults_follow_jenis(): void
     {
+        $this->seedMasterData();
         $user = User::factory()->create();
 
         Livewire::actingAs($user)
@@ -183,6 +231,7 @@ class ProjectTest extends TestCase
 
     public function test_target_selesai_must_be_after_tanggal_mulai(): void
     {
+        $this->seedMasterData();
         $user = User::factory()->create();
 
         Livewire::actingAs($user)

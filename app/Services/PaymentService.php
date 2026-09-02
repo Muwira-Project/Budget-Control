@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\PaymentJenis;
+use App\Enums\SettlementStatus;
 use App\Models\Cashflow;
 use App\Models\Payable;
 use App\Models\Payment;
@@ -22,6 +23,11 @@ class PaymentService
     {
         return DB::transaction(function () use ($receivable, $data) {
             $receivable = Receivable::query()->lockForUpdate()->findOrFail($receivable->id);
+
+            if ($receivable->isHeld()) {
+                throw ValidationException::withMessages(['nominal' => 'Receivable is on hold; release it before recording a payment.']);
+            }
+
             $this->ensurePaymentDoesNotExceedBalance($data['nominal'], $receivable->sisa, 'piutang');
 
             $payment = Payment::create([
@@ -70,9 +76,9 @@ class PaymentService
 
             $payable->increment('nominal_dibayar', $data['nominal']);
 
-            $partyName = $payable->vendor_id !== null
-                ? $payable->vendor()->value('nama')
-                : ($payable->supplier_id !== null ? $payable->supplier()->value('nama') : null);
+            $partyName = $payable->pihak_item_id !== null
+                ? $payable->pihakItem()->value('nama')
+                : $payable->project?->kode;
 
             app(CashflowService::class)->create([
                 'tanggal' => $data['tanggal'],
@@ -112,13 +118,67 @@ class PaymentService
     }
 
     /**
+     * Request cancellation of a settlement (staff). Wajib approval admin (K2).
+     */
+    public function requestVoid(Payment $payment, string $reason): Payment
+    {
+        if ($payment->status !== SettlementStatus::Active) {
+            throw new \LogicException('Only active settlements can be requested for cancellation.');
+        }
+
+        $payment->update([
+            'status' => SettlementStatus::PendingCancel,
+            'void_reason' => $reason,
+            'void_requested_by' => auth()->id(),
+            'void_requested_at' => now(),
+            'void_review_note' => null,
+            'void_reviewed_by' => null,
+            'void_reviewed_at' => null,
+        ]);
+
+        return $payment->refresh();
+    }
+
+    /**
+     * Approve a pending cancellation: reverse amounts and remove the settlement (admin).
+     */
+    public function approveVoid(Payment $payment): void
+    {
+        if ($payment->status !== SettlementStatus::PendingCancel) {
+            throw new \LogicException('Only pending settlements can be approved for cancellation.');
+        }
+
+        $this->delete($payment);
+    }
+
+    /**
+     * Reject a pending cancellation and restore the settlement (admin).
+     */
+    public function rejectVoid(Payment $payment, string $note): Payment
+    {
+        if ($payment->status !== SettlementStatus::PendingCancel) {
+            throw new \LogicException('Only pending settlements can be rejected.');
+        }
+
+        $payment->update([
+            'status' => SettlementStatus::Active,
+            'void_review_note' => $note,
+            'void_reviewed_by' => auth()->id(),
+            'void_reviewed_at' => now(),
+        ]);
+
+        return $payment->refresh();
+    }
+
+    /**
      * List payments, optionally filtered by jenis.
      */
-    public function paginate(?string $jenis = null, int $perPage = 10): LengthAwarePaginator
+    public function paginate(?string $jenis = null, int $perPage = 10, ?string $status = null): LengthAwarePaginator
     {
         return Payment::query()
-            ->with(['receivable.project', 'payable.project', 'payable.vendor', 'payable.supplier', 'payable.mandor', 'payable.investor'])
+            ->with(['receivable.project', 'payable.project', 'payable.pihakItem', 'payable.pihakType', 'voidRequestedBy'])
             ->when($jenis, fn ($query) => $query->where('jenis', $jenis))
+            ->when($status, fn ($query) => $query->where('status', $status))
             ->orderByDesc('tanggal')
             ->paginate($perPage)
             ->withQueryString();

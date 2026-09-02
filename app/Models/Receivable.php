@@ -11,8 +11,9 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['project_id', 'tanggal', 'jatuh_tempo', 'nominal', 'nominal_dibayar', 'keterangan'])]
+#[Fillable(['project_id', 'pihak_type_id', 'pihak_item_id', 'tanggal', 'nomor_invoice', 'jatuh_tempo', 'nominal', 'nominal_dibayar', 'keterangan', 'hold_reason', 'held_by', 'held_at'])]
 class Receivable extends Model
 {
     /**
@@ -23,10 +24,30 @@ class Receivable extends Model
         static::created(fn ($model) => DashboardService::clearCache());
         static::updated(fn ($model) => DashboardService::clearCache());
         static::deleted(fn ($model) => DashboardService::clearCache());
+        static::restored(fn ($model) => DashboardService::clearCache());
+
+        static::updated(function (Receivable $receivable): void {
+            if (! $receivable->wasChanged('nominal')) {
+                return;
+            }
+
+            $project = $receivable->project;
+
+            if ($project === null || (float) $project->qty <= 0) {
+                return;
+            }
+
+            $taxFactor = 1 + ((float) $project->pajak / 100);
+            $targetPrice = (float) $receivable->nominal / ((float) $project->qty * $taxFactor);
+
+            if (abs((float) $project->harga_satuan - $targetPrice) > 0.009) {
+                $project->update(['harga_satuan' => $targetPrice]);
+            }
+        });
     }
 
     /** @use HasFactory<ReceivableFactory> */
-    use HasFactory, LogsActivity;
+    use HasFactory, LogsActivity, SoftDeletes;
 
     /**
      * Get the attributes that should be cast.
@@ -40,6 +61,7 @@ class Receivable extends Model
             'jatuh_tempo' => 'date',
             'nominal' => 'decimal:2',
             'nominal_dibayar' => 'decimal:2',
+            'held_at' => 'datetime',
         ];
     }
 
@@ -52,11 +74,43 @@ class Receivable extends Model
     }
 
     /**
+     * Get the party type (Vendor/Supplier/Mandor/Investor) of the receivable.
+     */
+    public function pihakType(): BelongsTo
+    {
+        return $this->belongsTo(MasterType::class, 'pihak_type_id');
+    }
+
+    /**
+     * Get the party item (the concrete vendor/supplier/… record).
+     */
+    public function pihakItem(): BelongsTo
+    {
+        return $this->belongsTo(MasterItem::class, 'pihak_item_id');
+    }
+
+    /**
      * Get the payments made against this receivable.
      */
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
+    }
+
+    /**
+     * Get the user who put this receivable on hold.
+     */
+    public function heldBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'held_by');
+    }
+
+    /**
+     * Whether this receivable is currently on hold (K1: tahan penerimaan).
+     */
+    public function isHeld(): bool
+    {
+        return $this->held_at !== null;
     }
 
     /**
@@ -79,6 +133,14 @@ class Receivable extends Model
         return (float) $this->nominal_dibayar > 0
             ? ReceivableStatus::Sebagian
             : ReceivableStatus::BelumDibayar;
+    }
+
+    /**
+     * Display label of the party (vendor, supplier, mandor, investor).
+     */
+    public function getPihakAttribute(): ?string
+    {
+        return $this->pihakItem?->nama;
     }
 
     /**

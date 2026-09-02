@@ -1,0 +1,25 @@
+{
+  "files.associations": {
+    "*.blade.php": "blade"
+  },
+  "files.exclude": ["**/vendor/**", "**/node_modules/**", "storage/**", "bootstrap/cache/**"],
+  "stubs": [
+    "standard",
+    "symfony2",
+    "laravel",
+    "composer",
+    "phpunit",
+    "wordpress"
+  ],
+  "diagnostics": {
+    "undefinedMethods": false,
+    "undefinedFunctions": false,
+    "undefinedVariables": false,
+    "undefinedConstants": false,
+    "undefinedTypes": false
+  },
+  "typeProvider": [
+    "intelephense",
+    "user"
+  ]
+}

@@ -24,10 +24,8 @@ class StoreRealisasiRequest extends FormRequest
         return [
             'project_id' => ['required', 'exists:projects,id'],
             'akun_id' => ['required', 'exists:akuns,id'],
-            'vendor_id' => ['nullable', 'exists:vendors,id'],
-            'supplier_id' => ['nullable', 'exists:suppliers,id'],
-            'mandor_id' => ['nullable', 'exists:mandors,id'],
-            'investor_id' => ['nullable', 'exists:investors,id'],
+            'pihak_type_id' => ['nullable', 'exists:master_types,id'],
+            'pihak_item_id' => ['nullable', 'exists:master_items,id'],
             'kategori_id' => ['nullable', 'exists:kategoris,id'],
             'tanggal' => ['required', 'date'],
             'nominal' => ['required', 'numeric', 'min:0'],

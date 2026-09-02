@@ -4,10 +4,10 @@ namespace Database\Factories;
 
 use App\Models\Akun;
 use App\Models\Kategori;
+use App\Models\MasterItem;
+use App\Models\MasterType;
 use App\Models\Project;
 use App\Models\Realisasi;
-use App\Models\Supplier;
-use App\Models\Vendor;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
 /**
@@ -22,11 +22,20 @@ class RealisasiFactory extends Factory
      */
     public function definition(): array
     {
+        $vendorType = MasterType::firstOrCreate(
+            ['kode' => 'VENDOR'],
+            ['nama' => 'Vendor', 'flag_ar' => true, 'flag_ap' => true, 'aktif' => true, 'is_system' => true],
+        );
+
         return [
             'project_id' => Project::factory(),
             'akun_id' => Akun::factory(),
-            'vendor_id' => Vendor::factory(),
-            'supplier_id' => null,
+            'pihak_type_id' => $vendorType->id,
+            'pihak_item_id' => MasterItem::factory()->create([
+                'master_type_id' => $vendorType->id,
+                'flag_ar' => false,
+                'flag_ap' => true,
+            ])->id,
             'kategori_id' => Kategori::factory(),
             'tanggal' => fake()->dateTimeBetween('-6 months', 'now'),
             'nominal' => fake()->numberBetween(1_000_000, 50_000_000),
@@ -40,8 +49,15 @@ class RealisasiFactory extends Factory
     public function forSupplier(): static
     {
         return $this->state(fn () => [
-            'vendor_id' => null,
-            'supplier_id' => Supplier::factory(),
+            'pihak_type_id' => MasterType::firstOrCreate(
+                ['kode' => 'SUPPLIER'],
+                ['nama' => 'Supplier', 'flag_ar' => true, 'flag_ap' => true, 'aktif' => true, 'is_system' => true],
+            )->id,
+            'pihak_item_id' => MasterItem::factory()->create([
+                'master_type_id' => MasterType::where('kode', 'SUPPLIER')->firstOrFail()->id,
+                'flag_ar' => false,
+                'flag_ap' => true,
+            ])->id,
         ]);
     }
 }

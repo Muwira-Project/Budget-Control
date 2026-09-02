@@ -2,6 +2,7 @@
 
 namespace App\Livewire\Projects;
 
+use App\Enums\ProjectStatus;
 use App\Livewire\Concerns\BulkSelection;
 use App\Livewire\Concerns\PerPagePagination;
 use App\Models\Project;
@@ -21,16 +22,20 @@ class Index extends Component
 
     public string $search = '';
 
+    public ?string $filterPeriode = null;
+
+    public ?string $filterStatus = null;
+
+    public ?string $filterPic = null;
+
     public ?int $selectedProjectId = null;
 
     /**
-     * Delete a project.
+     * Reset pagination when filters change.
      */
-    public function delete(Project $project, ProjectService $service): void
+    public function updatedFilterPeriode(): void
     {
-        $service->delete($project);
-
-        session()->flash('status', 'Project deleted successfully.');
+        $this->resetPage();
     }
 
     /**
@@ -42,18 +47,91 @@ class Index extends Component
     }
 
     /**
+     * Reset pagination when status filter changes.
+     */
+    public function updatedFilterStatus(): void
+    {
+        $this->resetPage();
+    }
+
+    /**
+     * Reset pagination when PIC filter changes.
+     */
+    public function updatedFilterPic(): void
+    {
+        $this->resetPage();
+    }
+
+    /**
+     * Export projects to Excel.
+     */
+    public function export(?string $periode = null)
+    {
+        $this->redirectRoute('imports.projects.export', ['periode' => $periode], navigate: true);
+    }
+
+    /**
      * The paginated list of projects.
      */
     #[Computed]
     public function projects(): LengthAwarePaginator
     {
         return Project::query()
+            ->with(['division'])
             ->when($this->search !== '', fn ($query) => $query->where(function ($query) {
                 $query->where('kode', 'like', '%'.$this->search.'%')
                     ->orWhere('nama', 'like', '%'.$this->search.'%');
             }))
+            ->when($this->filterPeriode, fn ($query) => $query->where('periode', $this->filterPeriode))
+            ->when($this->filterStatus, fn ($query) => $query->where('status', $this->filterStatus))
+            ->when($this->filterPic, fn ($query) => $query->where('pic', 'like', '%'.$this->filterPic.'%'))
             ->latest()
             ->paginate($this->perPage);
+    }
+
+    /**
+     * Available periods for filter dropdown.
+     */
+    #[Computed]
+    public function availablePeriodes(): Collection
+    {
+        return Project::query()
+            ->select('periode')
+            ->whereNotNull('periode')
+            ->distinct()
+            ->orderBy('periode', 'desc')
+            ->pluck('periode');
+    }
+
+    /**
+     * Available PICs for filter dropdown.
+     */
+    #[Computed]
+    public function availablePics(): Collection
+    {
+        return Project::query()
+            ->select('pic')
+            ->whereNotNull('pic')
+            ->where('pic', '!=', '')
+            ->distinct()
+            ->orderBy('pic')
+            ->pluck('pic');
+    }
+
+    /**
+     * Available project statuses for filter dropdown.
+     */
+    #[Computed]
+    public function availableStatuses(): array
+    {
+        return [
+            '' => 'All Statuses',
+            ProjectStatus::Draft->value => ProjectStatus::Draft->label(),
+            ProjectStatus::InProgress->value => ProjectStatus::InProgress->label(),
+            ProjectStatus::Revisi->value => ProjectStatus::Revisi->label(),
+            ProjectStatus::Done->value => ProjectStatus::Done->label(),
+            ProjectStatus::Cancelled->value => ProjectStatus::Cancelled->label(),
+        ];
     }
 
     public function showProjectDetail(int $projectId): void
@@ -70,7 +148,7 @@ class Index extends Component
     public function selectedProject(): ?Project
     {
         return $this->selectedProjectId
-            ? Project::withSum('projectAkuns as budget_total', 'budget')->find($this->selectedProjectId)
+            ? Project::with(['division', 'projectAkuns' => fn ($q) => $q->sum('budget')])->find($this->selectedProjectId)
             : null;
     }
 
@@ -85,15 +163,22 @@ class Index extends Component
         }
 
         return Realisasi::query()
-            ->with(['akun', 'kategori', 'vendor', 'supplier', 'mandor', 'investor'])
+            ->with(['akun', 'kategori', 'pihakType', 'pihakItem'])
             ->where('project_id', $this->selectedProjectId)
             ->orderByDesc('tanggal')
             ->get();
     }
 
     /**
-     * Render the project index page.
+     * Delete a project.
      */
+    public function delete(Project $project, ProjectService $service): void
+    {
+        $service->delete($project);
+
+        session()->flash('status', 'Project deleted successfully.');
+    }
+
     protected function bulkCollectionProperty(): string
     {
         return 'projects';

@@ -2,9 +2,19 @@
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
             <h2 class="text-xl font-semibold text-gray-800 leading-tight">{{ __('Payables (AP)') }}</h2>
-            <a href="{{ route('payables.create') }}" wire:navigate class="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                + Add Payable
-            </a>
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <a href="{{ route('exports.page', ['type' => 'payables']) }}" wire:navigate class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    <x-icon name="download" class="h-4 w-4 mr-2" />
+                    Export
+                </a>
+                <a href="{{ route('imports.payables') }}" wire:navigate class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    <x-icon name="upload" class="h-4 w-4 mr-2" />
+                    Import
+                </a>
+                <a href="{{ route('payables.create') }}" wire:navigate class="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    + Add Payable
+                </a>
+            </div>
         </div>
 
         @if (session('status'))
@@ -36,12 +46,21 @@
                                 @endforeach
                             </select>
                         </div>
+                        <div>
+                            <x-input-label for="aging_filter" :value="__('Filter Aging')" />
+                            <select id="aging_filter" wire:model.live="agingFilter" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                <option value="">All Ages</option>
+                                @foreach ($this->agingBuckets as $value => $label)
+                                    <option value="{{ $value }}">{{ $label }}</option>
+                                @endforeach
+                            </select>
+                        </div>
                     </div>
                 </div>
 
                 @if ($this->payables->isEmpty())
                     <p class="p-6 text-sm text-gray-500">
-                        {{ $this->projectId !== null || $this->statusFilter !== '' ? 'No payables match the filter.' : 'No payables yet. Payables are created automatically from actuals, or click "Add Payable".' }}
+                        {{ $this->projectId !== null || $this->statusFilter !== '' || $this->agingFilter !== '' ? 'No payables match the filter.' : 'No payables yet. Payables are created automatically from actuals, or click "Add Payable".' }}
                     </p>
                 @else
                     <div class="overflow-x-auto">
@@ -52,6 +71,7 @@
                                     <th class="px-6 py-3">Project</th>
                                     <th class="px-6 py-3">Item Account</th>
                                     <th class="px-6 py-3">Party</th>
+                                    <th class="px-6 py-3">Invoice No.</th>
                                     <th class="px-6 py-3">Date</th>
                                     <th class="px-6 py-3">Due Date</th>
                                     <th class="px-6 py-3 text-right">Amount</th>
@@ -69,20 +89,14 @@
                                         <td class="px-6 py-4 text-gray-700">{{ $payable->project->kode }} - {{ $payable->project->nama }}</td>
                                         <td class="px-6 py-4 text-gray-700">{{ $payable->akun->kode_akun }} - {{ $payable->akun->nama_akun }}</td>
                                         <td class="px-6 py-4 text-gray-700">
-                                            @if ($payable->pihakJenis === 'vendor')
-                                                <span class="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-700">Vendor</span>
-                                                {{ $payable->vendor?->nama }}
-                                            @elseif ($payable->pihakJenis === 'supplier')
-                                                <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-700">Supplier</span>
-                                                {{ $payable->supplier?->nama }}
-                                            @elseif ($payable->pihakJenis === 'mandor')
-                                                <span class="inline-flex items-center rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-medium text-indigo-700">Mandor</span>
-                                                {{ $payable->mandor?->nama }}
-                                            @elseif ($payable->pihakJenis === 'investor')
-                                                <span class="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-700">Investor</span>
-                                                {{ $payable->investor?->nama }}
+                                            @if ($payable->pihakJenis && $payable->pihak)
+                                                <span class="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-700">{{ ucfirst($payable->pihakJenis) }}</span>
+                                                {{ $payable->pihak }}
+                                            @else
+                                                <span class="text-gray-400">-</span>
                                             @endif
                                         </td>
+                                        <td class="px-6 py-4 text-gray-500 whitespace-nowrap">{{ $payable->nomor_invoice ?? '-' }}</td>
                                         <td class="px-6 py-4 text-gray-700 whitespace-nowrap">{{ $payable->tanggal->format('d M Y') }}</td>
                                         <td class="px-6 py-4 text-gray-500 whitespace-nowrap">{{ $payable->jatuh_tempo?->format('d M Y') }}</td>
                                         <td class="px-6 py-4 text-right text-gray-900 font-medium">{{ format_idr($payable->nominal) }}</td>
@@ -98,7 +112,7 @@
                                             </span>
                                         </td>
                                         <td class="px-6 py-4 text-right whitespace-nowrap">
-                                            <x-action-buttons :edit-href="route('payables.edit', $payable)" :delete-id="$payable->id">
+                                            <x-action-buttons :edit-href="auth()->user()->isAdmin() ? route('payables.edit', $payable) : null" :delete-id="auth()->user()->isAdmin() ? $payable->id : null">
                                                 <a href="{{ route('payables.pay', $payable) }}" wire:navigate title="Pay"
                                                     class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-green-300 hover:bg-green-50 hover:text-green-600">
                                                     <x-icon name="banknotes" class="h-4 w-4" />

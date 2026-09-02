@@ -3,13 +3,37 @@
 namespace App\Services;
 
 use App\Models\Payable;
-use App\Models\PaymentRequest;
+use App\Models\Payment;
 use App\Models\Project;
 use App\Models\Realisasi;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class PayableService
 {
+    /**
+     * Guard: reject a duplicate active invoice number (case-insensitive).
+     * Soft-deleted rows are ignored so a trashed record can be re-entered.
+     */
+    private function ensureUniqueInvoiceNumber(?string $nomorInvoice, ?int $ignoreId = null): void
+    {
+        if ($nomorInvoice === null || trim($nomorInvoice) === '') {
+            return;
+        }
+
+        $exists = Payable::query()
+            ->whereRaw('LOWER(TRIM(nomor_invoice)) = ?', [mb_strtolower(trim($nomorInvoice))])
+            ->when($ignoreId, fn ($query) => $query->where('id', '!=', $ignoreId))
+            ->exists();
+
+        if ($exists) {
+            throw ValidationException::withMessages([
+                'nomor_invoice' => 'Nomor invoice sudah digunakan pada payable lain.',
+            ]);
+        }
+    }
+
     /**
      * Create a payable.
      *
@@ -17,15 +41,16 @@ class PayableService
      */
     public function create(array $data): Payable
     {
-        return Payable::create([
+        $this->ensureUniqueInvoiceNumber($data['nomor_invoice'] ?? null);
+
+        $payable = Payable::create([
             'project_id' => $data['project_id'],
             'realisasi_id' => $data['realisasi_id'] ?? null,
             'akun_id' => $data['akun_id'],
-            'vendor_id' => $data['vendor_id'] ?? null,
-            'supplier_id' => $data['supplier_id'] ?? null,
-            'mandor_id' => $data['mandor_id'] ?? null,
-            'investor_id' => $data['investor_id'] ?? null,
+            'pihak_type_id' => $data['pihak_type_id'] ?? null,
+            'pihak_item_id' => $data['pihak_item_id'] ?? null,
             'tanggal' => $data['tanggal'],
+            'nomor_invoice' => $data['nomor_invoice'] ?? null,
             'jatuh_tempo' => $data['jatuh_tempo'] ?? null,
             'nominal' => $data['nominal'],
             'jenis_pajak' => $data['jenis_pajak'] ?? null,
@@ -33,6 +58,10 @@ class PayableService
             'nominal_dibayar' => 0,
             'keterangan' => $data['keterangan'] ?? null,
         ]);
+
+        app(NotificationService::class)->notifyIfPayableOverBudget($payable);
+
+        return $payable;
     }
 
     /**
@@ -42,14 +71,26 @@ class PayableService
      */
     public function update(Payable $payable, array $data): Payable
     {
+        // Guard: the nominal can never drop below the amount already paid,
+        // otherwise the outstanding balance (sisa) turns negative and the
+        // AP aging/reporting silently corrupts.
+        $newNominal = (float) ($data['nominal'] ?? $payable->nominal);
+
+        if ($newNominal < (float) $payable->nominal_dibayar) {
+            throw ValidationException::withMessages([
+                'nominal' => 'Nominal cannot be lower than the amount already paid ('.number_format((float) $payable->nominal_dibayar, 0, ',', '.').').',
+            ]);
+        }
+
+        $this->ensureUniqueInvoiceNumber($data['nomor_invoice'] ?? $payable->nomor_invoice, $payable->id);
+
         $payable->update([
             'project_id' => $data['project_id'],
             'akun_id' => $data['akun_id'],
-            'vendor_id' => $data['vendor_id'] ?? null,
-            'supplier_id' => $data['supplier_id'] ?? null,
-            'mandor_id' => $data['mandor_id'] ?? null,
-            'investor_id' => $data['investor_id'] ?? null,
+            'pihak_type_id' => $data['pihak_type_id'] ?? null,
+            'pihak_item_id' => $data['pihak_item_id'] ?? null,
             'tanggal' => $data['tanggal'],
+            'nomor_invoice' => $data['nomor_invoice'] ?? $payable->nomor_invoice,
             'jatuh_tempo' => $data['jatuh_tempo'] ?? null,
             'nominal' => $data['nominal'],
             'jenis_pajak' => $data['jenis_pajak'] ?? null,
@@ -57,29 +98,57 @@ class PayableService
             'keterangan' => $data['keterangan'] ?? null,
         ]);
 
+        app(NotificationService::class)->notifyIfPayableOverBudget($payable->refresh());
+
         return $payable->refresh();
     }
 
     /**
-     * Delete a payable (payments are removed by the database cascade).
+     * Delete a payable. Any payments linked to it are removed as well so the
+     * AP balance stays consistent (the FK cascade no longer applies because
+     * payments use soft deletes).
      */
     public function delete(Payable $payable): void
     {
-        $payable->delete();
+        DB::transaction(function () use ($payable): void {
+            Payment::where('payable_id', $payable->id)->get()->each(fn (Payment $payment) => app(PaymentService::class)->delete($payment));
+
+            $payable->delete();
+        });
     }
 
     /**
      * List payables, optionally filtered by project and status.
      */
-    public function paginate(?Project $project = null, ?string $status = null, int $perPage = 10): LengthAwarePaginator
+    public function paginate(?Project $project = null, ?string $status = null, ?string $aging = null, int $perPage = 10): LengthAwarePaginator
     {
         return Payable::query()
-            ->with(['project', 'akun', 'vendor', 'supplier', 'mandor', 'investor'])
+            ->with(['project', 'akun', 'pihakType', 'pihakItem'])
             ->when($project, fn ($query) => $query->where('project_id', $project->id))
             ->when($status, fn ($query) => $this->applyStatusFilter($query, $status))
+            ->when($aging, fn ($query) => $this->applyAgingFilter($query, $aging))
             ->orderByDesc('tanggal')
             ->paginate($perPage)
             ->withQueryString();
+    }
+
+    /**
+     * Apply the aging bucket filter to the query (based on due date).
+     *
+     * Buckets: current (not due yet), 1_30, 31_60, 61_90, over_90.
+     */
+    protected function applyAgingFilter($query, string $aging)
+    {
+        $today = now()->startOfDay();
+
+        return match ($aging) {
+            'current' => $query->where(fn ($q) => $q->whereNull('jatuh_tempo')->orWhereDate('jatuh_tempo', '>=', $today)),
+            '1_30' => $query->whereDate('jatuh_tempo', '>=', $today->copy()->subDays(30))->whereDate('jatuh_tempo', '<', $today),
+            '31_60' => $query->whereDate('jatuh_tempo', '<', $today->copy()->subDays(30))->whereDate('jatuh_tempo', '>=', $today->copy()->subDays(60)),
+            '61_90' => $query->whereDate('jatuh_tempo', '<', $today->copy()->subDays(60))->whereDate('jatuh_tempo', '>=', $today->copy()->subDays(90)),
+            'over_90' => $query->whereDate('jatuh_tempo', '<', $today->copy()->subDays(90)),
+            default => $query,
+        };
     }
 
     /**
@@ -87,20 +156,15 @@ class PayableService
      */
     public function syncFromRealisasi(Realisasi $realisasi): ?Payable
     {
-        if ($realisasi->vendor_id === null
-            && $realisasi->supplier_id === null
-            && $realisasi->mandor_id === null
-            && $realisasi->investor_id === null) {
+        if ($realisasi->pihak_type_id === null || $realisasi->pihak_item_id === null) {
             return null;
         }
 
         $data = [
             'project_id' => $realisasi->project_id,
             'akun_id' => $realisasi->akun_id,
-            'vendor_id' => $realisasi->vendor_id,
-            'supplier_id' => $realisasi->supplier_id,
-            'mandor_id' => $realisasi->mandor_id,
-            'investor_id' => $realisasi->investor_id,
+            'pihak_type_id' => $realisasi->pihak_type_id,
+            'pihak_item_id' => $realisasi->pihak_item_id,
             'tanggal' => $realisasi->tanggal->format('Y-m-d'),
             'nominal' => $realisasi->nominal,
             'jenis_pajak' => null,
@@ -117,46 +181,6 @@ class PayableService
         }
 
         return Payable::create($data + ['realisasi_id' => $realisasi->id]);
-    }
-
-    /**
-     * Create or refresh the payable generated from an approved payment request (idempotent).
-     */
-    public function syncFromPaymentRequest(PaymentRequest $paymentRequest): ?Payable
-    {
-        $data = [
-            'project_id' => $paymentRequest->project_id,
-            'payment_request_id' => $paymentRequest->id,
-            'akun_id' => $paymentRequest->akun_id,
-            'vendor_id' => $paymentRequest->vendor_id,
-            'supplier_id' => $paymentRequest->supplier_id,
-            'mandor_id' => $paymentRequest->mandor_id,
-            'investor_id' => $paymentRequest->investor_id,
-            'tanggal' => $paymentRequest->tanggal->format('Y-m-d'),
-            'jatuh_tempo' => $paymentRequest->jatuh_tempo?->format('Y-m-d'),
-            'nominal' => $paymentRequest->nominal,
-            'jenis_pajak' => null,
-            'pajak_include' => true,
-            'keterangan' => 'Dari Payment Request '.$paymentRequest->nomor,
-        ];
-
-        $payable = Payable::where('payment_request_id', $paymentRequest->id)->first();
-
-        if ($payable) {
-            $payable->update($data);
-
-            return $payable->refresh();
-        }
-
-        return Payable::create($data);
-    }
-
-    /**
-     * Remove the payable linked to a payment request (when it leaves the approved state).
-     */
-    public function removeForPaymentRequest(PaymentRequest $paymentRequest): void
-    {
-        Payable::where('payment_request_id', $paymentRequest->id)->delete();
     }
 
     /**

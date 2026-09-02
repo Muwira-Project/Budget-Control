@@ -4,12 +4,10 @@ namespace App\Livewire\Payables;
 
 use App\Http\Requests\Payable\StorePayableRequest;
 use App\Models\Akun;
-use App\Models\Investor;
-use App\Models\Mandor;
+use App\Models\MasterItem;
+use App\Models\MasterType;
 use App\Models\Project;
 use App\Models\ProjectAkun;
-use App\Models\Supplier;
-use App\Models\Vendor;
 use App\Services\PayableService;
 use Illuminate\Support\Facades\Validator;
 use Livewire\Attributes\Computed;
@@ -23,17 +21,13 @@ class Create extends Component
 
     public ?int $akunId = null;
 
-    public ?int $vendorId = null;
+    public ?int $pihakTypeId = null;
 
-    public ?int $supplierId = null;
-
-    public ?int $mandorId = null;
-
-    public ?int $investorId = null;
-
-    public string $pihakJenis = 'vendor';
+    public ?int $pihakItemId = null;
 
     public string $tanggal = '';
+
+    public string $nomorInvoice = '';
 
     public string $jatuhTempo = '';
 
@@ -62,11 +56,10 @@ class Create extends Component
             [
                 'project_id' => $this->projectId,
                 'akun_id' => $this->akunId,
-                'vendor_id' => $this->vendorId,
-                'supplier_id' => $this->supplierId,
-                'mandor_id' => $this->mandorId,
-                'investor_id' => $this->investorId,
+                'pihak_type_id' => $this->pihakTypeId,
+                'pihak_item_id' => $this->pihakItemId,
                 'tanggal' => $this->tanggal,
+                'nomor_invoice' => $this->nomorInvoice !== '' ? $this->nomorInvoice : null,
                 'jatuh_tempo' => $this->jatuhTempo !== '' ? $this->jatuhTempo : null,
                 'nominal' => $this->nominal,
                 'jenis_pajak' => $this->jenisPajak !== '' ? $this->jenisPajak : null,
@@ -77,19 +70,8 @@ class Create extends Component
         );
 
         $validator->after(function ($validator): void {
-            $partyCount = collect([
-                $this->vendorId,
-                $this->supplierId,
-                $this->mandorId,
-                $this->investorId,
-            ])->filter(fn ($value) => $value !== null)->count();
-
-            if ($partyCount !== 1) {
-                $validator->errors()->add('vendor_id', 'Select exactly one party.');
-            }
-
-            if (count(array_filter([$this->vendorId, $this->supplierId])) > 1) {
-                $validator->errors()->add('vendor_id', 'Only one can be selected: Vendor or Supplier.');
+            if ($this->pihakTypeId === null || $this->pihakItemId === null) {
+                $validator->errors()->add('pihak_item_id', 'Pilih salah satu pihak (vendor/supplier/mandor/investor).');
             }
 
             if ($this->projectId !== null
@@ -114,12 +96,9 @@ class Create extends Component
     /**
      * Reset the party selection when the party type changes.
      */
-    public function updatedPihakJenis(): void
+    public function updatedPihakTypeId(): void
     {
-        $this->vendorId = null;
-        $this->supplierId = null;
-        $this->mandorId = null;
-        $this->investorId = null;
+        $this->pihakItemId = null;
     }
 
     /**
@@ -144,39 +123,69 @@ class Create extends Component
     }
 
     /**
-     * The vendors available for selection.
+     * Budget context for the selected project+akun: allocation, realized,
+     * remaining allocation, and available budget — shown as a hint in the form.
+     *
+     * @return array<string, float|string>|null
      */
     #[Computed]
-    public function vendors()
+    public function budgetInfo(): ?array
     {
-        return Vendor::orderBy('nama')->get();
+        if ($this->projectId === null || $this->akunId === null) {
+            return null;
+        }
+
+        $allocation = ProjectAkun::query()
+            ->where('project_id', $this->projectId)
+            ->where('akun_id', $this->akunId)
+            ->where('status', 'approved')
+            ->first();
+
+        if (! $allocation) {
+            return null;
+        }
+
+        $remaining = (float) $allocation->remaining_allocation;
+
+        return [
+            'allocation' => (float) $allocation->allocation,
+            'realized' => (float) $allocation->total_realisasi,
+            'remaining' => $remaining,
+            'available' => (float) $allocation->available_budget,
+            'over' => $remaining < 0,
+        ];
     }
 
     /**
-     * The suppliers available for selection.
+     * Party types flagged as AP (hutang) — available for the payable party.
      */
     #[Computed]
-    public function suppliers()
+    public function partyTypes()
     {
-        return Supplier::orderBy('nama')->get();
+        return MasterType::query()
+            ->where('aktif', true)
+            ->where(fn ($query) => $query->where('flag_ap', true)->orWhereNull('flag_ap'))
+            ->orderBy('nama')
+            ->get();
     }
 
     /**
-     * The mandors available for selection.
+     * Party items under the selected type that may be picked as an AP party
+     * (flag_ap null/true) and are active.
      */
     #[Computed]
-    public function mandors()
+    public function partyItems()
     {
-        return Mandor::orderBy('nama')->get();
-    }
+        if ($this->pihakTypeId === null) {
+            return collect();
+        }
 
-    /**
-     * The investors available for selection.
-     */
-    #[Computed]
-    public function investors()
-    {
-        return Investor::orderBy('nama')->get();
+        return MasterItem::query()
+            ->where('master_type_id', $this->pihakTypeId)
+            ->where('aktif', true)
+            ->where(fn ($query) => $query->where('flag_ap', true)->orWhereNull('flag_ap'))
+            ->orderBy('nama')
+            ->get();
     }
 
     /**

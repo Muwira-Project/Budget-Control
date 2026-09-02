@@ -9,7 +9,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['project_id', 'akun_id', 'budget', 'allocation', 'status', 'created_by', 'approved_by', 'approved_at'])]
+#[Fillable(['project_id', 'akun_id', 'type', 'pihak_type_id', 'pihak_item_id', 'payable_id', 'receivable_id', 'custom_name', 'outstanding_balance', 'budget', 'allocation', 'status', 'created_by', 'approved_by', 'approved_at'])]
 class ProjectAkun extends Model
 {
     /**
@@ -32,6 +32,7 @@ class ProjectAkun extends Model
         return [
             'budget' => 'decimal:2',
             'allocation' => 'decimal:2',
+            'outstanding_balance' => 'decimal:2',
             'status' => AllocationStatus::class,
             'approved_at' => 'datetime',
         ];
@@ -78,6 +79,80 @@ class ProjectAkun extends Model
     }
 
     /**
+     * Get the party type (Vendor/Supplier/Mandor/Investor) for non-project AP/AR.
+     */
+    public function pihakType(): BelongsTo
+    {
+        return $this->belongsTo(MasterType::class, 'pihak_type_id');
+    }
+
+    /**
+     * Get the party item for non-project AP/AR.
+     */
+    public function pihakItem(): BelongsTo
+    {
+        return $this->belongsTo(MasterItem::class, 'pihak_item_id');
+    }
+
+    /**
+     * Get the linked payable (for AP type).
+     */
+    public function payable(): BelongsTo
+    {
+        return $this->belongsTo(Payable::class);
+    }
+
+    /**
+     * Get the linked receivable (for AR type).
+     */
+    public function receivable(): BelongsTo
+    {
+        return $this->belongsTo(Receivable::class);
+    }
+
+    /**
+     * Display label of the party for non-project AP/AR.
+     */
+    public function getPihakAttribute(): ?string
+    {
+        return $this->pihakItem?->nama;
+    }
+
+    /**
+     * Display label of the party type for non-project AP/AR.
+     */
+    public function getPihakJenisAttribute(): ?string
+    {
+        if ($this->pihak_type_id !== null && $this->pihakType !== null) {
+            return strtolower((string) $this->pihakType->kode);
+        }
+
+        return null;
+    }
+
+    /**
+     * Type label for display.
+     */
+    public function getTypeLabelAttribute(): string
+    {
+        return match ($this->type) {
+            'ap' => 'AP (Hutang)',
+            'ar' => 'AR (Piutang)',
+            'other_income' => 'Other Income',
+            'other_outcome' => 'Other Outcome',
+            default => $this->type ?? 'Other Outcome',
+        };
+    }
+
+    /**
+     * Display name: party name or custom name.
+     */
+    public function getDisplayNameAttribute(): string
+    {
+        return $this->custom_name ?? $this->pihakItem?->nama ?? '-';
+    }
+
+    /**
      * Determine whether the allocation has been approved.
      */
     public function isApproved(): bool
@@ -87,6 +162,10 @@ class ProjectAkun extends Model
 
     /**
      * Get the realisasi for this project-akun.
+     *
+     * Plain hasMany keyed on project_id (NULL matches non-project rows).
+     * Consumers filter by akun_id where needed — instance-based constraint
+     * on the relation breaks eager loading for mixed result sets.
      */
     public function realisasi(): HasMany
     {
@@ -95,12 +174,38 @@ class ProjectAkun extends Model
 
     /**
      * Total realized amount for this project-akun.
+     *
+     * Filters by akun_id explicitly since the relation only keys on
+     * project_id (NULL = non-project rows).
+     * For non-project rows, also filters by party type and party item/custom_name
+     * to avoid aggregating across different parties.
      */
     public function getTotalRealisasiAttribute(?string $value = null): float
     {
-        return $value !== null
-            ? (float) $value
-            : (float) $this->realisasi()->where('akun_id', $this->akun_id)->sum('nominal');
+        if ($value !== null) {
+            return (float) $value;
+        }
+
+        $query = Realisasi::query()
+            ->where('project_id', $this->project_id)
+            ->where('akun_id', $this->akun_id);
+
+        // For non-project rows, filter by party type and party item/custom_name
+        if ($this->project_id === null) {
+            if ($this->pihak_type_id !== null && $this->pihak_item_id !== null) {
+                $query->where('pihak_type_id', $this->pihak_type_id)
+                    ->where('pihak_item_id', $this->pihak_item_id);
+            } elseif ($this->custom_name !== null) {
+                $query->where('pihak_type_id', $this->pihak_type_id)
+                    ->where('pihak_item_id', null)
+                    ->where('custom_name', $this->custom_name);
+            } else {
+                // Neither party nor custom_name - no matching realisasi expected
+                return 0.0;
+            }
+        }
+
+        return (float) $query->sum('nominal');
     }
 
     /**

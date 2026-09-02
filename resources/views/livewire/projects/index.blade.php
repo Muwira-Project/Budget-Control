@@ -2,6 +2,15 @@
     <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <x-page-header icon="folder" title="Project" description="Manage projects, contract values, and their budget scope.">
             <x-slot:actions>
+                <a href="{{ route('imports.projects.template') }}" class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900">
+                    <x-icon name="download" class="h-4 w-4" /> Download Template
+                </a>
+                <a href="{{ route('imports.projects') }}" class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900">
+                    <x-icon name="upload" class="h-4 w-4" /> Import Projects
+                </a>
+                <a href="{{ route('imports.projects.export', ['periode' => $this->filterPeriode]) }}" class="inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900">
+                    <x-icon name="download" class="h-4 w-4" /> Export
+                </a>
                 <a href="{{ route('projects.create') }}" wire:navigate class="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700">
                     <x-icon name="plus" class="h-4 w-4" /> Add Project
                 </a>
@@ -18,11 +27,42 @@
             <x-bulk-actions :paginator="$this->projects" :selected-ids="$this->selectedIds" />
                 <div class="mt-6 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-200">
                 <div class="border-b border-gray-100 p-6">
-                    <div class="max-w-sm">
-                        <x-input-label for="search" :value="__('Search Project')" />
-                        <x-text-input id="search" class="mt-1 block w-full" type="text" wire:model.live.debounce.300ms="search" placeholder="Search project code or name..." />
-                    </div>
-                </div>
+                                    <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+                                        <div class="max-w-sm">
+                                            <x-input-label for="search" :value="__('Search Project')" />
+                                            <x-text-input id="search" class="mt-1 block w-full" type="text" wire:model.live.debounce.300ms="search" placeholder="Search project code or name..." />
+                                        </div>
+
+                                        <div class="max-w-sm">
+                                            <x-input-label for="filter_periode" :value="__('Filter Periode')" />
+                                            <select id="filter_periode" wire:model="filterPeriode" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                                <option value="">All Periods</option>
+                                                @foreach ($this->availablePeriodes as $p)
+                                                    <option value="{{ $p }}">{{ $p }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+
+                                        <div class="max-w-sm">
+                                            <x-input-label for="filter_status" :value="__('Filter Status')" />
+                                            <select id="filter_status" wire:model="filterStatus" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                                @foreach ($this->availableStatuses as $value => $label)
+                                                    <option value="{{ $value }}">{{ $label }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+
+                                        <div class="max-w-sm">
+                                            <x-input-label for="filter_pic" :value="__('Filter PIC')" />
+                                            <select id="filter_pic" wire:model="filterPic" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                                                <option value="">All PICs</option>
+                                                @foreach ($this->availablePics as $pic)
+                                                    <option value="{{ $pic }}">{{ $pic }}</option>
+                                                @endforeach
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
 
                 @if ($this->projects->isEmpty())
                     <p class="p-6 text-sm text-gray-500">
@@ -38,6 +78,8 @@
                                     <th class="px-6 py-3">Name</th>
                                     <th class="px-6 py-3">Type</th>
                                     <th class="px-6 py-3">Location</th>
+                                    <th class="px-6 py-3">Division</th>
+                                    <th class="px-6 py-3">PIC</th>
                                     <th class="px-6 py-3 text-right">Value (incl. tax)</th>
                                     <th class="px-6 py-3">Status</th>
                                     <th class="px-6 py-3 text-right">Actions</th>
@@ -56,6 +98,8 @@
                                             </span>
                                         </td>
                                         <td class="px-6 py-4 text-gray-500">{{ $project->lokasi }}</td>
+                                        <td class="px-6 py-4 text-gray-700">{{ $project->division?->nama ?? '-' }}</td>
+                                        <td class="px-6 py-4 text-gray-700">{{ $project->pic ?? '-' }}</td>
                                         <td class="px-6 py-4 text-right text-gray-900">
                                             @if ($project->nilai_total > 0)
                                                 {{ format_idr($project->nilai_total) }}
@@ -64,7 +108,14 @@
                                             @endif
                                         </td>
                                         <td class="px-6 py-4">
-                                            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $project->status === \App\Enums\ProjectStatus::Completed ? 'bg-green-100 text-green-700' : 'bg-blue-100 text-blue-700' }}">
+                                            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ match ($project->status->value) {
+                                                'draft' => 'bg-slate-100 text-slate-700',
+                                                'progress' => 'bg-blue-100 text-blue-700',
+                                                'revisi' => 'bg-amber-100 text-amber-700',
+                                                'done' => 'bg-green-100 text-green-700',
+                                                'cancelled' => 'bg-red-100 text-red-700',
+                                                default => 'bg-slate-100 text-slate-700',
+                                            } }}">
                                                 {{ $project->status->label() }}
                                             </span>
                                         </td>
@@ -114,6 +165,28 @@
                         <p class="mt-1 text-lg font-semibold text-slate-900">{{ $this->projectRealisations->count() }}</p>
                     </div>
                 </div>
+                <div class="grid grid-cols-2 gap-2 border-b border-gray-100 px-6 py-3 sm:grid-cols-5">
+                    <div>
+                        <p class="text-xs uppercase tracking-wider text-slate-500">PIC</p>
+                        <p class="mt-0.5 text-sm font-medium text-slate-800">{{ $this->selectedProject->pic ?? '-' }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs uppercase tracking-wider text-slate-500">Division</p>
+                        <p class="mt-0.5 text-sm font-medium text-slate-800">{{ $this->selectedProject->division?->nama ?? '-' }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs uppercase tracking-wider text-slate-500">Category</p>
+                        <p class="mt-0.5 text-sm font-medium text-slate-800">{{ $this->selectedProject->projectCategory?->nama ?? '-' }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs uppercase tracking-wider text-slate-500">Sub Work</p>
+                        <p class="mt-0.5 text-sm font-medium text-slate-800">{{ $this->selectedProject->sub_work ?? '-' }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs uppercase tracking-wider text-slate-500">Period</p>
+                        <p class="mt-0.5 text-sm font-medium text-slate-800">{{ $this->selectedProject->periode ?? '-' }}</p>
+                    </div>
+                </div>
                 <div class="max-h-[60vh] overflow-y-auto">
                     <table class="min-w-full divide-y divide-gray-100 text-sm">
                         <thead class="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
@@ -139,14 +212,8 @@
                                         @endif
                                     </td>
                                     <td class="px-6 py-3 text-gray-700">
-                                        @if ($realisasi->pihakJenis === 'vendor' && $realisasi->vendor)
-                                            <span class="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">Vendor</span> {{ $realisasi->vendor->nama }}
-                                        @elseif ($realisasi->pihakJenis === 'supplier' && $realisasi->supplier)
-                                            <span class="rounded-full bg-emerald-100 px-2 py-0.5 text-xs font-medium text-emerald-700">Supplier</span> {{ $realisasi->supplier->nama }}
-                                        @elseif ($realisasi->pihakJenis === 'mandor' && $realisasi->mandor)
-                                            <span class="rounded-full bg-indigo-100 px-2 py-0.5 text-xs font-medium text-indigo-700">Mandor</span> {{ $realisasi->mandor->nama }}
-                                        @elseif ($realisasi->pihakJenis === 'investor' && $realisasi->investor)
-                                            <span class="rounded-full bg-purple-100 px-2 py-0.5 text-xs font-medium text-purple-700">Investor</span> {{ $realisasi->investor->nama }}
+                                        @if ($realisasi->pihakJenis && $realisasi->pihak)
+                                            <span class="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">{{ ucfirst($realisasi->pihakJenis) }}</span> {{ $realisasi->pihak }}
                                         @else
                                             <span class="text-gray-400">-</span>
                                         @endif

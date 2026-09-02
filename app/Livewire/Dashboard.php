@@ -2,10 +2,8 @@
 
 namespace App\Livewire;
 
-use App\Enums\PaymentRequestStatus;
 use App\Models\Activity;
 use App\Models\MonitoringPeriod;
-use App\Models\PaymentRequest;
 use App\Models\Project;
 use App\Models\Realisasi;
 use App\Services\DashboardService;
@@ -34,6 +32,50 @@ class Dashboard extends Component
     public function statistics(): array
     {
         return app(DashboardService::class)->statistics($this->startDate, $this->endDate);
+    }
+
+    /**
+     * Projects ready for submission (draft).
+     *
+     * @return array<array{kode: string, nama: string, project_id: int, status: string, division: string|null, nilai_total: float}>
+     */
+    #[Computed]
+    public function projectsToSubmit(): array
+    {
+        return app(DashboardService::class)->projectsToSubmit();
+    }
+
+    /**
+     * Projects needing revision (revisi).
+     *
+     * @return array<array{kode: string, nama: string, project_id: int, status: string, division: string|null, nilai_total: float}>
+     */
+    #[Computed]
+    public function projectsToRevisi(): array
+    {
+        return app(DashboardService::class)->projectsToRevisi();
+    }
+
+    /**
+     * Submit/Revisi counts for widget badges.
+     *
+     * @return array{submit_count: int, revisi_count: int}
+     */
+    #[Computed]
+    public function submitRevisiCounts(): array
+    {
+        return app(DashboardService::class)->submitRevisiCounts();
+    }
+
+    /**
+     * Count of pending approval items (cashflow, fund transfer, settlement void).
+     *
+     * @return int
+     */
+    #[Computed]
+    public function pendingApprovalsCount(): int
+    {
+        return app(DashboardService::class)->pendingApprovalsCount();
     }
 
     /**
@@ -89,21 +131,6 @@ class Dashboard extends Component
             ->get();
     }
 
-    /**
-     * Payment request summary counts by status (existing data only).
-     *
-     * @return array{pending: int, approved: int, rejected: int}
-     */
-    #[Computed]
-    public function paymentRequestSummary(): array
-    {
-        return [
-            'pending' => PaymentRequest::where('status', PaymentRequestStatus::Waiting)->count(),
-            'approved' => PaymentRequest::where('status', PaymentRequestStatus::Approved)->count(),
-            'rejected' => PaymentRequest::where('status', PaymentRequestStatus::Rejected)->count(),
-        ];
-    }
-
     public function showProjectDetail(int $projectId): void
     {
         $this->selectedProjectId = $projectId;
@@ -141,10 +168,10 @@ class Dashboard extends Component
         }
 
         return Realisasi::query()
-            ->with(['akun', 'kategori', 'vendor', 'supplier', 'mandor', 'investor'])
+            ->with(['akun', 'kategori', 'pihakType', 'pihakItem'])
             ->where('project_id', $this->selectedProjectId)
-            ->when($this->startDate, fn ($query) => $query->whereDate('tanggal', '>=', $this->startDate))
-            ->when($this->endDate, fn ($query) => $query->whereDate('tanggal', '<=', $this->endDate))
+            ->when($this->startDate, fn($query) => $query->whereDate('tanggal', '>=', $this->startDate))
+            ->when($this->endDate, fn($query) => $query->whereDate('tanggal', '<=', $this->endDate))
             ->orderByDesc('tanggal')
             ->get();
     }
@@ -160,10 +187,10 @@ class Dashboard extends Component
         }
 
         return Realisasi::query()
-            ->with(['akun', 'project', 'vendor', 'supplier', 'mandor', 'investor'])
-            ->whereHas('kategori', fn ($query) => $query->where('nama', $this->selectedCategoryName))
-            ->when($this->startDate, fn ($query) => $query->whereDate('tanggal', '>=', $this->startDate))
-            ->when($this->endDate, fn ($query) => $query->whereDate('tanggal', '<=', $this->endDate))
+            ->with(['akun', 'project', 'pihakType', 'pihakItem'])
+            ->whereHas('kategori', fn($query) => $query->where('nama', $this->selectedCategoryName))
+            ->when($this->startDate, fn($query) => $query->whereDate('tanggal', '>=', $this->startDate))
+            ->when($this->endDate, fn($query) => $query->whereDate('tanggal', '<=', $this->endDate))
             ->orderByDesc('tanggal')
             ->get();
     }

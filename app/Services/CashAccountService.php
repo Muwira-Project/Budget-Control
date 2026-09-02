@@ -1,0 +1,121 @@
+<?php
+
+namespace App\Services;
+
+use App\Enums\CashAccountJenis;
+use App\Enums\CashAccountStatus;
+use App\Models\CashAccount;
+use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Validation\ValidationException;
+
+class CashAccountService
+{
+    /**
+     * Create a cash account (rekening fisik lokasi dana).
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public function create(array $data): CashAccount
+    {
+        // Uniqueness is enforced here because SQLite cannot express a
+        // partial unique index for active (non-soft-deleted) rows.
+        if (CashAccount::where('kode', $data['kode'])->exists()) {
+            throw ValidationException::withMessages(['kode' => 'Kode rekening sudah digunakan.']);
+        }
+
+        $this->assertSingleDefault($data);
+
+        return CashAccount::create([
+            'kode' => $data['kode'],
+            'nama' => $data['nama'],
+            'jenis' => $data['jenis'] ?? CashAccountJenis::Kas->value,
+            'saldo_awal' => $data['saldo_awal'] ?? 0,
+            'is_default' => $data['is_default'] ?? false,
+            'status' => $data['status'] ?? CashAccountStatus::Active->value,
+            'keterangan' => $data['keterangan'] ?? null,
+        ]);
+    }
+
+    /**
+     * Update a cash account.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public function update(CashAccount $account, array $data): CashAccount
+    {
+        $this->assertSingleDefault($data, $account->id);
+
+        $account->update($data);
+
+        return $account->refresh();
+    }
+
+    /**
+     * Ensure only one active cash account can be marked as default.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    protected function assertSingleDefault(array $data, ?int $ignoreId = null): void
+    {
+        $isDefault = (bool) ($data['is_default'] ?? false);
+
+        if (! $isDefault) {
+            return;
+        }
+
+        $conflict = CashAccount::query()
+            ->where('is_default', true)
+            ->when($ignoreId !== null, fn ($query) => $query->where('id', '!=', $ignoreId))
+            ->exists();
+
+        if ($conflict) {
+            throw ValidationException::withMessages([
+                'is_default' => 'Sudah ada akun kas default lain. Nonaktifkan akun default sebelumnya terlebih dahulu.',
+            ]);
+        }
+    }
+
+    /**
+     * Delete a cash account.
+     *
+     * Accounts that still have transactions (cashflow entries or fund
+     * transfers) cannot be deleted — doing so would silently orphan the
+     * transaction history from the cash flow reports.
+     *
+     * @throws ValidationException
+     */
+    public function delete(CashAccount $account): void
+    {
+        $hasTransactions = $account->cashflows()->exists()
+            || $account->outgoingTransfers()->exists()
+            || $account->incomingTransfers()->exists();
+
+        if ($hasTransactions) {
+            throw ValidationException::withMessages([
+                'kode' => 'Akun kas dengan riwayat transaksi tidak dapat dihapus.',
+            ]);
+        }
+
+        $account->delete();
+    }
+
+    /**
+     * List cash accounts with their current balances, optionally filtered by status.
+     */
+    public function paginate(?string $status = null, int $perPage = 15): LengthAwarePaginator
+    {
+        $accounts = CashAccount::query()
+            ->when($status, fn ($query) => $query->where('status', $status))
+            ->orderBy('kode')
+            ->paginate($perPage)
+            ->withQueryString();
+
+        $balances = CashAccount::balances($accounts->pluck('id')->all());
+
+        foreach ($accounts as $account) {
+            $account->setAttribute('balance', $balances[$account->id] ?? (float) $account->saldo_awal);
+        }
+
+        return $accounts;
+    }
+}

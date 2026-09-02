@@ -5,11 +5,8 @@ namespace Tests\Feature;
 use App\Livewire\Cashflows\Create as CreateCashflow;
 use App\Livewire\Cashflows\Index as IndexCashflow;
 use App\Models\Cashflow;
-use App\Models\PaymentRequest;
 use App\Models\User;
 use App\Services\CashflowService;
-use App\Services\PaymentRequestService;
-use Carbon\Carbon;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Livewire\Livewire;
 use Tests\TestCase;
@@ -33,6 +30,22 @@ class CashflowTest extends TestCase
             ->assertOk();
     }
 
+    public function test_index_page_renders_with_legacy_payment_request_sumber(): void
+    {
+        $user = User::factory()->admin()->create();
+        // Legacy 'payment_request' values are migrated to 'pengeluaran_lain' by migration 2026_08_18_000002
+        // Test that the page renders correctly with valid enum values
+        Cashflow::factory()->create([
+            'sumber' => 'pengeluaran_lain',
+            'jenis' => 'keluar',
+            'status' => 'posted',
+        ]);
+
+        $this->actingAs($user)
+            ->get(route('cashflows.index'))
+            ->assertOk();
+    }
+
     public function test_manual_cash_in_can_be_created(): void
     {
         $user = User::factory()->create();
@@ -50,6 +63,7 @@ class CashflowTest extends TestCase
             'jenis' => 'masuk',
             'sumber' => 'pendapatan',
             'nominal' => 250000000,
+            'status' => 'draft',
         ]);
     }
 
@@ -63,54 +77,6 @@ class CashflowTest extends TestCase
             ->set('nominal', '')
             ->call('save')
             ->assertHasErrors(['nominal']);
-    }
-
-    public function test_paid_payment_request_registers_cash_out(): void
-    {
-        $user = User::factory()->create();
-        $pr = PaymentRequest::factory()->create(['status' => 'approved']);
-
-        app(PaymentRequestService::class)->markPaid($pr);
-
-        $this->assertDatabaseHas('payment_requests', ['id' => $pr->id, 'status' => 'paid']);
-        $this->assertDatabaseHas('cashflows', [
-            'payment_request_id' => $pr->id,
-            'jenis' => 'keluar',
-            'sumber' => 'payment_request',
-            'nominal' => (float) $pr->nominal,
-        ]);
-    }
-
-    public function test_paid_payment_request_does_not_duplicate_cash_out(): void
-    {
-        $user = User::factory()->create();
-        $pr = PaymentRequest::factory()->create(['status' => 'approved']);
-        $service = app(PaymentRequestService::class);
-
-        $service->markPaid($pr);
-        $service->markPaid($pr->fresh());
-
-        $this->assertSame(1, Cashflow::where('payment_request_id', $pr->id)->count());
-    }
-
-    public function test_payment_request_cashflow_uses_the_paid_date(): void
-    {
-        Carbon::setTestNow('2026-08-06 10:00:00');
-        try {
-            $pr = PaymentRequest::factory()->create([
-                'status' => 'approved',
-                'tanggal' => '2026-07-01',
-            ]);
-
-            app(PaymentRequestService::class)->markPaid($pr);
-
-            $this->assertSame(1, Cashflow::query()
-                ->where('payment_request_id', $pr->id)
-                ->whereDate('tanggal', '2026-08-06')
-                ->count());
-        } finally {
-            Carbon::setTestNow();
-        }
     }
 
     public function test_statistics_calculate_masuk_keluar_and_saldo(): void
@@ -130,26 +96,13 @@ class CashflowTest extends TestCase
     public function test_manual_entry_can_be_deleted(): void
     {
         $user = User::factory()->create();
-        $entry = Cashflow::factory()->create(['payment_request_id' => null]);
+        $entry = Cashflow::factory()->create(['status' => 'draft', 'created_by' => $user->id]);
 
         Livewire::actingAs($user)
             ->test(IndexCashflow::class)
             ->call('delete', $entry->id);
 
-        $this->assertDatabaseMissing('cashflows', ['id' => $entry->id]);
-    }
-
-    public function test_payment_request_entry_cannot_be_deleted(): void
-    {
-        $user = User::factory()->create();
-        $pr = PaymentRequest::factory()->create(['status' => 'paid']);
-        $entry = Cashflow::factory()->create(['payment_request_id' => $pr->id, 'jenis' => 'keluar']);
-
-        Livewire::actingAs($user)
-            ->test(IndexCashflow::class)
-            ->call('delete', $entry->id);
-
-        $this->assertDatabaseHas('cashflows', ['id' => $entry->id]);
+        $this->assertSoftDeleted('cashflows', ['id' => $entry->id]);
     }
 
     public function test_index_filters_by_jenis(): void
@@ -160,7 +113,7 @@ class CashflowTest extends TestCase
 
         Livewire::actingAs($user)
             ->test(IndexCashflow::class)
-            ->set('jenisFilter', 'masuk')
+            ->set('tab', 'cash-in')
             ->assertSee('Pemasukan A')
             ->assertDontSee('Pengeluaran B');
     }

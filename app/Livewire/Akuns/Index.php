@@ -101,7 +101,7 @@ class Index extends Component
         }
 
         return Realisasi::query()
-            ->with(['project', 'kategori', 'vendor', 'supplier', 'mandor', 'investor'])
+            ->with(['project', 'kategori', 'pihakType', 'pihakItem'])
             ->where('akun_id', $this->selectedAkunId)
             ->when($this->startDate, fn ($query) => $query->whereDate('tanggal', '>=', $this->startDate))
             ->when($this->endDate, fn ($query) => $query->whereDate('tanggal', '<=', $this->endDate))

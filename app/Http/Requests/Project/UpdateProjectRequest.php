@@ -2,6 +2,8 @@
 
 namespace App\Http\Requests\Project;
 
+use App\Enums\ProjectStatus;
+use App\Models\Project;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -23,10 +25,15 @@ class UpdateProjectRequest extends FormRequest
      */
     public function rules(?int $ignoreId = null): array
     {
-        return [
+        $rules = [
             'kode' => ['required', 'string', 'max:50', Rule::unique('projects', 'kode')->ignore($ignoreId)],
+            'po_number' => ['nullable', 'string', 'max:100', Rule::unique('projects', 'po_number')->ignore($ignoreId), 'required_if:status,done'],
             'nama' => ['required', 'string', 'max:255'],
             'lokasi' => ['nullable', 'string', 'max:255'],
+            'pic' => ['nullable', 'string', 'max:255'],
+            'project_category_id' => ['nullable', 'integer', 'exists:master_items,id'],
+            'sub_work' => ['nullable', 'string', 'max:500'],
+            'periode' => ['nullable', 'string', 'max:100'],
             'jenis' => ['required', Rule::in(['barang', 'jasa'])],
             'qty' => ['nullable', 'numeric', 'min:0'],
             'satuan' => ['nullable', 'string', 'max:50'],
@@ -34,7 +41,35 @@ class UpdateProjectRequest extends FormRequest
             'pajak' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'tanggal_mulai' => ['nullable', 'date'],
             'target_selesai' => ['nullable', 'date', 'after_or_equal:tanggal_mulai'],
-            'status' => ['required', Rule::in(['active', 'completed'])],
+            'status' => ['required', Rule::in(array_column(ProjectStatus::cases(), 'value'))],
         ];
+
+        return $rules;
+    }
+
+    /**
+     * Configure the validator instance.
+     */
+    public function withValidator($validator): void
+    {
+        $validator->after(function ($validator) {
+            $projectId = $this->route('project')?->id ?? $this->route('id');
+
+            if ($projectId) {
+                $project = Project::find($projectId);
+
+                if ($project && $this->input('status') !== $project->status->value) {
+                    $oldStatus = $project->status;
+                    $newStatus = ProjectStatus::tryFrom($this->input('status'));
+
+                    if ($newStatus && ! $oldStatus->canTransitionTo($newStatus)) {
+                        $validator->errors()->add(
+                            'status',
+                            "Tidak bisa mengubah status dari {$oldStatus->label()} ke {$newStatus->label()}."
+                        );
+                    }
+                }
+            }
+        });
     }
 }

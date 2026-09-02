@@ -6,16 +6,23 @@
                 <a href="{{ route('monitoring.create') }}" wire:navigate class="inline-flex items-center gap-2 rounded-lg bg-brand-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-brand-700">
                     <x-icon name="plus" class="h-4 w-4" /> Add Monitoring Period
                 </a>
-                <div class="flex items-center gap-2">
-                    <a href="{{ route('exports.monitoring-summary', ['format' => 'xlsx', 'project_id' => $this->projectFilter, 'search' => $this->search]) }}" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50">
-                        <x-icon name="download" class="h-4 w-4" /> XLSX
-                    </a>
-                    <a href="{{ route('exports.monitoring-summary', ['format' => 'csv', 'project_id' => $this->projectFilter, 'search' => $this->search]) }}" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50">
-                        <x-icon name="download" class="h-4 w-4" /> CSV
-                    </a>
-                    <a href="{{ route('exports.monitoring-summary', ['format' => 'pdf', 'project_id' => $this->projectFilter, 'search' => $this->search]) }}" class="inline-flex items-center gap-1.5 rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-600 shadow-sm transition hover:bg-slate-50">
-                        <x-icon name="download" class="h-4 w-4" /> PDF
-                    </a>
+                <div x-data="{ exportOpen: false }" @click.outside="exportOpen = false" class="relative">
+                    <button type="button" @click="exportOpen = ! exportOpen" class="inline-flex items-center gap-2 rounded-lg border border-slate-300 bg-white px-3.5 py-2 text-xs font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 focus:outline-none">
+                        <x-icon name="download" class="h-4 w-4 text-slate-500" />
+                        <span>Export Data</span>
+                        <x-icon name="chevron-down" class="h-3.5 w-3.5 text-slate-400 transition-transform" x-bind:class="exportOpen ? 'rotate-180' : ''" />
+                    </button>
+                    <div x-show="exportOpen" x-cloak class="absolute right-0 z-50 mt-1.5 w-36 overflow-hidden rounded-xl border border-slate-200 bg-white py-1 shadow-lg">
+                        <a href="{{ route('exports.monitoring-summary', ['format' => 'xlsx', 'project_id' => $this->projectFilter, 'search' => $this->search]) }}" class="flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50">
+                            <span class="font-bold text-emerald-600">XLSX</span> Excel Summary
+                        </a>
+                        <a href="{{ route('exports.monitoring-summary', ['format' => 'csv', 'project_id' => $this->projectFilter, 'search' => $this->search]) }}" class="flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50">
+                            <span class="font-bold text-blue-600">CSV</span> Data Format
+                        </a>
+                        <a href="{{ route('exports.monitoring-summary', ['format' => 'pdf', 'project_id' => $this->projectFilter, 'search' => $this->search]) }}" class="flex items-center gap-2 px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50">
+                            <span class="font-bold text-rose-600">PDF</span> Document
+                        </a>
+                    </div>
                 </div>
                 @endif
             </x-slot:actions>
@@ -61,6 +68,7 @@
                                 <tr>
                                     <th class="w-8 px-6 py-3"><input type="checkbox" disabled class="rounded border-gray-300 text-blue-600 cursor-not-allowed" aria-hidden="true" /></th>
                                     <th class="px-6 py-3">Number</th>
+                                    <th class="px-6 py-3">Budget No.</th>
                                     <th class="px-6 py-3">Period</th>
                                     <th class="px-6 py-3">Week</th>
                                     <th class="px-6 py-3">Month</th>
@@ -77,10 +85,12 @@
                                     <tr class="hover:bg-gray-50">
                                         <td class="w-8 px-6 py-4"><input type="checkbox" wire:click="toggleSelected({{ $period->id }})" @checked(in_array($period->id, $this->selectedIds, true)) class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" /></td>
                                         <td class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap">
-                                        <a href="{{ route('monitoring.show', $period) }}" wire:navigate class="text-blue-600 hover:text-blue-800 hover:underline">{{ $period->nomor }}</a>
-                                    </td>
+                                                                                <a href="{{ route('monitoring.show', $period) }}" wire:navigate class="text-blue-600 hover:text-blue-800 hover:underline">{{ $period->nomor }}</a>
+                                                                            </td>
 
-                                        <td class="px-6 py-4 text-gray-700 whitespace-nowrap">{{ $period->periode_label }}</td>
+                                                                            <td class="px-6 py-4 text-gray-700">{{ $period->budget_number ?? '-' }}</td>
+
+                                                                            <td class="px-6 py-4 text-gray-700 whitespace-nowrap">{{ $period->periode_label }}</td>
                                         <td class="px-6 py-4 text-gray-700">{{ $period->week }}</td>
                                         <td class="px-6 py-4 text-gray-700">{{ $period->month }}</td>
                                         <td class="px-6 py-4 text-right text-gray-900">{{ format_idr($totals['budget']) }}</td>

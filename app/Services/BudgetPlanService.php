@@ -19,9 +19,22 @@ class BudgetPlanService
     public function create(array $data): BudgetPlan
     {
         return DB::transaction(function () use ($data) {
+            $project = Project::find($data['project_id']);
+            $projectCode = $project?->kode ?? 'NP';
+            $periode = $data['periode'] ?? '0000-00';
+
+            // Generate nomor: BP/PROJECT_CODE/PERIODE/SEQUENCE
+            $lastPlan = BudgetPlan::where('project_id', $data['project_id'])
+                ->where('periode', $data['periode'])
+                ->latest('id')
+                ->first();
+            $sequence = ($lastPlan?->id ?? 0) + 1;
+            $nomor = 'BP/'.$projectCode.'/'.$periode.'/'.$sequence;
+
             $plan = BudgetPlan::create([
                 'project_id' => $data['project_id'],
                 'periode' => $data['periode'],
+                'nomor' => $nomor,
                 'estimasi_pendapatan' => $data['estimasi_pendapatan'],
                 'estimasi_biaya' => $this->sumItems($data['items']),
                 'target_laba' => $data['target_laba'] ?? 0,
@@ -36,6 +49,10 @@ class BudgetPlanService
     /**
      * Update an existing budget plan together with its rincian per akun.
      *
+     * When the project already has approved allocations, the rincian is
+     * rebuilt from those allocations (single source of truth: allocations
+     * win), so the plan can never diverge from the approved budget.
+     *
      * @param  array<string, mixed>  $data
      */
     public function update(BudgetPlan $plan, array $data): BudgetPlan
@@ -49,7 +66,16 @@ class BudgetPlanService
                 'target_laba' => $data['target_laba'] ?? 0,
             ]);
 
-            $this->syncItems($plan, $data['items']);
+            $hasApprovedAllocations = ProjectAkun::query()
+                ->where('project_id', $plan->project_id)
+                ->where('status', AllocationStatus::Approved)
+                ->exists();
+
+            if ($hasApprovedAllocations) {
+                $this->syncFromApprovedAllocations($plan->project);
+            } else {
+                $this->syncItems($plan, $data['items']);
+            }
 
             return $plan->refresh();
         });
@@ -101,19 +127,18 @@ class BudgetPlanService
     {
         $approved = $project->projectAkuns()
             ->where('status', AllocationStatus::Approved)
-            ->get();
+            ->get(['akun_id', 'budget']);
+
+        $itemRows = $approved->map(fn ($allocation) => [
+            'akun_id' => $allocation->akun_id,
+            'nominal' => $allocation->budget,
+        ])->all();
+
+        $estimasiBiaya = (float) $approved->sum('budget');
 
         foreach ($project->budgetPlans()->get() as $plan) {
             $plan->items()->delete();
-
-            foreach ($approved as $allocation) {
-                $plan->items()->create([
-                    'akun_id' => $allocation->akun_id,
-                    'nominal' => $allocation->budget,
-                ]);
-            }
-
-            $estimasiBiaya = (float) $plan->items()->sum('nominal');
+            $plan->items()->createMany($itemRows);
 
             $plan->update([
                 'estimasi_biaya' => $estimasiBiaya,

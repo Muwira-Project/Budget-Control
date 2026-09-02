@@ -4,6 +4,7 @@ namespace Database\Factories;
 
 use App\Enums\CashflowJenis;
 use App\Enums\CashflowSumber;
+use App\Enums\KasStatus;
 use App\Models\Cashflow;
 use Illuminate\Database\Eloquent\Factories\Factory;
 
@@ -23,7 +24,7 @@ class CashflowFactory extends Factory
             'tanggal' => fake()->dateTimeBetween('-6 months', 'now'),
             'jenis' => fake()->randomElement([CashflowJenis::Masuk, CashflowJenis::Keluar]),
             'sumber' => CashflowSumber::Pendapatan,
-            'payment_request_id' => null,
+            'status' => KasStatus::Posted,
             'nominal' => fake()->numberBetween(1_000_000, 200_000_000),
             'keterangan' => fake()->optional()->sentence(),
         ];

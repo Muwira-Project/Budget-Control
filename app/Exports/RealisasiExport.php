@@ -24,7 +24,7 @@ class RealisasiExport implements FromQuery, WithHeadings, WithMapping
     public function query(): Builder
     {
         return Realisasi::query()
-            ->with(['project', 'akun', 'vendor', 'supplier', 'mandor', 'investor', 'kategori'])
+            ->with(['project', 'akun', 'pihakType', 'pihakItem', 'kategori'])
             ->when($this->filters['project_id'] ?? null, fn ($query, $projectId) => $query->where('project_id', $projectId))
             ->when($this->filters['status'] ?? null, fn ($query, $status) => $query->whereHas('project', fn ($project) => $project->where('status', $status)))
             ->when(
@@ -60,10 +60,7 @@ class RealisasiExport implements FromQuery, WithHeadings, WithMapping
             $this->spreadsheetValue($realisasi->akun->kode_akun.' - '.$realisasi->akun->nama_akun),
             $this->spreadsheetValue($realisasi->kategori?->nama),
             $realisasi->tanggal->format('Y-m-d'),
-            $this->spreadsheetValue($realisasi->vendor?->nama),
-            $this->spreadsheetValue($realisasi->supplier?->nama),
-            $this->spreadsheetValue($realisasi->mandor?->nama),
-            $this->spreadsheetValue($realisasi->investor?->nama),
+            $this->spreadsheetValue($realisasi->pihak),
             (float) $realisasi->nominal,
             $this->spreadsheetValue($realisasi->keterangan),
         ];

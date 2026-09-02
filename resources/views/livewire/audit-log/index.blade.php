@@ -18,6 +18,9 @@
                                             'created' => ['bg-blue-100', 'text-blue-700'],
                                             'updated' => ['bg-amber-100', 'text-amber-700'],
                                             'deleted' => ['bg-red-100', 'text-red-700'],
+                                            'login' => ['bg-green-100', 'text-green-700'],
+                                            'failed' => ['bg-orange-100', 'text-orange-700'],
+                                            'logout' => ['bg-gray-100', 'text-gray-700'],
                                         ][$activity->action] ?? ['bg-gray-100', 'text-gray-700'];
                                     @endphp
                                     <li class="relative">
@@ -30,6 +33,28 @@
                                                     <span class="mx-1">•</span>
                                                     {{ $activity->user?->name ?? 'System' }}
                                                 </p>
+                                                @if ($activity->action === 'updated' && is_array($activity->properties) && isset($activity->properties['before'], $activity->properties['after']))
+                                                    <div class="mt-2 rounded-lg bg-gray-50 p-3 text-xs">
+                                                        @foreach ($activity->properties['after'] as $field => $newValue)
+                                                            @if (array_key_exists($field, $activity->properties['before']) && $activity->properties['before'][$field] != $newValue)
+                                                                @php
+                                                                    $label = ucwords(str_replace('_', ' ', (string) $field));
+                                                                    $old = $activity->properties['before'][$field];
+                                                                    $old = is_scalar($old) ? (string) $old : json_encode($old);
+                                                                    $new = is_scalar($newValue) ? (string) $newValue : json_encode($newValue);
+                                                                @endphp
+                                                                <div class="flex justify-between gap-4 border-b border-gray-200 py-1 last:border-0 last:pb-0">
+                                                                    <span class="text-gray-500">{{ $label }}</span>
+                                                                    <span class="text-right">
+                                                                        <span class="text-gray-400 line-through">{{ $old !== '' ? $old : '—' }}</span>
+                                                                        <span class="mx-1 text-gray-400">→</span>
+                                                                        <span class="font-medium text-gray-800">{{ $new !== '' ? $new : '—' }}</span>
+                                                                    </span>
+                                                                </div>
+                                                            @endif
+                                                        @endforeach
+                                                    </div>
+                                                @endif
                                             </div>
                                             <time class="shrink-0 text-xs text-gray-400">{{ $activity->created_at->format('H:i') }}</time>
                                         </div>

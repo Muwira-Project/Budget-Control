@@ -63,25 +63,18 @@
                                 <tr class="hover:bg-gray-50">
                                     <td class="px-6 py-4 text-gray-700 whitespace-nowrap">{{ $item->tanggal->format('d M Y') }}</td>
                                     <td class="px-6 py-4">
-                                        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $item->sumber === \App\Models\Realisasi::SUMBER_PAYMENT_REQUEST ? 'bg-blue-100 text-blue-700' : ($item->sumber === \App\Models\Realisasi::SUMBER_AP_PAYMENT ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-700') }}">
+                                        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $item->sumber === \App\Models\Realisasi::SUMBER_AP_PAYMENT ? 'bg-indigo-100 text-indigo-700' : 'bg-gray-100 text-gray-700' }}">
                                             {{ $item->sumber_label }}
                                         </span>
                                     </td>
-                                    <td class="px-6 py-4 text-gray-700">{{ $item->project->nama }}</td>
+                                    <td class="px-6 py-4 text-gray-700">{{ $item->project->nama ?? 'Non-Project' }}</td>
                                     <td class="px-6 py-4 text-gray-700">{{ $item->akun->kode_akun }} - {{ $item->akun->nama_akun }}</td>
                                     <td class="px-6 py-4 text-gray-700">
-                                        @if ($item->pihakJenis === 'vendor')
-                                            <span class="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-700">Vendor</span>
-                                            {{ $item->vendor?->nama }}
-                                        @elseif ($item->pihakJenis === 'supplier')
-                                            <span class="inline-flex items-center rounded-full bg-emerald-100 px-2.5 py-0.5 text-xs font-medium text-emerald-700">Supplier</span>
-                                            {{ $item->supplier?->nama }}
-                                        @elseif ($item->pihakJenis === 'mandor')
-                                            <span class="inline-flex items-center rounded-full bg-indigo-100 px-2.5 py-0.5 text-xs font-medium text-indigo-700">Mandor</span>
-                                            {{ $item->mandor?->nama }}
-                                        @elseif ($item->pihakJenis === 'investor')
-                                            <span class="inline-flex items-center rounded-full bg-purple-100 px-2.5 py-0.5 text-xs font-medium text-purple-700">Investor</span>
-                                            {{ $item->investor?->nama }}
+                                        @if ($item->pihakJenis && $item->pihak)
+                                            <span class="inline-flex items-center rounded-full bg-blue-100 px-2.5 py-0.5 text-xs font-medium text-blue-700">{{ ucfirst($item->pihakJenis) }}</span>
+                                            {{ $item->pihak }}
+                                        @else
+                                            <span class="text-gray-400">-</span>
                                         @endif
                                     </td>
                                     <td class="px-6 py-4 text-gray-500">{{ $item->keterangan }}</td>

@@ -4,8 +4,14 @@ namespace App\Http\Controllers;
 
 use App\Exports\AkunExport;
 use App\Exports\AkunVsRealisasiExport;
+use App\Exports\CashflowExport;
+use App\Exports\MonitoringPeriodVarianceExport;
 use App\Exports\MonitoringSummaryExport;
+use App\Exports\MonitoringVarianceDetailExport;
+use App\Exports\PayableExport;
 use App\Exports\RealisasiExport;
+use App\Exports\ReceivableExport;
+use App\Models\MonitoringPeriod;
 use App\Services\MonitoringPeriodService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -65,13 +71,127 @@ class ExportController extends Controller
         };
     }
 
+    /**
+     * Download the monitoring period variance report (per account).
+     */
+    public function monitoringVariance(Request $request, MonitoringPeriod $period): BinaryFileResponse
+    {
+        $format = in_array($request->query('format'), ['csv', 'pdf'], true) ? $request->query('format') : 'xlsx';
+
+        $export = new MonitoringPeriodVarianceExport($period);
+
+        $filename = 'Monitoring_Variance_'.$period->nomor.'_'.now()->format('Ymd').'.'.$format;
+
+        return match ($format) {
+            'csv' => app(Excel::class)->download($export, $filename, Excel::CSV),
+            'pdf' => app(Excel::class)->download($export, $filename, Excel::DOMPDF),
+            default => app(Excel::class)->download($export, $filename),
+        };
+    }
+
+    /**
+     * Download the monitoring period variance detail report (project/account breakdown).
+     */
+    public function monitoringVarianceDetail(Request $request, MonitoringPeriod $period): BinaryFileResponse
+    {
+        $format = in_array($request->query('format'), ['csv', 'pdf'], true) ? $request->query('format') : 'xlsx';
+
+        $export = new MonitoringVarianceDetailExport($period);
+
+        $periodLabel = $period->nomor ?: 'period-'.$period->id;
+        $filename = 'Monitoring_Variance_Detail_'.$periodLabel.'_'.now()->format('Ymd').'.'.$format;
+
+        return match ($format) {
+            'csv' => app(Excel::class)->download($export, $filename, Excel::CSV),
+            'pdf' => app(Excel::class)->download($export, $filename, Excel::DOMPDF),
+            default => app(Excel::class)->download($export, $filename),
+        };
+    }
+
+    /**
+     * Download the receivables (AR) report.
+     */
+    public function receivables(Request $request): BinaryFileResponse
+    {
+        return $this->download(new ReceivableExport($this->receivableFilters($request)), 'AR_', $request->query('format', 'xlsx'));
+    }
+
+    /**
+     * Download the payables (AP) report.
+     */
+    public function payables(Request $request): BinaryFileResponse
+    {
+        return $this->download(new PayableExport($this->payableFilters($request)), 'AP_', $request->query('format', 'xlsx'));
+    }
+
+    /**
+     * Download the cashflow (Cash In/Out) report.
+     */
+    public function cashflows(Request $request): BinaryFileResponse
+    {
+        $format = in_array($request->query('format'), ['csv', 'pdf'], true) ? $request->query('format') : 'xlsx';
+        $export = new CashflowExport([
+            'jenis' => $request->query('jenis'),
+            'start_date' => $this->validDate($request->query('start_date')),
+            'end_date' => $this->validDate($request->query('end_date')),
+            'sumber' => $request->query('sumber'),
+            'cash_account_id' => $request->integer('cash_account_id') ?: null,
+        ]);
+
+        $filename = 'Cashflow_'.now()->format('Ymd').'.'.$format;
+
+        return match ($format) {
+            'csv' => app(Excel::class)->download($export, $filename, Excel::CSV),
+            'pdf' => app(Excel::class)->download($export, $filename, Excel::DOMPDF),
+            default => app(Excel::class)->download($export, $filename),
+        };
+    }
+
+    /**
+     * Build the export filters for receivables from the request query string.
+     *
+     * @return array<string, mixed>
+     */
+    private function receivableFilters(Request $request): array
+    {
+        return [
+            'project_id' => $request->integer('project_id') ?: null,
+            'status' => in_array($request->query('status'), ['belum_dibayar', 'sebagian', 'lunas'], true) ? $request->query('status') : null,
+            'aging' => in_array($request->query('aging'), ['current', '1_30', '31_60', '61_90', 'over_90'], true) ? $request->query('aging') : null,
+            'ar_category' => in_array($request->query('ar_category'), ['billed', 'unbilled', 'inprogress'], true) ? $request->query('ar_category') : null,
+            'po_number' => $request->query('po_number') ?: null,
+            'date_from' => $this->validDate($request->query('date_from')),
+            'date_to' => $this->validDate($request->query('date_to')),
+            'amount_min' => $request->filled('amount_min') ? (float) $request->query('amount_min') : null,
+            'amount_max' => $request->filled('amount_max') ? (float) $request->query('amount_max') : null,
+        ];
+    }
+
+    /**
+     * Build the export filters for payables from the request query string.
+     *
+     * @return array<string, mixed>
+     */
+    private function payableFilters(Request $request): array
+    {
+        return [
+            'project_id' => $request->integer('project_id') ?: null,
+            'status' => in_array($request->query('status'), ['belum_bayar', 'sebagian', 'lunas'], true) ? $request->query('status') : null,
+            'aging' => in_array($request->query('aging'), ['current', '1_30', '31_60', '61_90', 'over_90'], true) ? $request->query('aging') : null,
+            'date_from' => $this->validDate($request->query('date_from')),
+            'date_to' => $this->validDate($request->query('date_to')),
+            'amount_min' => $request->filled('amount_min') ? (float) $request->query('amount_min') : null,
+            'amount_max' => $request->filled('amount_max') ? (float) $request->query('amount_max') : null,
+        ];
+    }
+
     private function filters(Request $request): array
     {
         return [
             'project_id' => $request->integer('project_id') ?: null,
             'start_date' => $this->validDate($request->query('start_date')),
             'end_date' => $this->validDate($request->query('end_date')),
-            'status' => in_array($request->query('status'), ['active', 'completed'], true) ? $request->query('status') : null,
+            'status' => in_array($request->query('status'), ['progress', 'done', 'cancelled'], true) ? $request->query('status') : null,
         ];
     }
 

@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-#[Fillable(['project_id', 'periode', 'estimasi_pendapatan', 'estimasi_biaya', 'target_laba'])]
+#[Fillable(['project_id', 'periode', 'nomor', 'estimasi_pendapatan', 'estimasi_biaya', 'target_laba'])]
 class BudgetPlan extends Model
 {
     /** @use HasFactory<BudgetPlanFactory> */
