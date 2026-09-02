@@ -25,19 +25,22 @@ class FundTransfer extends Model
     protected static function booted(): void
     {
         static::saving(function (FundTransfer $transfer): void {
-            if ($transfer->dari_cash_account_id === null || $transfer->ke_cash_account_id === null) {
-                throw new \InvalidArgumentException('A fund transfer needs both source and destination accounts.');
-            }
+            // Only validate account fields if they're being changed or if this is a new record
+            if ($transfer->isDirty('dari_cash_account_id') || $transfer->isDirty('ke_cash_account_id') || $transfer->wasRecentlyCreated) {
+                if ($transfer->dari_cash_account_id === null || $transfer->ke_cash_account_id === null) {
+                    throw new \InvalidArgumentException('A fund transfer needs both source and destination accounts.');
+                }
 
-            if ((int) $transfer->dari_cash_account_id === (int) $transfer->ke_cash_account_id) {
-                throw new \InvalidArgumentException('Source and destination accounts must be different.');
+                if ((int) $transfer->dari_cash_account_id === (int) $transfer->ke_cash_account_id) {
+                    throw new \InvalidArgumentException('Source and destination accounts must be different.');
+                }
             }
         });
 
-        static::created(fn ($model) => DashboardService::clearCache());
-        static::updated(fn ($model) => DashboardService::clearCache());
-        static::deleted(fn ($model) => DashboardService::clearCache());
-        static::restored(fn ($model) => DashboardService::clearCache());
+        static::created(fn($model) => DashboardService::clearCache());
+        static::updated(fn($model) => DashboardService::clearCache());
+        static::deleted(fn($model) => DashboardService::clearCache());
+        static::restored(fn($model) => DashboardService::clearCache());
     }
 
     /**
@@ -121,6 +124,6 @@ class FundTransfer extends Model
      */
     protected function activityLabel(): string
     {
-        return 'Fund Transfer #'.$this->id;
+        return 'Fund Transfer #' . $this->id;
     }
 }

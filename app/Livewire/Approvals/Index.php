@@ -36,7 +36,7 @@ class Index extends Component
         try {
             $service->approve(Cashflow::findOrFail($id));
             session()->flash('status', 'Cash record approved.');
-        } catch (\LogicException $exception) {
+        } catch (\Exception $exception) {
             session()->flash('error', $exception->getMessage());
         }
     }
@@ -53,7 +53,7 @@ class Index extends Component
         try {
             $service->post(Cashflow::findOrFail($id));
             session()->flash('status', 'Cash record posted to the ledger.');
-        } catch (\LogicException $exception) {
+        } catch (\Exception $exception) {
             session()->flash('error', $exception->getMessage());
         }
     }
@@ -70,7 +70,7 @@ class Index extends Component
         try {
             $service->approve(FundTransfer::findOrFail($id));
             session()->flash('status', 'Fund transfer approved.');
-        } catch (\LogicException $exception) {
+        } catch (\Exception $exception) {
             session()->flash('error', $exception->getMessage());
         }
     }
@@ -87,7 +87,7 @@ class Index extends Component
         try {
             $service->post(FundTransfer::findOrFail($id));
             session()->flash('status', 'Fund transfer posted.');
-        } catch (\LogicException $exception) {
+        } catch (\Exception $exception) {
             session()->flash('error', $exception->getMessage());
         }
     }
@@ -104,7 +104,7 @@ class Index extends Component
         try {
             $service->approveVoid(Payment::findOrFail($id));
             session()->flash('status', 'Cancellation approved and settlement removed.');
-        } catch (\LogicException $exception) {
+        } catch (\Exception $exception) {
             session()->flash('error', $exception->getMessage());
         }
     }
@@ -146,7 +146,7 @@ class Index extends Component
             };
 
             session()->flash('status', 'Request rejected.');
-        } catch (\LogicException $exception) {
+        } catch (\Exception $exception) {
             session()->flash('error', $exception->getMessage());
         }
 
@@ -206,14 +206,14 @@ class Index extends Component
                 ->where('payment_id', null)
                 ->orderByDesc('tanggal')
                 ->get()
-                ->map(fn (Cashflow $item) => ['type' => 'cashflow', 'item' => $item]))
+                ->map(fn(Cashflow $item) => ['type' => 'cashflow', 'item' => $item]))
             ->merge(FundTransfer::query()
                 ->with(['dariCashAccount', 'keCashAccount', 'approvedBy'])
                 ->where('status', KasStatus::Approved)
                 ->orderByDesc('tanggal')
                 ->get()
-                ->map(fn (FundTransfer $item) => ['type' => 'transfer', 'item' => $item]))
-            ->sortByDesc(fn (array $row) => $row['item']->tanggal?->format('Y-m-d'));
+                ->map(fn(FundTransfer $item) => ['type' => 'transfer', 'item' => $item]))
+            ->sortByDesc(fn(array $row) => $row['item']->tanggal?->format('Y-m-d'));
     }
 
     /**
