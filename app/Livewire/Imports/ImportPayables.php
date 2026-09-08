@@ -45,6 +45,11 @@ class ImportPayables extends Component
         ];
 
         $this->reset('file');
+
+        // Redirect to payables list if all rows imported successfully
+        if ($import->successCount > 0 && empty($import->failures) && empty($import->fatalError)) {
+            $this->redirect(route('payables.index'), navigate: true);
+        }
     }
 
     /** Download the import template. */

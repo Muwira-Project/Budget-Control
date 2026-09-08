@@ -139,18 +139,18 @@ class PayableImport extends BaseImport
             return [false, null, $msg];
         }
 
-        // Check duplicate invoice in database
+        // Check duplicate invoice in database - skip if exists
         if ($this->useProjectCode) {
             $existing = Payable::where('project_id', $project->id)
                 ->where('nomor_invoice', $invoiceNo)
                 ->exists();
             if ($existing) {
-                return [false, null, "Invoice '{$invoiceNo}' already exists for project '{$projectCode}'."];
+                return [false, null, "Invoice '{$invoiceNo}' already exists for project '{$projectCode}' - skipped."];
             }
         } else {
             $existing = Payable::where('nomor_invoice', $invoiceNo)->exists();
             if ($existing) {
-                return [false, null, "Invoice '{$invoiceNo}' already exists (global unique)."];
+                return [false, null, "Invoice '{$invoiceNo}' already exists (global unique) - skipped."];
             }
         }
 
