@@ -14,17 +14,41 @@ use Illuminate\Support\Collection;
  */
 class ReceivableImport extends BaseImport
 {
-    protected array $expectedHeaders = [
-        'project_code',
-        'party_type_code',
-        'party_name',
-        'date',
-        'invoice_no',
-        'due_date',
-        'amount',
-        'paid',
-        'description',
-    ];
+    protected bool $useProjectCode = true;
+
+    public function __construct(bool $useProjectCode = true)
+    {
+        $this->useProjectCode = $useProjectCode;
+        $this->expectedHeaders = $this->buildExpectedHeaders();
+    }
+
+    protected function buildExpectedHeaders(): array
+    {
+        if ($this->useProjectCode) {
+            return [
+                'project_code',
+                'party_type_code',
+                'party_name',
+                'date',
+                'invoice_no',
+                'due_date',
+                'amount',
+                'paid',
+                'description',
+            ];
+        }
+
+        return [
+            'party_type_code',
+            'party_name',
+            'date',
+            'invoice_no',
+            'due_date',
+            'amount',
+            'paid',
+            'description',
+        ];
+    }
 
     /**
      * Validate a single row.
@@ -44,8 +68,10 @@ class ReceivableImport extends BaseImport
         $description = trim((string) $row->get('description', ''));
 
         // Required fields
-        if ($projectCode === '') {
-            return [false, null, 'Project code is required.'];
+        if ($this->useProjectCode) {
+            if ($projectCode === '') {
+                return [false, null, 'Project code is required.'];
+            }
         }
         if ($partyTypeCode === '') {
             return [false, null, 'Party type code is required (vendor/supplier/mandor/investor).'];
@@ -63,14 +89,17 @@ class ReceivableImport extends BaseImport
             return [false, null, 'Amount is required and must be numeric.'];
         }
 
-        // Find project by code
-        $project = Project::where('kode', $projectCode)->first();
-        if (! $project) {
-            return [false, null, "Project with code '{$projectCode}' not found."];
+        $project = null;
+        if ($this->useProjectCode) {
+            // Find project by code
+            $project = Project::where('kode', $projectCode)->first();
+            if (! $project) {
+                return [false, null, "Project with code '{$projectCode}' not found."];
+            }
         }
 
-        // Find master type by kode (e.g., vendor, supplier, mandor, investor)
-        $masterType = MasterType::where('kode', $partyTypeCode)->first();
+        // Find master type by kode (case-insensitive, e.g., vendor/supplier/mandor/investor)
+        $masterType = MasterType::whereRaw('LOWER(kode) = ?', [$partyTypeCode])->first();
         if (! $masterType) {
             return [false, null, "Party type '{$partyTypeCode}' not found. Use: vendor, supplier, mandor, investor."];
         }
@@ -89,17 +118,27 @@ class ReceivableImport extends BaseImport
         }
 
         // Check duplicate invoice within this import
-        $importKey = "{$project->id}|{$invoiceNo}";
+        $importKey = $this->useProjectCode ? "{$project->id}|{$invoiceNo}" : $invoiceNo;
         if (isset($seenKeys[$importKey])) {
-            return [false, null, "Duplicate invoice '{$invoiceNo}' for project '{$projectCode}' in this import."];
+            $msg = $this->useProjectCode
+                ? "Duplicate invoice '{$invoiceNo}' for project '{$projectCode}' in this import."
+                : "Duplicate invoice '{$invoiceNo}' in this import (global).";
+            return [false, null, $msg];
         }
 
         // Check duplicate invoice in database
-        $existing = Receivable::where('project_id', $project->id)
-            ->where('nomor_invoice', $invoiceNo)
-            ->exists();
-        if ($existing) {
-            return [false, null, "Invoice '{$invoiceNo}' already exists for project '{$projectCode}'."];
+        if ($this->useProjectCode) {
+            $existing = Receivable::where('project_id', $project->id)
+                ->where('nomor_invoice', $invoiceNo)
+                ->exists();
+            if ($existing) {
+                return [false, null, "Invoice '{$invoiceNo}' already exists for project '{$projectCode}' - skipped."];
+            }
+        } else {
+            $existing = Receivable::where('nomor_invoice', $invoiceNo)->exists();
+            if ($existing) {
+                return [false, null, "Invoice '{$invoiceNo}' already exists (global unique) - skipped."];
+            }
         }
 
         // Validate dates
@@ -126,7 +165,7 @@ class ReceivableImport extends BaseImport
         return [
             true,
             [
-                'project_id' => $project->id,
+                'project_id' => $this->useProjectCode ? $project->id : null,
                 'pihak_type_id' => $masterType->id,
                 'pihak_item_id' => $masterItem->id,
                 'tanggal' => $parsedDate,

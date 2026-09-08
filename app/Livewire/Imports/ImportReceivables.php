@@ -3,7 +3,6 @@
 namespace App\Livewire\Imports;
 
 use App\Imports\ReceivableImport;
-use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Validate;
@@ -24,6 +23,9 @@ class ImportReceivables extends Component
     ])]
     public $file;
 
+    #[Validate('in:with_project,without_project')]
+    public string $importMode = 'with_project';
+
     /** Import report: success count, failed rows, and fatal error message. */
     public array $report = [];
 
@@ -32,7 +34,8 @@ class ImportReceivables extends Component
     {
         $this->validate();
 
-        $import = new ReceivableImport;
+        $useProjectCode = $this->importMode === 'with_project';
+        $import = new ReceivableImport($useProjectCode);
         Excel::import($import, $this->file->getRealPath());
 
         $this->report = [
@@ -42,22 +45,23 @@ class ImportReceivables extends Component
         ];
 
         $this->reset('file');
+
+        // Redirect to receivables list if all rows imported successfully
+        if ($import->successCount > 0 && empty($import->failures) && empty($import->fatalError)) {
+            $this->redirect(route('receivables.index'), navigate: true);
+        }
     }
 
     /** Download the import template. */
     public function downloadTemplate(): RedirectResponse
     {
-        return redirect()->route('imports.receivables.template');
+        $useProjectCode = $this->importMode === 'with_project';
+        return redirect()->route('imports.receivables.template', ['use_project_code' => $useProjectCode]);
     }
 
     /** Render the import page. */
     public function render()
     {
         return view('livewire.imports.import-receivables');
-    }
-
-    public function __invoke(): View
-    {
-        return $this->render();
     }
 }

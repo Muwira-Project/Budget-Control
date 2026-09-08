@@ -41,9 +41,10 @@ class ImportTemplateController extends Controller
     /**
      * Download the receivable import template.
      */
-    public function receivable()
+    public function receivable(\Illuminate\Http\Request $request)
     {
-        return Excel::download(new ReceivableTemplateExport, 'template-receivable.xlsx');
+        $useProjectCode = $request->boolean('use_project_code', true);
+        return Excel::download(new ReceivableTemplateExport($useProjectCode), 'template-receivable.xlsx');
     }
 
     /**
