@@ -23,8 +23,8 @@ class ImportPayables extends Component
     ])]
     public $file;
 
-    #[Validate('boolean')]
-    public bool $useProjectCode = false;
+    #[Validate('in:with_project,without_project')]
+    public string $importMode = 'without_project';
 
     /** Import report: success count, failed rows, and fatal error message. */
     public array $report = [];
@@ -34,7 +34,8 @@ class ImportPayables extends Component
     {
         $this->validate();
 
-        $import = new PayableImport($this->useProjectCode);
+        $useProjectCode = $this->importMode === 'with_project';
+        $import = new PayableImport($useProjectCode);
         Excel::import($import, $this->file->getRealPath());
 
         $this->report = [
@@ -49,7 +50,8 @@ class ImportPayables extends Component
     /** Download the import template. */
     public function downloadTemplate(): RedirectResponse
     {
-        return redirect()->route('imports.payables.template', ['use_project_code' => $this->useProjectCode]);
+        $useProjectCode = $this->importMode === 'with_project';
+        return redirect()->route('imports.payables.template', ['use_project_code' => $useProjectCode]);
     }
 
     /** Render the import page. */
