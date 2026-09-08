@@ -84,7 +84,17 @@ abstract class BaseImport implements ToCollection, WithHeadingRow
         try {
             DB::transaction(function () use ($validRows): void {
                 foreach ($validRows as $data) {
-                    $this->persist($data);
+                    try {
+                        $this->persist($data);
+                    } catch (\Illuminate\Database\QueryException $e) {
+                        // Handle unique constraint violation per row (e.g., race condition on invoice)
+                        if ($e->getCode() === '23000' || $e->getPrevious()?->getCode() === 23000) {
+                            $invoiceNo = $data['nomor_invoice'] ?? 'unknown';
+                            $this->failures[] = ['row' => 0, 'reason' => "Invoice '{$invoiceNo}' already exists - skipped."];
+                            continue;
+                        }
+                        throw $e;
+                    }
                 }
             });
         } catch (\Throwable $e) {

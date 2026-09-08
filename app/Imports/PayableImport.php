@@ -200,7 +200,16 @@ class PayableImport extends BaseImport
      */
     protected function persist(array $data): void
     {
-        Payable::create($data);
+        try {
+            Payable::create($data);
+        } catch (\Illuminate\Database\QueryException $e) {
+            // Handle unique constraint violation (race condition between check and insert)
+            if ($e->getCode() === '23000' || $e->getPrevious()?->getCode() === 23000) {
+                $invoiceNo = $data['nomor_invoice'] ?? 'unknown';
+                throw new \Exception("Invoice '{$invoiceNo}' already exists - skipped.");
+            }
+            throw $e;
+        }
     }
 
     /**
