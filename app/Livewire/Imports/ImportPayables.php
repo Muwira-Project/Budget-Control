@@ -23,6 +23,9 @@ class ImportPayables extends Component
     ])]
     public $file;
 
+    #[Validate('boolean')]
+    public bool $useProjectCode = false;
+
     /** Import report: success count, failed rows, and fatal error message. */
     public array $report = [];
 
@@ -31,7 +34,7 @@ class ImportPayables extends Component
     {
         $this->validate();
 
-        $import = new PayableImport;
+        $import = new PayableImport($this->useProjectCode);
         Excel::import($import, $this->file->getRealPath());
 
         $this->report = [
@@ -46,7 +49,7 @@ class ImportPayables extends Component
     /** Download the import template. */
     public function downloadTemplate(): RedirectResponse
     {
-        return redirect()->route('imports.payables.template');
+        return redirect()->route('imports.payables.template', ['use_project_code' => $this->useProjectCode]);
     }
 
     /** Render the import page. */
@@ -54,5 +57,4 @@ class ImportPayables extends Component
     {
         return view('livewire.imports.import-payables');
     }
-
 }

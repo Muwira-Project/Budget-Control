@@ -49,9 +49,10 @@ class ImportTemplateController extends Controller
     /**
      * Download the payable import template.
      */
-    public function payable()
+    public function payable(\Illuminate\Http\Request $request)
     {
-        return Excel::download(new PayableTemplateExport, 'template-payable.xlsx');
+        $useProjectCode = $request->boolean('use_project_code', true);
+        return Excel::download(new PayableTemplateExport($useProjectCode), 'template-payable.xlsx');
     }
 
     /**
