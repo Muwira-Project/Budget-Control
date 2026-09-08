@@ -3,7 +3,6 @@
 namespace App\Livewire\Imports;
 
 use App\Imports\PayableImport;
-use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Validate;
@@ -56,8 +55,4 @@ class ImportPayables extends Component
         return view('livewire.imports.import-payables');
     }
 
-    public function __invoke(): View
-    {
-        return $this->render();
-    }
 }

@@ -2,8 +2,6 @@
 
 namespace App\Services;
 
-use App\Enums\PayableStatus;
-use App\Enums\ReceivableStatus;
 use App\Models\Payable;
 use App\Models\Receivable;
 use Illuminate\Support\Facades\DB;
@@ -27,13 +25,13 @@ class OutstandingBalanceService
 
         if ($type === 'ap') {
             return (float) Payable::where('pihak_item_id', $pihakItemId)
-                ->where('status', '!=', PayableStatus::Lunas)
+                ->whereRaw('nominal - nominal_dibayar > 0')
                 ->sum(DB::raw('nominal - nominal_dibayar'));
         }
 
         // AR
         return (float) Receivable::where('pihak_item_id', $pihakItemId)
-            ->where('status', '!=', ReceivableStatus::Lunas)
+            ->whereRaw('nominal - nominal_dibayar > 0')
             ->sum(DB::raw('nominal - nominal_dibayar'));
     }
 
@@ -66,7 +64,7 @@ class OutstandingBalanceService
         }
 
         if ($type === 'ap') {
-            return Payable::where('status', '!=', PayableStatus::Lunas)
+            return Payable::whereRaw('nominal - nominal_dibayar > 0')
                 ->selectRaw('pihak_item_id, SUM(nominal - nominal_dibayar) as outstanding')
                 ->groupBy('pihak_item_id')
                 ->pluck('outstanding', 'pihak_item_id')
@@ -75,7 +73,7 @@ class OutstandingBalanceService
         }
 
         // AR
-        return Receivable::where('status', '!=', ReceivableStatus::Lunas)
+        return Receivable::whereRaw('nominal - nominal_dibayar > 0')
             ->selectRaw('pihak_item_id, SUM(nominal - nominal_dibayar) as outstanding')
             ->groupBy('pihak_item_id')
             ->pluck('outstanding', 'pihak_item_id')

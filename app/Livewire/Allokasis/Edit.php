@@ -163,13 +163,13 @@ class Edit extends Component
 
         if ($this->type === 'ap') {
             return (float) Payable::where('pihak_item_id', $this->pihakItemId)
-                ->where('status', '!=', PayableStatus::Lunas)
+                ->whereRaw('nominal - nominal_dibayar > 0')
                 ->sum(DB::raw('nominal - nominal_dibayar'));
         }
 
         // AR
         return (float) Receivable::where('pihak_item_id', $this->pihakItemId)
-            ->where('status', '!=', ReceivableStatus::Lunas)
+            ->whereRaw('nominal - nominal_dibayar > 0')
             ->sum(DB::raw('nominal - nominal_dibayar'));
     }
 
@@ -222,7 +222,6 @@ class Edit extends Component
         }
 
         return Payable::with(['pihakItem', 'akun'])
-            ->where('status', '!=', PayableStatus::Lunas)
             ->whereRaw('nominal - nominal_dibayar > 0')
             ->orderBy('tanggal')
             ->get();
@@ -239,7 +238,6 @@ class Edit extends Component
         }
 
         return Receivable::with(['pihakItem'])
-            ->where('status', '!=', ReceivableStatus::Lunas)
             ->whereRaw('nominal - nominal_dibayar > 0')
             ->orderBy('tanggal')
             ->get();

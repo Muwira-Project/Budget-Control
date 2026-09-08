@@ -210,7 +210,6 @@ class Create extends Component
         }
 
         return Payable::with(['pihakItem', 'akun'])
-            ->where('status', '!=', PayableStatus::Lunas)
             ->whereRaw('nominal - nominal_dibayar > 0')
             ->orderBy('tanggal')
             ->get();
@@ -227,7 +226,6 @@ class Create extends Component
         }
 
         return Receivable::with(['pihakItem'])
-            ->where('status', '!=', ReceivableStatus::Lunas)
             ->whereRaw('nominal - nominal_dibayar > 0')
             ->orderBy('tanggal')
             ->get();
