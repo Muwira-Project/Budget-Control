@@ -86,7 +86,7 @@
                                     <tr class="hover:bg-gray-50">
 <td class="w-8 px-6 py-4"><input type="checkbox" wire:click="toggleSelected({{ $payable->id }})" @checked(in_array($payable->id, $this->selectedIds, true)) class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" /></td>
                                             
-                                        <td class="px-6 py-4 text-gray-700">{{ $payable->project->kode }} - {{ $payable->project->nama }}</td>
+                                        <td class="px-6 py-4 text-gray-700">{{ $payable->project ? $payable->project->kode . ' - ' . $payable->project->nama : '—' }}</td>
                                         <td class="px-6 py-4 text-gray-700">{{ $payable->akun->kode_akun }} - {{ $payable->akun->nama_akun }}</td>
                                         <td class="px-6 py-4 text-gray-700">
                                             @if ($payable->pihakJenis && $payable->pihak)
