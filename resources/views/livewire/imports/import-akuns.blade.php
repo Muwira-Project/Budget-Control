@@ -11,7 +11,7 @@
             <form wire:submit="import" class="p-6">
                 <p class="text-sm text-gray-500">
                     Column template: <span class="font-medium text-gray-700">Account Code, Account Name, Type, Category</span>.
-                    New Account Codes are created automatically. Fill Type with "pendapatan" or "pengeluaran".
+                    New Account Codes and Categories are created automatically. Fill Type with <span class="font-medium text-gray-700">"Income"</span> or <span class="font-medium text-gray-700">"Outcome"</span>.
                 </p>
 
                 <input type="file" wire:model="file" accept=".xlsx,.xls" class="mt-4 block w-full text-sm text-gray-700 file:me-3 file:rounded-lg file:border-0 file:bg-blue-50 file:px-4 file:py-2 file:text-sm file:font-semibold file:text-blue-700 hover:file:bg-blue-100" />

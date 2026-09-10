@@ -181,6 +181,167 @@ class ReportService
     }
 
     /**
+     * Detailed transaction ledger for a specific cash account across a date range.
+     *
+     * @return array{account: array<string, mixed>, saldo_awal: float, total_masuk: float, total_keluar: float, saldo_akhir: float, transactions: array<int, array<string, mixed>>}
+     */
+    public function cashFlowDetail(?string $startDate = null, ?string $endDate = null, ?int $cashAccountId = null): array
+    {
+        $account = $cashAccountId ? CashAccount::find($cashAccountId) : CashAccount::query()->where('status', 'active')->orderBy('kode')->first();
+
+        if (! $account) {
+            return [
+                'account'      => ['id' => null, 'kode' => '-', 'nama' => 'Semua Rekening', 'jenis' => '-'],
+                'saldo_awal'   => 0.0,
+                'total_masuk'  => 0.0,
+                'total_keluar' => 0.0,
+                'saldo_akhir'  => 0.0,
+                'transactions' => [],
+            ];
+        }
+
+        $inBefore = 0.0;
+        $outBefore = 0.0;
+        $trBefore = ['in' => 0.0, 'out' => 0.0];
+
+        if ($startDate !== null) {
+            $before = Cashflow::query()
+                ->where('status', 'posted')
+                ->where('cash_account_id', $account->id)
+                ->whereDate('tanggal', '<', $startDate);
+            $inBefore = (float) (clone $before)->where('jenis', 'masuk')->sum('nominal');
+            $outBefore = (float) (clone $before)->where('jenis', 'keluar')->sum('nominal');
+            $trBefore = $this->transferTotals($account->id, $startDate, true);
+        }
+
+        $saldoAwal = (float) $account->saldo_awal + $inBefore - $outBefore + $trBefore['in'] - $trBefore['out'];
+
+        // Cashflow entries in period
+        $cashflows = Cashflow::query()
+            ->with(['voucher', 'akun', 'project', 'payment.payable.pihakItem', 'payment.receivable.pihakItem'])
+            ->where('status', 'posted')
+            ->where('cash_account_id', $account->id)
+            ->when($startDate, fn ($q) => $q->whereDate('tanggal', '>=', $startDate))
+            ->when($endDate, fn ($q) => $q->whereDate('tanggal', '<=', $endDate))
+            ->get();
+
+        // Transfers in in period
+        $transfersIn = FundTransfer::query()
+            ->with(['voucher', 'dariCashAccount'])
+            ->where('status', 'posted')
+            ->where('ke_cash_account_id', $account->id)
+            ->when($startDate, fn ($q) => $q->whereDate('tanggal', '>=', $startDate))
+            ->when($endDate, fn ($q) => $q->whereDate('tanggal', '<=', $endDate))
+            ->get();
+
+        // Transfers out in period
+        $transfersOut = FundTransfer::query()
+            ->with(['voucher', 'keCashAccount'])
+            ->where('status', 'posted')
+            ->where('dari_cash_account_id', $account->id)
+            ->when($startDate, fn ($q) => $q->whereDate('tanggal', '>=', $startDate))
+            ->when($endDate, fn ($q) => $q->whereDate('tanggal', '<=', $endDate))
+            ->get();
+
+        $events = collect();
+
+        foreach ($cashflows as $cf) {
+            $desc = $cf->keterangan;
+            if (! $desc) {
+                if ($cf->project) {
+                    $desc = 'Proyek: '.$cf->project->nama;
+                } elseif ($cf->akun) {
+                    $desc = 'Akun: '.$cf->akun->nama_akun;
+                } else {
+                    $desc = $cf->sumber->label();
+                }
+            }
+
+            $events->push([
+                'tanggal'     => $cf->tanggal->format('Y-m-d'),
+                'tanggal_fmt' => $cf->tanggal->format('d M Y'),
+                'id'          => $cf->id,
+                'type_code'   => 'CF',
+                'ref_no'      => $cf->voucher?->nomor ?? ('CF#'.$cf->id),
+                'jenis'       => $cf->jenis->value === 'masuk' ? 'Cash In' : 'Cash Out',
+                'sumber'      => $cf->sumber->label(),
+                'pihak'       => $cf->pihak ?? '-',
+                'keterangan'  => $desc,
+                'masuk'       => $cf->jenis->value === 'masuk' ? (float) $cf->nominal : 0.0,
+                'keluar'      => $cf->jenis->value === 'keluar' ? (float) $cf->nominal : 0.0,
+            ]);
+        }
+
+        foreach ($transfersIn as $tr) {
+            $events->push([
+                'tanggal'     => $tr->tanggal->format('Y-m-d'),
+                'tanggal_fmt' => $tr->tanggal->format('d M Y'),
+                'id'          => $tr->id,
+                'type_code'   => 'TR_IN',
+                'ref_no'      => $tr->voucher?->nomor ?? ('TR#'.$tr->id),
+                'jenis'       => 'Transfer In',
+                'sumber'      => 'Fund Transfer',
+                'pihak'       => 'Dari: '.($tr->dariCashAccount?->nama ?? '-'),
+                'keterangan'  => 'Transfer dari '.($tr->dariCashAccount?->nama ?? '-').($tr->keterangan ? ' ('.$tr->keterangan.')' : ''),
+                'masuk'       => (float) $tr->nominal,
+                'keluar'      => 0.0,
+            ]);
+        }
+
+        foreach ($transfersOut as $tr) {
+            $events->push([
+                'tanggal'     => $tr->tanggal->format('Y-m-d'),
+                'tanggal_fmt' => $tr->tanggal->format('d M Y'),
+                'id'          => $tr->id,
+                'type_code'   => 'TR_OUT',
+                'ref_no'      => $tr->voucher?->nomor ?? ('TR#'.$tr->id),
+                'jenis'       => 'Transfer Out',
+                'sumber'      => 'Fund Transfer',
+                'pihak'       => 'Ke: '.($tr->keCashAccount?->nama ?? '-'),
+                'keterangan'  => 'Transfer ke '.($tr->keCashAccount?->nama ?? '-').($tr->keterangan ? ' ('.$tr->keterangan.')' : ''),
+                'masuk'       => 0.0,
+                'keluar'      => (float) $tr->nominal,
+            ]);
+        }
+
+        // Sort chronologically
+        $sortedEvents = $events->sort(function ($a, $b) {
+            if ($a['tanggal'] === $b['tanggal']) {
+                return $a['id'] <=> $b['id'];
+            }
+
+            return strcmp($a['tanggal'], $b['tanggal']);
+        })->values();
+
+        $runningBalance = $saldoAwal;
+        $transactions = [];
+        $totalMasuk = 0.0;
+        $totalKeluar = 0.0;
+
+        foreach ($sortedEvents as $row) {
+            $runningBalance += ($row['masuk'] - $row['keluar']);
+            $totalMasuk += $row['masuk'];
+            $totalKeluar += $row['keluar'];
+            $row['saldo_berjalan'] = $runningBalance;
+            $transactions[] = $row;
+        }
+
+        return [
+            'account' => [
+                'id'    => $account->id,
+                'kode'  => $account->kode,
+                'nama'  => $account->nama,
+                'jenis' => $account->jenis->label(),
+            ],
+            'saldo_awal'   => $saldoAwal,
+            'total_masuk'  => $totalMasuk,
+            'total_keluar' => $totalKeluar,
+            'saldo_akhir'  => $runningBalance,
+            'transactions' => $transactions,
+        ];
+    }
+
+    /**
      * Aging AR/AP as of a date.
      *
      * @return array{as_of: string, ar_rows: array<int, array<string, mixed>>, ap_rows: array<int, array<string, mixed>>, ar_totals: array<string, float>, ap_totals: array<string, float>}

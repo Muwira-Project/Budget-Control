@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Exports\AkunTemplateExport;
+use App\Exports\BudgetingTemplateExport;
 use App\Exports\CashflowTemplateExport;
 use App\Exports\PayableTemplateExport;
 use App\Exports\ProjectExport;
@@ -12,6 +13,14 @@ use Maatwebsite\Excel\Facades\Excel;
 
 class ImportTemplateController extends Controller
 {
+    /**
+     * Download the budgeting import template.
+     */
+    public function budgeting()
+    {
+        return Excel::download(new BudgetingTemplateExport, 'template-budgeting.xlsx');
+    }
+
     /**
      * Download the akun import template.
      */

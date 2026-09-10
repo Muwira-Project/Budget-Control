@@ -42,16 +42,20 @@ class ImportAkunTest extends TestCase
 
         $path = $this->storeXlsx('akun-valid.xlsx', [
             ['Account Code', 'Account Name', 'Type', 'Category'],
-            ['5-100', 'Bahan Baku dan Gudang', 'pengeluaran', 'Material'],
-            ['4-100', 'Maintenance', 'pendapatan', ''],
+            ['5-100', 'Bahan Baku dan Gudang', 'Outcome', 'Material'],
+            ['4-100', 'Maintenance', 'Income', ''],
+            ['5-101', 'Biaya Operasional', 'pengeluaran', ''],
+            ['4-101', 'Pendapatan Lain', 'pendapatan', ''],
         ]);
 
         $import = new AkunImport;
         Excel::import($import, $path);
 
-        $this->assertSame(2, $import->successCount);
-        $this->assertDatabaseHas('akuns', ['kode_akun' => '5-100', 'nama_akun' => 'Bahan Baku dan Gudang']);
-        $this->assertDatabaseHas('akuns', ['kode_akun' => '4-100', 'nama_akun' => 'Maintenance']);
+        $this->assertSame(4, $import->successCount);
+        $this->assertDatabaseHas('akuns', ['kode_akun' => '5-100', 'nama_akun' => 'Bahan Baku dan Gudang', 'jenis_akun' => 'pengeluaran']);
+        $this->assertDatabaseHas('akuns', ['kode_akun' => '4-100', 'nama_akun' => 'Maintenance', 'jenis_akun' => 'pendapatan']);
+        $this->assertDatabaseHas('akuns', ['kode_akun' => '5-101', 'nama_akun' => 'Biaya Operasional', 'jenis_akun' => 'pengeluaran']);
+        $this->assertDatabaseHas('akuns', ['kode_akun' => '4-101', 'nama_akun' => 'Pendapatan Lain', 'jenis_akun' => 'pendapatan']);
     }
 
     public function test_kategori_is_linked_when_provided(): void
@@ -121,7 +125,7 @@ class ImportAkunTest extends TestCase
         Excel::import($import, $path);
 
         $this->assertSame(0, $import->successCount);
-        $this->assertStringContainsString('income or expense', $import->failures[0]['reason']);
+        $this->assertStringContainsString('income or outcome', $import->failures[0]['reason']);
     }
 
     public function test_wrong_header_is_fatal_and_nothing_is_imported(): void

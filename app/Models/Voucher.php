@@ -40,4 +40,12 @@ class Voucher extends Model
     {
         return $this->belongsTo(User::class, 'created_by');
     }
+
+    /**
+     * Get dynamic nominal amount from linked cashflow or fund transfer.
+     */
+    public function getNominalAttribute(): float
+    {
+        return (float) ($this->cashflow?->nominal ?? $this->fundTransfer?->nominal ?? 0.0);
+    }
 }

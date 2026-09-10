@@ -25,7 +25,7 @@ class Index extends Component
 {
     use BulkSelection, PerPagePagination, WithPagination;
 
-    public ?int $projectId = null;
+    public mixed $projectId = null;
 
     public string $statusFilter = '';
 
@@ -58,6 +58,8 @@ class Index extends Component
         }
 
         $service->delete($allocation);
+        $this->cachedRows = [];
+        $this->cachedSummary = null;
 
         session()->flash('status', 'Allocation deleted successfully.');
     }
@@ -80,6 +82,8 @@ class Index extends Component
         }
 
         $service->submit($allocation);
+        $this->cachedRows = [];
+        $this->cachedSummary = null;
 
         session()->flash('status', 'Allocation submitted for approval.');
     }
@@ -102,6 +106,8 @@ class Index extends Component
         }
 
         $service->approve($allocation);
+        $this->cachedRows = [];
+        $this->cachedSummary = null;
 
         session()->flash('status', 'Allocation approved.');
     }
@@ -124,6 +130,8 @@ class Index extends Component
         }
 
         $service->reject($allocation);
+        $this->cachedRows = [];
+        $this->cachedSummary = null;
 
         session()->flash('status', 'Allocation rejected.');
     }
@@ -148,6 +156,8 @@ class Index extends Component
             $deleted++;
         }
         $this->selectedIds = [];
+        $this->cachedRows = [];
+        $this->cachedSummary = null;
         session()->flash('status', $deleted.' allocation(s) deleted.');
         if ($skipped > 0) {
             session()->flash('error', $skipped.' allocation(s) cannot be deleted in their current state.');
@@ -174,6 +184,8 @@ class Index extends Component
         }
 
         $created = $service->createAllocationsFromPlan($budgetPlan);
+        $this->cachedRows = [];
+        $this->cachedSummary = null;
 
         session()->flash('status', $created > 0
             ? $created.' allocation draft(s) created from the Budget. Submit them under Budgeting for admin approval.'
@@ -200,6 +212,8 @@ class Index extends Component
      */
     public function updatedProjectId(): void
     {
+        $this->cachedRows = [];
+        $this->cachedSummary = null;
         $this->resetPage();
     }
 
@@ -208,6 +222,8 @@ class Index extends Component
      */
     public function updatedStatusFilter(): void
     {
+        $this->cachedRows = [];
+        $this->cachedSummary = null;
         $this->resetPage();
     }
 
@@ -257,11 +273,13 @@ class Index extends Component
      */
     protected function getBaseAllocationQuery()
     {
-        $project = $this->projectId ? Project::find($this->projectId) : null;
         $isAdmin = auth()->user()->isAdmin();
+        $isNonProjectFilter = ($this->projectId === 'non-project' || $this->projectId === 'non_project');
+        $project = (! $isNonProjectFilter && $this->projectId) ? Project::find($this->projectId) : null;
 
         return ProjectAkun::query()
             ->with(['project', 'akun', 'pihakItem'])
+            ->when($isNonProjectFilter, fn ($query) => $query->whereNull('project_id'))
             ->when($project, fn ($query) => $query->where('project_id', $project->id))
             ->when($this->statusFilter !== '', fn ($query) => $query->where('status', $this->statusFilter))
             ->when(! $isAdmin, fn ($query) => $query->where('created_by', auth()->id()));
@@ -272,6 +290,11 @@ class Index extends Component
      */
     protected function getBasePlanItemsQuery()
     {
+        $isNonProjectFilter = ($this->projectId === 'non-project' || $this->projectId === 'non_project');
+        if ($isNonProjectFilter) {
+            return BudgetPlanItem::query()->whereRaw('1 = 0');
+        }
+
         $project = $this->projectId ? Project::find($this->projectId) : null;
 
         return BudgetPlanItem::query()
@@ -292,15 +315,11 @@ class Index extends Component
         $byKey = [];
 
         foreach ($allocations as $allocation) {
-            $key = ($allocation->project_id ?? 'non-project').'-'.$allocation->akun_id;
-            // For non-project, include type and party/custom_name in key to allow multiple rows per akun
+            // Unique key for non-project allocations ensures every allocation row is shown and never overwritten
             if ($allocation->project_id === null) {
-                $key .= '-'.$allocation->type;
-                if ($allocation->pihak_item_id) {
-                    $key .= '-'.$allocation->pihak_item_id;
-                } elseif ($allocation->custom_name) {
-                    $key .= '-'.md5($allocation->custom_name);
-                }
+                $key = 'nonproj-'.$allocation->akun_id.'-alloc-'.$allocation->id;
+            } else {
+                $key = 'proj-'.$allocation->project_id.'-'.$allocation->akun_id;
             }
 
             // Check if this allocation was created from a budget plan
@@ -326,7 +345,7 @@ class Index extends Component
         }
 
         foreach ($planItems as $item) {
-            $key = ($item->budgetPlan->project_id ?? 'non-project').'-'.$item->akun_id;
+            $key = 'proj-'.$item->budgetPlan->project_id.'-'.$item->akun_id;
 
             if (isset($byKey[$key])) {
                 // Keep the allocation's own budget; only fill the plan reference.
@@ -335,7 +354,7 @@ class Index extends Component
             } else {
                 $byKey[$key] = [
                     'project' => $item->budgetPlan->project,
-                    'is_non_project' => $item->budgetPlan->project_id === null,
+                    'is_non_project' => false,
                     'akun' => $item->akun,
                     'budget' => (float) $item->nominal,
                     'allocation' => null,
@@ -357,13 +376,26 @@ class Index extends Component
             return $rows;
         }
 
-        $needle = strtolower($this->search);
+        $needle = strtolower(trim($this->search));
 
         return array_filter($rows, function (array $row) use ($needle) {
             $project = $row['project'];
             $akun = $row['akun'];
+            $allocation = $row['allocation'];
+            $partyOrCustom = $allocation ? ($allocation->display_name ?? '') : '';
+            $typeLabel = ($allocation && $row['is_non_project']) ? ($allocation->type_label ?? '') : '';
+            $bNumber = $row['budgeting_number'] ?? '';
+
             $haystack = strtolower(
-                trim(($project?->kode ?? ($row['is_non_project'] ? 'non-project' : '')).' '.($project?->nama ?? ($row['is_non_project'] ? 'Non-Project' : '')).' '.($akun?->kode_akun ?? '').' '.($akun?->nama_akun ?? ''))
+                trim(
+                    ($project?->kode ?? ($row['is_non_project'] ? 'non-project non project non-proyek non proyek' : '')).' '.
+                    ($project?->nama ?? ($row['is_non_project'] ? 'Non-Project' : '')).' '.
+                    ($akun?->kode_akun ?? '').' '.
+                    ($akun?->nama_akun ?? '').' '.
+                    $partyOrCustom.' '.
+                    $typeLabel.' '.
+                    $bNumber
+                )
             );
 
             return str_contains($haystack, $needle);
@@ -437,41 +469,53 @@ class Index extends Component
             return $this->cachedSummary;
         }
 
-        $project = $this->projectId ? Project::find($this->projectId) : null;
         $isAdmin = auth()->user()->isAdmin();
+        $isNonProjectFilter = ($this->projectId === 'non-project' || $this->projectId === 'non_project');
+        $project = (! $isNonProjectFilter && $this->projectId) ? Project::find($this->projectId) : null;
 
-        // For summary, we need ALL allocations (unfiltered by status/search)
-        // to match the header cards behavior
-        $allAllocations = ProjectAkun::query()
-            ->with(['project', 'akun', 'pihakItem'])
-            ->when($project, fn ($query) => $query->where('project_id', $project->id))
-            ->when(! $isAdmin, fn ($query) => $query->where('created_by', auth()->id()))
-            ->get();
+        if ($isNonProjectFilter) {
+            $totalBudget = (float) ProjectAkun::query()
+                ->whereNull('project_id')
+                ->when(! $isAdmin, fn ($query) => $query->where('created_by', auth()->id()))
+                ->sum('budget');
 
-        $allPlanItems = BudgetPlanItem::query()
-            ->when($project, fn ($query) => $query->whereHas('budgetPlan', fn ($q) => $q->where('project_id', $project->id)))
-            ->get();
+            $totalAllocation = (float) ProjectAkun::query()
+                ->whereNull('project_id')
+                ->when(! $isAdmin, fn ($query) => $query->where('created_by', auth()->id()))
+                ->sum('allocation');
 
-        // Realisasi yang berasal dari cashflow non-project (sumber pengeluaran_lain,
-        // project_id null) — dihitung ke total realisasi non-project.
-        $nonProjectRealisasi = $project === null
-            ? (float) Realisasi::query()->whereNull('project_id')->sum('nominal')
-            : 0.0;
+            $totalRealisasi = (float) Realisasi::query()->whereNull('project_id')->sum('nominal');
+        } elseif ($project !== null) {
+            $totalBudget = (float) BudgetPlanItem::query()
+                ->whereHas('budgetPlan', fn ($q) => $q->where('project_id', $project->id))
+                ->sum('nominal');
+
+            $totalAllocation = (float) ProjectAkun::query()
+                ->where('project_id', $project->id)
+                ->when(! $isAdmin, fn ($query) => $query->where('created_by', auth()->id()))
+                ->sum('allocation');
+
+            $totalRealisasi = (float) Realisasi::query()->where('project_id', $project->id)->sum('nominal');
+        } else {
+            $planItemsBudget = (float) BudgetPlanItem::query()->sum('nominal');
+            $nonProjectBudget = (float) ProjectAkun::query()
+                ->whereNull('project_id')
+                ->when(! $isAdmin, fn ($query) => $query->where('created_by', auth()->id()))
+                ->sum('budget');
+
+            $totalBudget = $planItemsBudget + $nonProjectBudget;
+
+            $totalAllocation = (float) ProjectAkun::query()
+                ->when(! $isAdmin, fn ($query) => $query->where('created_by', auth()->id()))
+                ->sum('allocation');
+
+            $totalRealisasi = (float) Realisasi::query()->sum('nominal');
+        }
 
         $this->cachedSummary = [
-            'total_budget' => (float) $allPlanItems->sum('nominal')
-                + (float) ProjectAkun::query()
-                    ->whereNull('project_id')
-                    ->when(! $isAdmin, fn ($query) => $query->where('created_by', auth()->id()))
-                    ->sum('budget'),
-            'total_allocation' => (float) $allAllocations->sum('allocation')
-                + ($project === null
-                    ? (float) ProjectAkun::query()
-                        ->whereNull('project_id')
-                        ->when(! $isAdmin, fn ($query) => $query->where('created_by', auth()->id()))
-                        ->sum('allocation')
-                    : 0.0),
-            'total_realisasi' => (float) $allAllocations->sum('total_realisasi') + $nonProjectRealisasi,
+            'total_budget' => $totalBudget,
+            'total_allocation' => $totalAllocation,
+            'total_realisasi' => $totalRealisasi,
         ];
 
         return $this->cachedSummary;

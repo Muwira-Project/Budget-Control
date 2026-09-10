@@ -7,11 +7,12 @@
             </div>
             <div class="flex items-center gap-2">
                 @if (auth()->user()->isAdmin())
+                    <a href="{{ route('imports.budgeting') }}" wire:navigate class="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900">
+                        <x-icon name="upload" class="mr-1.5 h-4 w-4" /> Import Budgeting
+                    </a>
                     <a href="{{ route('budget-plans.create') }}" wire:navigate class="inline-flex items-center justify-center rounded-lg bg-white px-4 py-2 text-sm font-semibold text-gray-700 shadow-sm ring-1 ring-gray-200 hover:bg-gray-50">
                         <x-icon name="clipboard" class="mr-1.5 h-4 w-4" /> Manage Budget Plan
                     </a>
-                @endif
-                @if (auth()->user()->isAdmin())
                     <button wire:click="createNonProjectAllocation" class="inline-flex items-center justify-center rounded-lg bg-purple-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:ring-offset-2">
                         <x-icon name="plus" class="mr-1.5 h-4 w-4" /> Add Non-Project
                     </button>
@@ -50,7 +51,8 @@
                     <div>
                         <x-input-label for="project_filter" :value="__('Filter Project')" />
                         <select id="project_filter" wire:model.live="projectId" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                            <option value="">All Projects</option>
+                            <option value="">All Projects & Non-Project</option>
+                            <option value="non-project">Non-Project Only</option>
                             @foreach ($this->projects as $project)
                                 <option value="{{ $project->id }}">{{ $project->kode }} - {{ $project->nama }}</option>
                             @endforeach

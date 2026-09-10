@@ -152,14 +152,19 @@
                                             {{ $entry->jenis->value === 'masuk' ? '+' : '-' }}{{ format_idr($entry->nominal) }}
                                         </td>
                                         <td class="px-6 py-4 text-right whitespace-nowrap">
-                                            @if ($entry->isManual() && ! $entry->isPosted())
-                                                <x-action-buttons :delete-id="$entry->id" />
-                                            @endif
-                                            @if ($entry->isPosted())
-                                                <button type="button" onclick="openPrintPreview('{{ route('cashflows.print', $entry) }}')" title="Cetak Voucher" class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600">
-                                                    <x-icon name="printer" class="h-4 w-4" />
-                                                </button>
-                                            @endif
+                                            <div class="inline-flex items-center gap-1.5">
+                                                <a href="{{ route('cashflows.edit', $entry) }}" wire:navigate title="Edit Transaksi" class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-blue-600 shadow-sm transition hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700">
+                                                    <x-icon name="edit" class="h-4 w-4" />
+                                                </a>
+                                                @if ($entry->isPosted())
+                                                    <button type="button" onclick="openPrintPreview('{{ route('cashflows.print', $entry) }}')" title="Cetak Voucher" class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 shadow-sm transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600">
+                                                        <x-icon name="printer" class="h-4 w-4" />
+                                                    </button>
+                                                @endif
+                                                @if ($entry->isManual() && ! $entry->isPosted())
+                                                    <x-action-buttons :delete-id="$entry->id" />
+                                                @endif
+                                            </div>
                                         </td>
                                     </tr>
                                 @endforeach

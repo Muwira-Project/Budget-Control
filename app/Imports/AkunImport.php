@@ -24,8 +24,13 @@ class AkunImport extends BaseImport
     {
         $kodeAkun = trim((string) $row->get('account_code'));
         $namaAkun = trim((string) $row->get('account_name'));
-        $jenis = strtolower(trim((string) ($row->get('type') ?? '')));
+        $rawJenis = strtolower(trim((string) ($row->get('type') ?? '')));
         $kategoriName = trim((string) ($row->get('category') ?? ''));
+        $jenis = match ($rawJenis) {
+            'income', 'pendapatan', 'pemasukan', 'in' => 'pendapatan',
+            'outcome', 'pengeluaran', 'expense', 'out', 'biaya' => 'pengeluaran',
+            default => null,
+        };
 
         if ($kodeAkun === '') {
             return [false, null, 'Account Code is required'];
@@ -35,17 +40,19 @@ class AkunImport extends BaseImport
             return [false, null, 'Account Name is required'];
         }
 
-        if (! in_array($jenis, ['pendapatan', 'pengeluaran'], true)) {
-            return [false, null, 'Type must be income or expense'];
+        if ($jenis === null) {
+            return [false, null, 'Type must be income or outcome'];
         }
 
         $kategoriId = null;
 
         if ($kategoriName !== '') {
-            $kategori = Kategori::where('nama', $kategoriName)->first();
+            $kategori = Kategori::where('nama', $kategoriName)
+                ->orWhereRaw('LOWER(TRIM(nama)) = ?', [strtolower($kategoriName)])
+                ->first();
 
             if (! $kategori) {
-                return [false, null, 'Category '.$kategoriName.' not found in the category master'];
+                $kategori = Kategori::create(['nama' => $kategoriName]);
             }
 
             $kategoriId = $kategori->id;

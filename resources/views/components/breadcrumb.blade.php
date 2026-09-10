@@ -22,6 +22,7 @@ match ($name) {
 'allokasis.edit' => [$breadcrumbs[] = ['label' => 'Budgeting', 'route' => 'budgeting.index'], $breadcrumbs[] = ['label' => 'Edit Allocation']],
 'realisasi.index' => $breadcrumbs[] = ['label' => 'Actual', 'route' => 'realisasi.index'],
 'imports.akuns' => [$breadcrumbs[] = ['label' => 'Import', 'route' => null], $breadcrumbs[] = ['label' => 'Import Account']],
+'imports.budgeting' => [$breadcrumbs[] = ['label' => 'Import', 'route' => null], $breadcrumbs[] = ['label' => 'Import Budgeting']],
 'cashflows.index' => [$breadcrumbs[] = ['label' => 'Cash Activity', 'route' => 'cashflows.index']],
 'cashflows.create' => [$breadcrumbs[] = ['label' => 'Cash Activity', 'route' => 'cashflows.index'], $breadcrumbs[] = ['label' => 'Add Cash Entry']],
 'cash-accounts.index' => [$breadcrumbs[] = ['label' => 'Cash Activity', 'route' => 'cashflows.index'], $breadcrumbs[] = ['label' => 'Cash Account', 'route' => 'cash-accounts.index']],

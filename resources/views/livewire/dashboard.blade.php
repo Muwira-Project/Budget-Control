@@ -78,8 +78,8 @@
         @unless ($invalid)
         {{-- ============ SECTION 2: FINANCIAL SUMMARY (4 metric cards) ============ --}}
         <section class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
-            <x-metric-card label="Total Budget" :value="format_idr($stats['total_budget'])" icon="clipboard" tone="brand" hint="Accrual: approved project budget" :href="auth()->user()->isAdmin() ? route('budgeting.index') : null" />
-            <x-metric-card label="Total Actual" :value="format_idr($stats['total_realisasi'])" icon="trending-up" tone="amber" hint="Accrual: recorded transactions" :href="auth()->user()->isAdmin() ? route('realisasi.index') : null" />
+            <x-metric-card label="Total Budget" :value="format_idr($stats['total_budget'])" icon="clipboard" tone="brand" :hint="'Proyek: ' . format_idr($stats['project_budget'] ?? $totalBudget) . ' · Non-Proyek: ' . format_idr($stats['non_project_budget'] ?? 0)" :href="auth()->user()->isAdmin() ? route('budgeting.index') : null" />
+            <x-metric-card label="Total Actual" :value="format_idr($stats['total_realisasi'])" icon="trending-up" tone="amber" :hint="'Proyek: ' . format_idr($stats['realisasi_project'] ?? $totalRealisasi) . ' · Non-Proyek: ' . format_idr($stats['realisasi_non_project'] ?? 0)" :href="auth()->user()->isAdmin() ? route('realisasi.index') : null" />
             <x-metric-card label="Remaining Budget" :value="format_idr($stats['total_sisa'])" icon="wallet" :tone="$totalSisa >= 0 ? 'emerald' : 'red'" :hint="$totalSisa >= 0 ? 'Accrual: budget not yet used' : 'Accrual: over budget'" :href="auth()->user()->isAdmin() ? route('realisasi.index') : null" />
             <x-metric-card label="Variance" :value="format_idr($variance)" icon="scale" :tone="$variance <= 0 ? 'brand' : 'red'" :hint="$variance <= 0 ? 'Accrual: actual vs budget' : 'Over budget by ' . format_idr($variance)" href="{{ route('monitoring.index') }}" />
         </section>
@@ -187,6 +187,12 @@
                             <p class="mt-1 text-lg font-bold text-slate-900">{{ format_idr($totalSisa) }}</p>
                             <p class="text-xs text-slate-500">{{ round(100 - $usagePercent, 1) }}% remaining</p>
                         </div>
+                    </div>
+                    <div class="flex items-center justify-between rounded-lg bg-slate-50/80 px-3 py-2 text-xs ring-1 ring-slate-100">
+                        <span class="text-slate-600">Alokasi Disetujui (Approved):</span>
+                        <span class="font-semibold text-slate-800">
+                            Proyek: {{ format_idr($stats['project_allocation'] ?? 0) }} · Non-Proyek: {{ format_idr($stats['non_project_allocation'] ?? 0) }}
+                        </span>
                     </div>
                 </div>
             </div>
@@ -318,6 +324,70 @@
                 </div>
             </div>
         </section>
+
+        {{-- ============ SECTION 4B: NON-PROJECT BUDGETING & OVERHEAD ============ --}}
+        @if (!empty($stats['non_project_allocations']) || ($stats['non_project_budget'] ?? 0) > 0)
+        <div class="app-card overflow-hidden">
+            <div class="flex flex-col gap-2 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                    <h3 class="flex items-center gap-2 font-semibold text-slate-900">
+                        <span class="inline-flex h-6 w-6 items-center justify-center rounded-full bg-purple-100 text-purple-700 text-xs font-bold">NP</span>
+                        Non-Project Budget & Allocations
+                    </h3>
+                    <p class="mt-0.5 text-sm text-slate-500">Anggaran operasional, overhead kantor, hutang supplier & piutang non-proyek</p>
+                </div>
+                <div class="flex items-center gap-3">
+                    <span class="rounded-full bg-purple-50 px-3 py-1 text-xs font-semibold text-purple-700 ring-1 ring-purple-100">
+                        Total Alokasi {{ format_idr($stats['non_project_allocation'] ?? 0) }}
+                    </span>
+                    <a href="{{ route('budgeting.index', ['projectId' => 'non-project']) }}" wire:navigate class="text-xs font-semibold text-brand-600 hover:text-brand-700">Lihat Semua Non-Project →</a>
+                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="data-table min-w-full">
+                    <thead>
+                        <tr>
+                            <th>Akun</th>
+                            <th>Tipe</th>
+                            <th>Deskripsi / Pihak</th>
+                            <th class="text-right">Budget</th>
+                            <th class="text-right">Alokasi Disetujui</th>
+                            <th class="text-right">Realisasi</th>
+                            <th class="text-right">Sisa Alokasi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @forelse ($stats['non_project_allocations'] ?? [] as $np)
+                        <tr>
+                            <td class="font-medium text-slate-900">{{ $np['akun_kode'] }} - {{ $np['akun_nama'] }}</td>
+                            <td>
+                                <span class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium
+                                    {{ match ($np['type']) {
+                                        'ap' => 'bg-red-100 text-red-700',
+                                        'ar' => 'bg-green-100 text-green-700',
+                                        'other_income' => 'bg-blue-100 text-blue-700',
+                                        'other_outcome' => 'bg-amber-100 text-amber-700',
+                                        default => 'bg-gray-100 text-gray-700',
+                                    } }}">
+                                    {{ $np['type_label'] }}
+                                </span>
+                            </td>
+                            <td class="text-slate-700">{{ $np['display_name'] ?: '—' }}</td>
+                            <td class="text-right tabular-nums text-slate-700">{{ format_idr($np['budget']) }}</td>
+                            <td class="text-right tabular-nums font-semibold text-slate-900">{{ format_idr($np['allocation']) }}</td>
+                            <td class="text-right tabular-nums text-slate-700">{{ format_idr($np['realisasi']) }}</td>
+                            <td class="text-right tabular-nums font-medium {{ $np['sisa'] >= 0 ? 'text-emerald-700' : 'text-red-700' }}">{{ format_idr($np['sisa']) }}</td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-xs text-slate-400">Belum ada alokasi non-proyek yang disetujui.</td>
+                        </tr>
+                        @endforelse
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        @endif
 
         {{-- Actual per Category (kept feature) --}}
         <div class="app-card overflow-hidden">

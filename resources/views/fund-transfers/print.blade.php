@@ -72,22 +72,26 @@
             <div>
                 <div class="h-16 border-b border-gray-300 mb-2"></div>
                 <p class="text-gray-500">Dibuat Oleh</p>
-                <p class="font-medium">{{ $transfer->createdBy?->name ?? '-' }}</p>
+                @php
+                    $creator = $transfer->createdBy?->name;
+                    $isGenericAdmin = $creator && in_array(strtolower(trim($creator)), ['admin', 'administrator', 'admin myfinance', 'system'], true);
+                @endphp
+                <p class="font-medium">{{ ($creator && ! $isGenericAdmin) ? $creator : '( ........................ )' }}</p>
             </div>
             <div>
                 <div class="h-16 border-b border-gray-300 mb-2"></div>
                 <p class="text-gray-500">Diperiksa</p>
-                <p class="font-medium"> </p>
+                <p class="font-medium">( ........................ )</p>
             </div>
             <div>
                 <div class="h-16 border-b border-gray-300 mb-2"></div>
                 <p class="text-gray-500">Disetujui</p>
-                <p class="font-medium"> </p>
+                <p class="font-medium">( ........................ )</p>
             </div>
         </div>
 
         <div class="mt-8 text-center text-xs text-gray-400">
-            <p>Dicetak pada {{ now()->format('d F Y H:i') }} oleh {{ auth()->user()->name ?? 'System' }}</p>
+            <p>Dicetak pada {{ now()->format('d F Y H:i') }}</p>
         </div>
     </div>
 

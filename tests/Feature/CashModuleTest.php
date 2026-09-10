@@ -456,4 +456,146 @@ class CashModuleTest extends TestCase
             ->assertSet('stats.opening_balance', 20000000.0)
             ->assertSet('stats.saldo_rekening', 33500000.0);
     }
+
+    public function test_cash_in_and_cash_out_can_be_edited(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $this->actingAs($admin);
+
+        $acc = CashAccount::factory()->create(['saldo_awal' => 10000000, 'status' => 'active']);
+        $cf = Cashflow::factory()->create([
+            'tanggal'         => '2026-08-01',
+            'jenis'           => 'masuk',
+            'sumber'          => 'pendapatan',
+            'nominal'         => 5000000,
+            'keterangan'      => 'Original Keterangan',
+            'cash_account_id' => $acc->id,
+            'status'          => 'posted',
+        ]);
+
+        \Livewire\Livewire::test(\App\Livewire\Cashflows\Edit::class, ['cashflow' => $cf])
+            ->set('nominal', '7500000')
+            ->set('keterangan', 'Updated Keterangan')
+            ->set('tanggal', '2026-08-02')
+            ->call('save')
+            ->assertHasNoErrors()
+            ->assertRedirect(route('cashflows.index'));
+
+        $this->assertDatabaseHas('cashflows', [
+            'id'         => $cf->id,
+            'nominal'    => 7500000,
+            'keterangan' => 'Updated Keterangan',
+            'tanggal'    => '2026-08-02 00:00:00',
+        ]);
+
+        // Voucher should be synchronized
+        if ($cf->voucher) {
+            $this->assertEquals(7500000.0, (float) $cf->voucher->fresh()->nominal);
+            $this->assertEquals('Updated Keterangan', $cf->voucher->fresh()->keterangan);
+        }
+    }
+
+    public function test_fund_transfer_can_be_edited(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $this->actingAs($admin);
+
+        $acc1 = CashAccount::factory()->create(['status' => 'active']);
+        $acc2 = CashAccount::factory()->create(['status' => 'active']);
+        $acc3 = CashAccount::factory()->create(['status' => 'active']);
+
+        $transfer = FundTransfer::factory()->create([
+            'tanggal'              => '2026-08-01',
+            'dari_cash_account_id' => $acc1->id,
+            'ke_cash_account_id'   => $acc2->id,
+            'nominal'              => 2000000,
+            'keterangan'           => 'Transfer lama',
+            'status'               => 'posted',
+        ]);
+
+        \Livewire\Livewire::test(\App\Livewire\FundTransfers\Edit::class, ['fundTransfer' => $transfer])
+            ->set('nominal', '3500000')
+            ->set('keCashAccountId', $acc3->id)
+            ->set('keterangan', 'Transfer baru')
+            ->call('save')
+            ->assertHasNoErrors()
+            ->assertRedirect(route('fund-transfers.index'));
+
+        $this->assertDatabaseHas('fund_transfers', [
+            'id'                   => $transfer->id,
+            'nominal'              => 3500000,
+            'dari_cash_account_id' => $acc1->id,
+            'ke_cash_account_id'   => $acc3->id,
+            'keterangan'           => 'Transfer baru',
+        ]);
+    }
+
+    public function test_cash_flow_detail_per_bank_report_and_export(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $this->actingAs($admin);
+
+        $bankBca = CashAccount::factory()->create(['kode' => 'BCA', 'nama' => 'Bank BCA', 'saldo_awal' => 50000000, 'status' => 'active']);
+        $bankMandiri = CashAccount::factory()->create(['kode' => 'MDR', 'nama' => 'Bank Mandiri', 'saldo_awal' => 20000000, 'status' => 'active']);
+
+        Cashflow::factory()->create([
+            'cash_account_id' => $bankBca->id,
+            'tanggal'         => '2026-08-05',
+            'nominal'         => 10000000,
+            'jenis'           => 'masuk',
+            'status'          => 'posted',
+        ]);
+
+        Cashflow::factory()->create([
+            'cash_account_id' => $bankBca->id,
+            'tanggal'         => '2026-08-10',
+            'nominal'         => 4000000,
+            'jenis'           => 'keluar',
+            'status'          => 'posted',
+        ]);
+
+        $detail = app(\App\Services\ReportService::class)->cashFlowDetail('2026-08-01', '2026-08-31', $bankBca->id);
+
+        $this->assertSame(50000000.0, (float) $detail['saldo_awal']);
+        $this->assertSame(10000000.0, (float) $detail['total_masuk']);
+        $this->assertSame(4000000.0, (float) $detail['total_keluar']);
+        $this->assertSame(56000000.0, (float) $detail['saldo_akhir']);
+        $this->assertCount(2, $detail['transactions']);
+        $this->assertSame(56000000.0, (float) end($detail['transactions'])['saldo_berjalan']);
+
+        // Test Livewire report component with selected bank
+        \Livewire\Livewire::test(\App\Livewire\Reports\CashFlow::class)
+            ->set('startDate', '2026-08-01')
+            ->set('endDate', '2026-08-31')
+            ->set('cashAccountId', $bankBca->id)
+            ->assertSee('Bank BCA')
+            ->assertSee('Buku Kas / Mutasi Transaksi');
+
+        // Test Excel download route
+        $response = $this->get(route('exports.cash-flow-report', [
+            'start_date'      => '2026-08-01',
+            'end_date'        => '2026-08-31',
+            'cash_account_id' => $bankBca->id,
+        ]));
+        $response->assertOk();
+    }
+
+    public function test_voucher_print_does_not_display_administrator_text(): void
+    {
+        $admin = User::factory()->admin()->create(['name' => 'Administrator']);
+        $this->actingAs($admin);
+
+        $cf = Cashflow::factory()->create(['status' => 'posted', 'created_by' => $admin->id]);
+        $tr = FundTransfer::factory()->create(['status' => 'posted', 'created_by' => $admin->id]);
+
+        $cfPrint = $this->get(route('cashflows.print', $cf));
+        $cfPrint->assertOk();
+        $cfPrint->assertDontSee('oleh Administrator');
+        $cfPrint->assertDontSee('oleh System');
+
+        $trPrint = $this->get(route('fund-transfers.print', $tr));
+        $trPrint->assertOk();
+        $trPrint->assertDontSee('oleh Administrator');
+        $trPrint->assertDontSee('oleh System');
+    }
 }

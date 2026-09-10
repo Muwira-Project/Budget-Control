@@ -153,12 +153,14 @@ class ExportController extends Controller
      */
     public function cashFlowReport(Request $request): BinaryFileResponse
     {
-        $startDate = $this->validDate($request->query('start_date'));
-        $endDate   = $this->validDate($request->query('end_date'));
-        $format    = in_array($request->query('format'), ['csv'], true) ? 'csv' : 'xlsx';
+        $startDate     = $this->validDate($request->query('start_date'));
+        $endDate       = $this->validDate($request->query('end_date'));
+        $cashAccountId = $request->integer('cash_account_id') ?: null;
+        $format        = in_array($request->query('format'), ['csv'], true) ? 'csv' : 'xlsx';
 
-        $export   = new CashFlowReportExport($startDate, $endDate);
-        $filename = 'Cash_Flow_Report_'.now()->format('Ymd').'.'.$format;
+        $export   = new CashFlowReportExport($startDate, $endDate, $cashAccountId);
+        $prefix   = $cashAccountId ? 'Cash_Flow_Detail_' : 'Cash_Flow_Report_';
+        $filename = $prefix.now()->format('Ymd').'.'.$format;
 
         return $format === 'csv'
             ? app(Excel::class)->download($export, $filename, Excel::CSV)

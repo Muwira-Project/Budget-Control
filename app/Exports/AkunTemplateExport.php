@@ -15,6 +15,9 @@ class AkunTemplateExport implements FromArray
     {
         return [
             ['Account Code', 'Account Name', 'Type', 'Category'],
+            ['4-100', 'Pendapatan Proyek', 'Income', 'Operasional'],
+            ['5-100', 'Biaya Bahan Baku & Material', 'Outcome', 'Material'],
+            ['6-100', 'Biaya Listrik & Kantor', 'Outcome', 'Overhead'],
         ];
     }
 }

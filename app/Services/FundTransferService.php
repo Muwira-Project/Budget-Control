@@ -39,6 +39,40 @@ class FundTransferService
     }
 
     /**
+     * Update a fund transfer.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public function update(FundTransfer $transfer, array $data): FundTransfer
+    {
+        $dariId = (int) ($data['dari_cash_account_id'] ?? $transfer->dari_cash_account_id);
+        $keId = (int) ($data['ke_cash_account_id'] ?? $transfer->ke_cash_account_id);
+
+        if ($dariId === $keId) {
+            throw ValidationException::withMessages(['ke_cash_account_id' => 'Source and destination accounts must be different.']);
+        }
+
+        $transfer->update([
+            'tanggal'              => $data['tanggal'] ?? $transfer->tanggal,
+            'dari_cash_account_id' => $dariId,
+            'ke_cash_account_id'   => $keId,
+            'nominal'              => $data['nominal'] ?? $transfer->nominal,
+            'keterangan'           => array_key_exists('keterangan', $data) ? $data['keterangan'] : $transfer->keterangan,
+        ]);
+
+        if ($transfer->voucher) {
+            $transfer->voucher->update([
+                'tanggal'    => $transfer->tanggal,
+                'keterangan' => $transfer->keterangan,
+            ]);
+        }
+
+        \App\Services\DashboardService::clearCache();
+
+        return $transfer->refresh();
+    }
+
+    /**
      * Post an unposted fund transfer.
      */
     public function post(FundTransfer $transfer): FundTransfer
@@ -54,6 +88,8 @@ class FundTransferService
         ]);
 
         app(VoucherService::class)->generateForFundTransfer($transfer);
+
+        \App\Services\DashboardService::clearCache();
 
         return $transfer->refresh();
     }

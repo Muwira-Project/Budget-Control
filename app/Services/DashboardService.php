@@ -95,6 +95,35 @@ class DashboardService
             ])
             ->all();
 
+        $projectBudget = (float) ProjectAkun::whereNotNull('project_id')->sum('budget');
+        $nonProjectBudget = (float) ProjectAkun::whereNull('project_id')->sum('budget');
+        $projectAllocation = (float) ProjectAkun::whereNotNull('project_id')->where('status', AllocationStatus::Approved)->sum('allocation');
+        $nonProjectAllocation = (float) ProjectAkun::whereNull('project_id')->where('status', AllocationStatus::Approved)->sum('allocation');
+
+        $realisasiProject = (float) (clone $realisasiQuery)->whereNotNull('project_id')->sum('nominal');
+        $realisasiNonProject = (float) (clone $realisasiQuery)->whereNull('project_id')->sum('nominal');
+
+        $nonProjectAllocations = ProjectAkun::query()
+            ->with(['akun', 'pihakItem'])
+            ->whereNull('project_id')
+            ->where('status', AllocationStatus::Approved)
+            ->orderByDesc('allocation')
+            ->take(6)
+            ->get()
+            ->map(fn (ProjectAkun $pa) => [
+                'id' => $pa->id,
+                'akun_kode' => $pa->akun?->kode_akun ?? '-',
+                'akun_nama' => $pa->akun?->nama_akun ?? '-',
+                'type' => $pa->type,
+                'type_label' => $pa->type_label,
+                'display_name' => $pa->display_name,
+                'budget' => (float) $pa->budget,
+                'allocation' => (float) $pa->allocation,
+                'realisasi' => (float) $pa->total_realisasi,
+                'sisa' => (float) $pa->sisa_allocation,
+            ])
+            ->all();
+
         return [
             'total_projects' => $projects->count(),
             'projects_barang' => $projects->where('jenis', ProjectJenis::Barang)->count(),
@@ -103,6 +132,13 @@ class DashboardService
             'total_allocation' => $totalAllocation,
             'total_realisasi' => $totalRealisasi,
             'total_sisa' => $totalBudget - $totalRealisasi,
+            'project_budget' => $projectBudget,
+            'non_project_budget' => $nonProjectBudget,
+            'project_allocation' => $projectAllocation,
+            'non_project_allocation' => $nonProjectAllocation,
+            'realisasi_project' => $realisasiProject,
+            'realisasi_non_project' => $realisasiNonProject,
+            'non_project_allocations' => $nonProjectAllocations,
             'total_nilai' => $projects->sum(fn(Project $project) => $project->nilai_total),
             'total_pajak' => $projects->sum(fn(Project $project) => $project->nilai_pajak),
             'persentase' => $totalBudget > 0 ? round(($totalRealisasi / $totalBudget) * 100, 1) : 0,
@@ -246,7 +282,9 @@ class DashboardService
             })
             ->sum('budget_plan_items.nominal');
 
-        return $rangeBudget > 0 ? $rangeBudget : (float) ProjectAkun::sum('budget');
+        $nonProjectBudget = (float) ProjectAkun::whereNull('project_id')->sum('budget');
+
+        return $rangeBudget > 0 ? ($rangeBudget + $nonProjectBudget) : (float) ProjectAkun::sum('budget');
     }
 
     /**

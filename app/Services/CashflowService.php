@@ -52,6 +52,42 @@ class CashflowService
     }
 
     /**
+     * Update a cashflow entry.
+     *
+     * @param  array<string, mixed>  $data
+     */
+    public function update(Cashflow $cashflow, array $data): Cashflow
+    {
+        $cashflow->update([
+            'tanggal'         => $data['tanggal'] ?? $cashflow->tanggal,
+            'nominal'         => $data['nominal'] ?? $cashflow->nominal,
+            'keterangan'      => array_key_exists('keterangan', $data) ? $data['keterangan'] : $cashflow->keterangan,
+            'cash_account_id' => $data['cash_account_id'] ?? $cashflow->cash_account_id,
+            'akun_id'         => array_key_exists('akun_id', $data) ? $data['akun_id'] : $cashflow->akun_id,
+            'project_id'      => array_key_exists('project_id', $data) ? $data['project_id'] : $cashflow->project_id,
+            'pihak_type_id'   => array_key_exists('pihak_type_id', $data) ? $data['pihak_type_id'] : $cashflow->pihak_type_id,
+            'pihak_item_id'   => array_key_exists('pihak_item_id', $data) ? $data['pihak_item_id'] : $cashflow->pihak_item_id,
+        ]);
+
+        // Sync voucher if present
+        if ($cashflow->voucher) {
+            $cashflow->voucher->update([
+                'tanggal'    => $cashflow->tanggal,
+                'keterangan' => $cashflow->keterangan,
+            ]);
+        }
+
+        // Re-sync Realisasi if manual entry tagged with project/party
+        if ($cashflow->isPosted() && $cashflow->isManual() && ($cashflow->project_id || $cashflow->pihak_item_id)) {
+            $this->syncRealisasiFromCashflow($cashflow);
+        }
+
+        DashboardService::clearCache();
+
+        return $cashflow->refresh();
+    }
+
+    /**
      * Delete a non-posted manual cashflow entry.
      */
     public function delete(Cashflow $cashflow): void

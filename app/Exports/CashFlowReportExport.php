@@ -15,17 +15,27 @@ use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
 /**
  * Export Cash Flow per Account (Kas Besar) report.
- * Summarises opening balance, cash in/out, transfers, and closing balance per account.
+ * Supports detailed bank ledger when an account is selected, or account summary.
  */
 class CashFlowReportExport implements FromArray, ShouldAutoSize, WithHeadings, WithStyles, WithTitle
 {
-    private array $reportData;
+    private array $data;
+
+    private bool $isDetailed;
 
     public function __construct(
-        private readonly ?string $startDate,
-        private readonly ?string $endDate,
+        private readonly ?string $startDate = null,
+        private readonly ?string $endDate = null,
+        private readonly ?int $cashAccountId = null,
     ) {
-        $this->reportData = app(ReportService::class)->cashFlow($startDate, $endDate);
+        $reportService = app(ReportService::class);
+        $this->isDetailed = $cashAccountId !== null;
+
+        if ($this->isDetailed) {
+            $this->data = $reportService->cashFlowDetail($startDate, $endDate, $cashAccountId);
+        } else {
+            $this->data = $reportService->cashFlow($startDate, $endDate);
+        }
     }
 
     /**
@@ -33,6 +43,11 @@ class CashFlowReportExport implements FromArray, ShouldAutoSize, WithHeadings, W
      */
     public function title(): string
     {
+        if ($this->isDetailed) {
+            $acc = $this->data['account'] ?? [];
+            return substr(($acc['kode'] ?? 'Detail').' - '.($acc['nama'] ?? 'Ledger'), 0, 31);
+        }
+
         return 'Cash Flow per Account';
     }
 
@@ -45,24 +60,41 @@ class CashFlowReportExport implements FromArray, ShouldAutoSize, WithHeadings, W
     {
         $period = '';
         if ($this->startDate || $this->endDate) {
-            $period = ' | '.($this->startDate ?? '-').' s/d '.($this->endDate ?? '-');
+            $period = ' ('.($this->startDate ?? 'Awal').' s/d '.($this->endDate ?? 'Kini').')';
+        }
+
+        if ($this->isDetailed) {
+            $acc = $this->data['account'] ?? [];
+            $bankInfo = ($acc['kode'] ?? '').' - '.($acc['nama'] ?? '').$period;
+
+            return [
+                'Tanggal',
+                'No. Voucher / Ref',
+                'Tipe Transaksi',
+                'Sumber / Kategori',
+                'Pihak Terkait',
+                'Keterangan ['.$bankInfo.']',
+                'Penerimaan (Masuk)',
+                'Pengeluaran (Keluar)',
+                'Saldo Berjalan',
+            ];
         }
 
         return [
-            'Account Code',
-            'Account Name',
-            'Type'.$period,
-            'Opening Balance',
+            'Kode Rekening',
+            'Nama Rekening / Bank',
+            'Jenis Akun'.$period,
+            'Saldo Awal',
             'Cash In',
             'Cash Out',
             'Transfer In',
             'Transfer Out',
-            'Closing Balance',
+            'Saldo Akhir',
         ];
     }
 
     /**
-     * Build the data rows including a total row at the bottom.
+     * Build data rows.
      *
      * @return array<int, array<int, mixed>>
      */
@@ -70,7 +102,56 @@ class CashFlowReportExport implements FromArray, ShouldAutoSize, WithHeadings, W
     {
         $rows = [];
 
-        foreach ($this->reportData['rows'] as $row) {
+        if ($this->isDetailed) {
+            // Row 1: Saldo Awal
+            $rows[] = [
+                $this->startDate ?? '-',
+                '-',
+                'SALDO AWAL',
+                '-',
+                '-',
+                'Saldo awal sebelum periode',
+                0.0,
+                0.0,
+                (float) ($this->data['saldo_awal'] ?? 0),
+            ];
+
+            // Transaction rows
+            foreach ($this->data['transactions'] as $tx) {
+                $rows[] = [
+                    $tx['tanggal_fmt'] ?? $tx['tanggal'],
+                    $tx['ref_no'],
+                    $tx['jenis'],
+                    $tx['sumber'],
+                    $tx['pihak'],
+                    $tx['keterangan'],
+                    (float) $tx['masuk'],
+                    (float) $tx['keluar'],
+                    (float) $tx['saldo_berjalan'],
+                ];
+            }
+
+            // Separator
+            $rows[] = ['', '', '', '', '', '', '', '', ''];
+
+            // Total row
+            $rows[] = [
+                '',
+                'TOTAL',
+                '',
+                '',
+                '',
+                'Total Mutasi & Saldo Akhir',
+                (float) ($this->data['total_masuk'] ?? 0),
+                (float) ($this->data['total_keluar'] ?? 0),
+                (float) ($this->data['saldo_akhir'] ?? 0),
+            ];
+
+            return $rows;
+        }
+
+        // Summary of all accounts
+        foreach ($this->data['rows'] as $row) {
             $rows[] = [
                 $row['kode'],
                 $row['nama'],
@@ -84,11 +165,11 @@ class CashFlowReportExport implements FromArray, ShouldAutoSize, WithHeadings, W
             ];
         }
 
-        // Empty separator row
+        // Separator
         $rows[] = ['', '', '', '', '', '', '', '', ''];
 
         // Total row
-        $totals = $this->reportData['totals'];
+        $totals = $this->data['totals'];
         $rows[] = [
             '',
             'TOTAL',
@@ -105,11 +186,13 @@ class CashFlowReportExport implements FromArray, ShouldAutoSize, WithHeadings, W
     }
 
     /**
-     * Apply styles to heading row and total row.
+     * Apply styles.
      */
     public function styles(Worksheet $sheet): array
     {
-        $totalRow = count($this->reportData['rows']) + 3; // heading + data + separator + total
+        $rowCount = $this->isDetailed
+            ? count($this->data['transactions']) + 4 // heading + saldo awal + tx + separator + total
+            : count($this->data['rows']) + 3;
 
         // Heading row
         $sheet->getStyle('A1:I1')->applyFromArray([
@@ -118,15 +201,26 @@ class CashFlowReportExport implements FromArray, ShouldAutoSize, WithHeadings, W
             'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER],
         ]);
 
-        // Total row
-        $sheet->getStyle("A{$totalRow}:I{$totalRow}")->applyFromArray([
+        if ($this->isDetailed) {
+            // Saldo Awal row styling
+            $sheet->getStyle('A2:I2')->applyFromArray([
+                'font' => ['bold' => true, 'italic' => true],
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'f8fafc']],
+            ]);
+
+            // Number formatting for amount columns G, H, I
+            $sheet->getStyle("G2:I{$rowCount}")->getNumberFormat()->setFormatCode('#,##0.00');
+        } else {
+            // Number formatting for amount columns D-I
+            $sheet->getStyle("D2:I{$rowCount}")->getNumberFormat()->setFormatCode('#,##0.00');
+        }
+
+        // Total row styling
+        $sheet->getStyle("A{$rowCount}:I{$rowCount}")->applyFromArray([
             'font' => ['bold' => true],
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'f1f5f9']],
             'borders' => ['top' => ['borderStyle' => Border::BORDER_MEDIUM]],
         ]);
-
-        // Number format for amount columns D–I
-        $sheet->getStyle("D2:I{$totalRow}")->getNumberFormat()->setFormatCode('#,##0.00');
 
         return [];
     }

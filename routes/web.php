@@ -18,13 +18,16 @@ use App\Livewire\CashAccounts\Create as CreateCashAccount;
 use App\Livewire\CashAccounts\Edit as EditCashAccount;
 use App\Livewire\CashAccounts\Index as IndexCashAccount;
 use App\Livewire\Cashflows\Create as CreateCashflow;
+use App\Livewire\Cashflows\Edit as EditCashflow;
 use App\Livewire\Cashflows\Index as IndexCashflow;
 use App\Livewire\CompanySettings\Index as IndexCompanySettings;
 use App\Livewire\Dashboard;
 use App\Livewire\Exports\Index as ExportIndex;
 use App\Livewire\FundTransfers\Create as CreateFundTransfer;
+use App\Livewire\FundTransfers\Edit as EditFundTransfer;
 use App\Livewire\FundTransfers\Index as IndexFundTransfer;
 use App\Livewire\Imports\ImportAkuns;
+use App\Livewire\Imports\ImportBudgetings;
 use App\Livewire\Imports\ImportCashflows;
 use App\Livewire\Imports\ImportPayables;
 use App\Livewire\Imports\ImportProjects;
@@ -101,6 +104,7 @@ Route::middleware(['auth', 'verified', 'draft-staff'])->group(function () {
 
     Route::get('/cashflows', IndexCashflow::class)->name('cashflows.index');
     Route::get('/cashflows/create', CreateCashflow::class)->name('cashflows.create');
+    Route::get('/cashflows/{cashflow}/edit', EditCashflow::class)->name('cashflows.edit');
     Route::get('/cashflows/{cashflow}/print', function (Cashflow $cashflow) {
         return view('cashflows.print', ['cashflow' => $cashflow->load(['cashAccount', 'voucher', 'createdBy', 'akun', 'payment.payable.pihakItem', 'payment.receivable.pihakItem'])]);
     })->name('cashflows.print');
@@ -111,6 +115,7 @@ Route::middleware(['auth', 'verified', 'draft-staff'])->group(function () {
 
     Route::get('/fund-transfers', IndexFundTransfer::class)->name('fund-transfers.index');
     Route::get('/fund-transfers/create', CreateFundTransfer::class)->name('fund-transfers.create');
+    Route::get('/fund-transfers/{fundTransfer}/edit', EditFundTransfer::class)->name('fund-transfers.edit');
     Route::get('/fund-transfers/{fundTransfer}/print', function (FundTransfer $fundTransfer) {
         return view('fund-transfers.print', ['transfer' => $fundTransfer->load(['dariCashAccount', 'keCashAccount', 'voucher', 'createdBy'])]);
     })->name('fund-transfers.print');
@@ -171,6 +176,8 @@ Route::middleware(['auth', 'verified', 'draft-staff'])->group(function () {
 
     Route::get('/import/akuns', ImportAkuns::class)->name('imports.akuns');
     Route::get('/import/akuns/template', [ImportTemplateController::class, 'akun'])->name('imports.akuns.template');
+    Route::get('/import/budgeting', ImportBudgetings::class)->name('imports.budgeting');
+    Route::get('/import/budgeting/template', [ImportTemplateController::class, 'budgeting'])->name('imports.budgeting.template');
     Route::get('/import/projects/template', [ImportTemplateController::class, 'project'])->name('imports.projects.template');
     Route::get('/import/cashflows', ImportCashflows::class)->name('imports.cashflows');
     Route::get('/import/cashflows/template', [ImportTemplateController::class, 'cashflow'])->name('imports.cashflows.template');
