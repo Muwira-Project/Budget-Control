@@ -5,8 +5,6 @@ namespace App\Enums;
 enum KasStatus: string
 {
     case Draft = 'draft';
-    case Waiting = 'waiting';
-    case Approved = 'approved';
     case Posted = 'posted';
     case Rejected = 'rejected';
 
@@ -17,8 +15,6 @@ enum KasStatus: string
     {
         return match ($this) {
             self::Draft => 'Draft',
-            self::Waiting => 'Pending Approval',
-            self::Approved => 'Approved',
             self::Posted => 'Posted',
             self::Rejected => 'Rejected',
         };
@@ -30,14 +26,6 @@ enum KasStatus: string
     public function isPosted(): bool
     {
         return $this === self::Posted;
-    }
-
-    /**
-     * Whether the entry is waiting for admin approval.
-     */
-    public function isWaiting(): bool
-    {
-        return $this === self::Waiting;
     }
 
     /**

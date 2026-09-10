@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Exports\AkunExport;
 use App\Exports\AkunVsRealisasiExport;
 use App\Exports\CashflowExport;
+use App\Exports\CashFlowReportExport;
 use App\Exports\MonitoringPeriodVarianceExport;
 use App\Exports\MonitoringSummaryExport;
 use App\Exports\MonitoringVarianceDetailExport;
@@ -145,6 +146,23 @@ class ExportController extends Controller
             'pdf' => app(Excel::class)->download($export, $filename, Excel::DOMPDF),
             default => app(Excel::class)->download($export, $filename),
         };
+    }
+
+    /**
+     * Download the Cash Flow per Account (Kas Besar) summary report.
+     */
+    public function cashFlowReport(Request $request): BinaryFileResponse
+    {
+        $startDate = $this->validDate($request->query('start_date'));
+        $endDate   = $this->validDate($request->query('end_date'));
+        $format    = in_array($request->query('format'), ['csv'], true) ? 'csv' : 'xlsx';
+
+        $export   = new CashFlowReportExport($startDate, $endDate);
+        $filename = 'Cash_Flow_Report_'.now()->format('Ymd').'.'.$format;
+
+        return $format === 'csv'
+            ? app(Excel::class)->download($export, $filename, Excel::CSV)
+            : app(Excel::class)->download($export, $filename);
     }
 
     /**

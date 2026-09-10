@@ -68,17 +68,6 @@ class Dashboard extends Component
     }
 
     /**
-     * Count of pending approval items (cashflow, fund transfer, settlement void).
-     *
-     * @return int
-     */
-    #[Computed]
-    public function pendingApprovalsCount(): int
-    {
-        return app(DashboardService::class)->pendingApprovalsCount();
-    }
-
-    /**
      * Whether the selected date range is invalid (start after end).
      */
     #[Computed]

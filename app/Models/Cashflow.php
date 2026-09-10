@@ -314,12 +314,9 @@ class Cashflow extends Model
         return $this->status->isPosted();
     }
 
-    /**
-     * Whether the entry is waiting for admin approval.
-     */
     public function isWaiting(): bool
     {
-        return $this->status->isWaiting();
+        return false;
     }
 
     /**

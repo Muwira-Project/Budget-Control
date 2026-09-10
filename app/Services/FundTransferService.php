@@ -11,7 +11,7 @@ use Illuminate\Validation\ValidationException;
 class FundTransferService
 {
     /**
-     * Create a fund transfer as a draft.
+     * Create a fund transfer (immediately posted).
      *
      * @param  array<string, mixed>  $data
      */
@@ -21,93 +21,39 @@ class FundTransferService
             throw ValidationException::withMessages(['ke_cash_account_id' => 'Source and destination accounts must be different.']);
         }
 
-        return FundTransfer::create([
-            'tanggal' => $data['tanggal'],
-            'dari_cash_account_id' => $data['dari_cash_account_id'],
-            'ke_cash_account_id' => $data['ke_cash_account_id'],
-            'nominal' => $data['nominal'],
-            'keterangan' => $data['keterangan'] ?? null,
-            'created_by' => auth()->id(),
-            'status' => KasStatus::Draft,
+        $transfer = FundTransfer::create([
+            'tanggal'               => $data['tanggal'],
+            'dari_cash_account_id'  => $data['dari_cash_account_id'],
+            'ke_cash_account_id'    => $data['ke_cash_account_id'],
+            'nominal'               => $data['nominal'],
+            'keterangan'            => $data['keterangan'] ?? null,
+            'created_by'            => auth()->id(),
+            'status'                => KasStatus::Posted,
+            'posted_by'             => auth()->id(),
+            'posted_at'             => now(),
         ]);
+
+        app(VoucherService::class)->generateForFundTransfer($transfer);
+
+        return $transfer;
     }
 
     /**
-     * Submit a draft fund transfer for admin approval.
-     */
-    public function submit(FundTransfer $transfer): FundTransfer
-    {
-        if ($transfer->status !== KasStatus::Draft) {
-            throw new \LogicException('Only draft fund transfers can be submitted.');
-        }
-
-        $transfer->update([
-            'status' => KasStatus::Waiting,
-            'submitted_by' => auth()->id(),
-        ]);
-
-        app(NotificationService::class)->notifyAdmins(
-            'New Approval Request',
-            'Fund Transfer ('.format_idr($transfer->nominal).') is waiting for approval.',
-            route('approvals.index'),
-        );
-
-        return $transfer->refresh();
-    }
-
-    /**
-     * Approve a waiting fund transfer (admin).
-     */
-    public function approve(FundTransfer $transfer): FundTransfer
-    {
-        if ($transfer->status !== KasStatus::Waiting) {
-            throw new \LogicException('Only pending fund transfers can be approved.');
-        }
-
-        $transfer->update([
-            'status' => KasStatus::Approved,
-            'approved_by' => auth()->id(),
-            'approved_at' => now(),
-        ]);
-
-        return $transfer->refresh();
-    }
-
-    /**
-     * Post an approved fund transfer (admin). Affects account balances.
+     * Post an unposted fund transfer.
      */
     public function post(FundTransfer $transfer): FundTransfer
     {
-        if ($transfer->status !== KasStatus::Approved) {
-            throw new \LogicException('Only approved fund transfers can be posted.');
+        if ($transfer->isPosted()) {
+            return $transfer;
         }
 
         $transfer->update([
-            'status' => KasStatus::Posted,
+            'status'    => KasStatus::Posted,
             'posted_by' => auth()->id(),
             'posted_at' => now(),
         ]);
 
         app(VoucherService::class)->generateForFundTransfer($transfer);
-
-        return $transfer->refresh();
-    }
-
-    /**
-     * Reject a pending/approved fund transfer (admin).
-     */
-    public function reject(FundTransfer $transfer, string $reason): FundTransfer
-    {
-        if ($transfer->status !== KasStatus::Waiting && $transfer->status !== KasStatus::Approved) {
-            throw new \LogicException('Only pending or approved fund transfers can be rejected.');
-        }
-
-        $transfer->update([
-            'status' => KasStatus::Rejected,
-            'rejected_by' => auth()->id(),
-            'rejected_at' => now(),
-            'rejection_reason' => $reason,
-        ]);
 
         return $transfer->refresh();
     }

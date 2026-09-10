@@ -93,20 +93,4 @@ class StaffDraftAccessTest extends TestCase
         $this->actingAs($staff)->get(route('receivables.edit', $receivable))->assertForbidden();
         $this->actingAs($staff)->get(route('payables.edit', $payable))->assertForbidden();
     }
-
-    public function test_staff_cannot_submit_another_users_cashflow_draft(): void
-    {
-        $owner = User::factory()->create();
-        $staff = User::factory()->create();
-        $draft = Cashflow::factory()->create([
-            'status' => 'draft',
-            'created_by' => $owner->id,
-        ]);
-
-        Livewire::actingAs($staff)
-            ->test(Index::class)
-            ->call('submit', $draft->id);
-
-        $this->assertSame('draft', $draft->fresh()->status->value);
-    }
 }

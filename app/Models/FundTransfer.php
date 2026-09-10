@@ -111,12 +111,9 @@ class FundTransfer extends Model
         return $this->status->isPosted();
     }
 
-    /**
-     * Whether this transfer is waiting for admin approval.
-     */
     public function isWaiting(): bool
     {
-        return $this->status->isWaiting();
+        return false;
     }
 
     /**

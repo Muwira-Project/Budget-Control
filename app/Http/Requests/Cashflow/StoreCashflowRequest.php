@@ -33,7 +33,7 @@ class StoreCashflowRequest extends FormRequest
             'project_id' => ['nullable', 'integer', 'exists:projects,id'],
             'pihak_type_id' => ['nullable', 'integer', 'exists:master_types,id'],
             'pihak_item_id' => ['nullable', 'integer', 'exists:master_items,id'],
-            'status' => ['required', Rule::in(['draft'])],
+            'status' => ['required', Rule::in(['draft', 'posted'])],
         ];
     }
 }

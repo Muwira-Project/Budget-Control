@@ -334,4 +334,31 @@ class ExportTest extends TestCase
             $export->map($row),
         );
     }
+
+    public function test_cash_flow_report_excel_download(): void
+    {
+        $user = User::factory()->admin()->create();
+
+        $response = $this->actingAs($user)->get(route('exports.cash-flow-report', [
+            'format' => 'xlsx',
+            'start_date' => '2026-01-01',
+            'end_date' => '2026-12-31',
+        ]));
+
+        $response->assertOk();
+        $this->assertStringContainsString('Cash_Flow_Report_'.now()->format('Ymd').'.xlsx', $response->headers->get('content-disposition'));
+        $this->assertStringContainsString('spreadsheetml', $response->headers->get('content-type'));
+    }
+
+    public function test_cash_flow_report_csv_download(): void
+    {
+        $user = User::factory()->admin()->create();
+
+        $response = $this->actingAs($user)->get(route('exports.cash-flow-report', [
+            'format' => 'csv',
+        ]));
+
+        $response->assertOk();
+        $this->assertStringContainsString('Cash_Flow_Report_'.now()->format('Ymd').'.csv', $response->headers->get('content-disposition'));
+    }
 }

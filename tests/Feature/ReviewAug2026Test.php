@@ -64,7 +64,7 @@ class ReviewAug2026Test extends TestCase
             'sumber' => 'pengeluaran_lain',
             'akun_id' => $akun->id,
             'nominal' => 1500000,
-            'status' => 'draft',
+            'status' => 'posted',
         ]);
     }
 
@@ -108,10 +108,6 @@ class ReviewAug2026Test extends TestCase
             'ke_cash_account_id' => $target->id,
             'nominal' => 2000000,
         ]);
-
-        app(FundTransferService::class)->submit($transfer);
-        app(FundTransferService::class)->approve($transfer->fresh());
-        app(FundTransferService::class)->post($transfer->fresh());
 
         $this->assertNotNull($transfer->fresh()->voucher);
         $this->assertSame('transfer', $transfer->fresh()->voucher->jenis);

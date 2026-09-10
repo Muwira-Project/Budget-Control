@@ -7,6 +7,7 @@ use App\Enums\KasStatus;
 use App\Enums\ProjectJenis;
 use App\Enums\ProjectStatus;
 use App\Models\BudgetPlanItem;
+use App\Models\CashAccount;
 use App\Models\Cashflow;
 use App\Models\FundTransfer;
 use App\Models\Kategori;
@@ -106,9 +107,12 @@ class DashboardService
             'total_pajak' => $projects->sum(fn(Project $project) => $project->nilai_pajak),
             'persentase' => $totalBudget > 0 ? round(($totalRealisasi / $totalBudget) * 100, 1) : 0,
             'kategori_breakdown' => $this->kategoriBreakdown($realisasiQuery),
-            'cash_in' => $cashflow['total_masuk'],
-            'cash_out' => $cashflow['total_keluar'],
-            'saldo_kas' => $cashflow['saldo'],
+            'opening_balance' => (float) ($cashflow['opening_balance'] ?? 0),
+            'cash_in' => (float) ($cashflow['total_masuk'] ?? 0),
+            'cash_out' => (float) ($cashflow['total_keluar'] ?? 0),
+            'saldo_kas' => (float) ($cashflow['saldo'] ?? 0),
+            'current_balance' => (float) ($cashflow['saldo_rekening'] ?? 0),
+            'cash_accounts' => $this->activeAccountsSummary(),
             'outstanding_ar' => $outstandingAr,
             'outstanding_ap' => $outstandingAp,
             'ar_breakdown' => $arBreakdown,
@@ -384,22 +388,22 @@ class DashboardService
     }
 
     /**
-     * Count pending approval items for dashboard widget.
-     * Includes:
-     * - Waiting Cashflow entries
-     * - Waiting Fund Transfers
-     * - Pending Settlement Void requests
+     * Active cash accounts with current real balances.
      *
-     * @return int
+     * @return array<int, array{id: int, kode: string, nama: string, jenis: string, saldo: float}>
      */
-    public function pendingApprovalsCount(): int
+    public function activeAccountsSummary(): array
     {
-        $waitingCashflows = Cashflow::where('status', KasStatus::Waiting)->count();
-        $waitingTransfers = FundTransfer::where('status', 'waiting')->count();
-        $pendingVoids = Payment::whereNotNull('void_requested_by')
-            ->whereNull('void_reviewed_by')
-            ->count();
+        $accounts = CashAccount::where('status', 'active')->orderBy('kode')->get();
+        $accountIds = $accounts->pluck('id')->all();
+        $balances = CashAccount::balances($accountIds);
 
-        return $waitingCashflows + $waitingTransfers + $pendingVoids;
+        return $accounts->map(fn (CashAccount $acc) => [
+            'id' => $acc->id,
+            'kode' => $acc->kode,
+            'nama' => $acc->nama,
+            'jenis' => $acc->jenis?->label() ?? 'Kas/Bank',
+            'saldo' => (float) ($balances[$acc->id] ?? 0.0),
+        ])->all();
     }
 }

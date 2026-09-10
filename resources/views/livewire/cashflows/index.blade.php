@@ -38,7 +38,12 @@
         </div>
 
         @if (in_array($this->tab, ['cash-in', 'cash-out'], true))
-            <div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div class="mt-6 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-5">
+                <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
+                    <p class="text-sm font-medium text-gray-500">Opening Balance</p>
+                    <p class="mt-1 text-2xl font-bold text-gray-700">{{ format_idr($this->stats['opening_balance']) }}</p>
+                    <p class="mt-1 text-xs text-gray-400">{{ $this->cashAccountId !== null ? 'Saldo awal rekening ini' : 'Total saldo awal semua rekening' }}</p>
+                </div>
                 <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
                     <p class="text-sm font-medium text-gray-500">Total Cash In</p>
                     <p class="mt-1 text-2xl font-bold text-green-600">{{ format_idr($this->stats['total_masuk']) }}</p>
@@ -48,20 +53,14 @@
                     <p class="mt-1 text-2xl font-bold text-red-600">{{ format_idr($this->stats['total_keluar']) }}</p>
                 </div>
                 <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-                    <p class="text-sm font-medium text-gray-500">Cash Balance</p>
+                    <p class="text-sm font-medium text-gray-500">Net Cashflow</p>
                     <p class="mt-1 text-2xl font-bold text-blue-600">{{ format_idr($this->stats['saldo']) }}</p>
                 </div>
-                @if ($this->cashAccountId !== null && $this->stats['saldo_rekening'] !== null)
-                    <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-                        <p class="text-sm font-medium text-gray-500">Account Balance</p>
-                        <p class="mt-1 text-2xl font-bold text-brand-600">{{ format_idr($this->stats['saldo_rekening']) }}</p>
-                    </div>
-                @else
-                    <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
-                        <p class="text-sm font-medium text-gray-500">Lokasi Dana</p>
-                        <p class="mt-1 text-sm text-gray-500">Filter rekening untuk melihat saldo buku besar.</p>
-                    </div>
-                @endif
+                <div class="rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
+                    <p class="text-sm font-medium text-gray-500">Account Balance</p>
+                    <p class="mt-1 text-2xl font-bold text-brand-600">{{ format_idr($this->stats['saldo_rekening'] ?? 0) }}</p>
+                    <p class="mt-1 text-xs text-gray-400">{{ $this->cashAccountId !== null ? 'Saldo buku besar rekening ini' : 'Total saldo seluruh kas & bank aktif' }}</p>
+                </div>
             </div>
 
             <div class="mt-6 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-200">
@@ -116,7 +115,6 @@
                         <table class="min-w-full divide-y divide-gray-100 text-sm">
                             <thead class="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
                                 <tr>
-                                    <th class="w-8 px-6 py-3"><input type="checkbox" disabled class="rounded border-gray-300 text-blue-600 cursor-not-allowed" aria-hidden="true" /></th>
                                     <th class="px-6 py-3">Date</th>
                                     <th class="px-6 py-3">Type</th>
                                     <th class="px-6 py-3">Source</th>
@@ -131,8 +129,6 @@
                             <tbody class="divide-y divide-gray-100 bg-white">
                                 @foreach ($this->cashflows as $entry)
                                     <tr class="hover:bg-gray-50">
-<td class="w-8 px-6 py-4"><input type="checkbox" wire:click="toggleSelected({{ $entry->id }})" @checked(in_array($entry->id, $this->selectedIds, true)) class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" /></td>
-
                                         <td class="px-6 py-4 text-gray-700 whitespace-nowrap">{{ $entry->tanggal->format('d M Y') }}</td>
                                         <td class="px-6 py-4">
                                             <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $entry->jenis->value === 'masuk' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }}">
@@ -145,8 +141,6 @@
                                         <td class="px-6 py-4">
                                             <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ match ($entry->status->value) {
                                                 'posted' => 'bg-green-100 text-green-700',
-                                                'waiting' => 'bg-amber-100 text-amber-700',
-                                                'approved' => 'bg-blue-100 text-blue-700',
                                                 'rejected' => 'bg-red-100 text-red-700',
                                                 default => 'bg-gray-200 text-gray-600',
                                             } }}">
@@ -158,17 +152,10 @@
                                             {{ $entry->jenis->value === 'masuk' ? '+' : '-' }}{{ format_idr($entry->nominal) }}
                                         </td>
                                         <td class="px-6 py-4 text-right whitespace-nowrap">
-                                            @if ($entry->isManual())
-                                                <x-action-buttons :delete-id="$entry->id">
-                                                    @if ($entry->status->value === 'draft')
-                                                        <button type="button" wire:click="submit({{ $entry->id }})" title="Submit for Approval"
-                                                            class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-amber-300 hover:bg-amber-50 hover:text-amber-600">
-                                                            <x-icon name="upload" class="h-4 w-4" />
-                                                        </button>
-                                                    @endif
-                                                </x-action-buttons>
+                                            @if ($entry->isManual() && ! $entry->isPosted())
+                                                <x-action-buttons :delete-id="$entry->id" />
                                             @endif
-                                            @if ($entry->status->value === 'posted')
+                                            @if ($entry->isPosted())
                                                 <button type="button" onclick="openPrintPreview('{{ route('cashflows.print', $entry) }}')" title="Cetak Voucher" class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600">
                                                     <x-icon name="printer" class="h-4 w-4" />
                                                 </button>

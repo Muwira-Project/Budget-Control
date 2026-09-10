@@ -7,7 +7,6 @@ use App\Livewire\Akuns\Edit as EditAkun;
 use App\Livewire\Akuns\Index as IndexAkun;
 use App\Livewire\Allokasis\Create as CreateAllokasi;
 use App\Livewire\Allokasis\Edit as EditAllokasi;
-use App\Livewire\Approvals\Index as ApprovalsIndex;
 use App\Livewire\ArAp\Index as IndexArAp;
 use App\Livewire\AuditLog\Index as AuditLogIndex;
 use App\Livewire\Backups\Index as IndexBackup;
@@ -168,8 +167,6 @@ Route::middleware(['auth', 'verified', 'draft-staff'])->group(function () {
 
     Route::get('/company-settings', IndexCompanySettings::class)->name('company-settings.index');
 
-    Route::get('/approvals', ApprovalsIndex::class)->name('approvals.index');
-
     Route::get('/backup', IndexBackup::class)->name('backup.index');
 
     Route::get('/import/akuns', ImportAkuns::class)->name('imports.akuns');
@@ -196,6 +193,7 @@ Route::middleware(['auth', 'verified', 'draft-staff'])->group(function () {
     Route::get('/export/receivables/file', [ExportController::class, 'receivables'])->name('exports.receivables');
     Route::get('/export/payables/file', [ExportController::class, 'payables'])->name('exports.payables');
     Route::get('/export/cashflows/file', [ExportController::class, 'cashflows'])->name('exports.cashflows');
+    Route::get('/export/cash-flow-report/file', [ExportController::class, 'cashFlowReport'])->name('exports.cash-flow-report');
 
     Route::view('profile', 'profile')->name('profile');
 });

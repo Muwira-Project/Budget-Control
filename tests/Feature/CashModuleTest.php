@@ -3,6 +3,7 @@
 namespace Tests\Feature;
 
 use App\Models\CashAccount;
+use App\Models\Cashflow;
 use App\Models\FundTransfer;
 use App\Models\MasterItem;
 use App\Models\MasterType;
@@ -267,7 +268,7 @@ class CashModuleTest extends TestCase
         }
     }
 
-    public function test_manual_cash_in_approval_flow_posts_to_ledger(): void
+    public function test_manual_cash_in_direct_post_updates_ledger(): void
     {
         $admin = User::factory()->admin()->create();
         $this->actingAs($admin);
@@ -279,36 +280,14 @@ class CashModuleTest extends TestCase
             'sumber' => 'pendapatan',
             'nominal' => 2000000,
             'cash_account_id' => $account->id,
-            'status' => 'draft',
         ]);
-
-        $this->assertSame(0.0, (float) $account->fresh()->saldo);
-        $this->assertNull($cashflow->voucher);
-
-        app(CashflowService::class)->submit($cashflow);
-        $this->assertSame('waiting', $cashflow->fresh()->status->value);
-
-        app(CashflowService::class)->approve($cashflow->fresh());
-        $this->assertSame('approved', $cashflow->fresh()->status->value);
-        $this->assertSame(0.0, (float) $account->fresh()->saldo);
-
-        app(CashflowService::class)->post($cashflow->fresh());
 
         $this->assertSame('posted', $cashflow->fresh()->status->value);
         $this->assertSame(2000000.0, (float) $account->fresh()->saldo);
         $this->assertNotNull($cashflow->fresh()->voucher);
     }
 
-    public function test_approval_center_page_admin_only(): void
-    {
-        $staff = User::factory()->create();
-        $admin = User::factory()->admin()->create();
-
-        $this->actingAs($staff)->get(route('approvals.index'))->assertForbidden();
-        $this->actingAs($admin)->get(route('approvals.index'))->assertOk();
-    }
-
-    public function test_fund_transfer_affects_balances_only_after_posted(): void
+    public function test_fund_transfer_affects_balances_when_created(): void
     {
         $admin = User::factory()->admin()->create();
         $this->actingAs($admin);
@@ -323,14 +302,10 @@ class CashModuleTest extends TestCase
             'nominal' => 2000000,
         ]);
 
-        $this->assertSame(5000000.0, (float) $source->fresh()->saldo);
-
-        app(FundTransferService::class)->submit($transfer);
-        app(FundTransferService::class)->approve($transfer->fresh());
-        app(FundTransferService::class)->post($transfer->fresh());
-
+        $this->assertSame('posted', $transfer->fresh()->status->value);
         $this->assertSame(3000000.0, (float) $source->fresh()->saldo);
         $this->assertSame(3000000.0, (float) $target->fresh()->saldo);
+        $this->assertNotNull($transfer->fresh()->voucher);
     }
 
     public function test_master_type_and_items_crud(): void
@@ -357,5 +332,128 @@ class CashModuleTest extends TestCase
 
         $this->assertDatabaseMissing('master_types', ['id' => $type->id]);
         $this->assertDatabaseMissing('master_items', ['master_type_id' => $type->id]);
+    }
+
+    public function test_statistics_includes_opening_balance(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $this->actingAs($admin);
+
+        $acc1 = CashAccount::factory()->create(['saldo_awal' => 10000000, 'status' => 'active']);
+        $acc2 = CashAccount::factory()->create(['saldo_awal' => 5000000, 'status' => 'active']);
+
+        $service = app(CashflowService::class);
+
+        // Overall stats should sum all active accounts
+        $statsAll = $service->statistics();
+        $this->assertGreaterThanOrEqual(15000000.0, (float) $statsAll['opening_balance']);
+
+        // Per-account stats should return the specific account's opening balance
+        $statsAcc1 = $service->statistics(cashAccountId: $acc1->id);
+        $this->assertSame(10000000.0, (float) $statsAcc1['opening_balance']);
+        $this->assertNotNull($statsAcc1['saldo_rekening']);
+    }
+
+    public function test_cashflow_statistics_and_report_service_are_strictly_consolidated(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $this->actingAs($admin);
+
+        $accA = CashAccount::factory()->create(['saldo_awal' => 20000000, 'status' => 'active']);
+        $accB = CashAccount::factory()->create(['saldo_awal' => 10000000, 'status' => 'active']);
+
+        // Transactions BEFORE period (July)
+        Cashflow::factory()->create([
+            'cash_account_id' => $accA->id,
+            'tanggal' => '2026-07-15',
+            'nominal' => 5000000,
+            'jenis' => 'masuk',
+            'status' => 'posted',
+        ]);
+        Cashflow::factory()->create([
+            'cash_account_id' => $accA->id,
+            'tanggal' => '2026-07-20',
+            'nominal' => 2000000,
+            'jenis' => 'keluar',
+            'status' => 'posted',
+        ]);
+        FundTransfer::factory()->create([
+            'dari_cash_account_id' => $accA->id,
+            'ke_cash_account_id' => $accB->id,
+            'tanggal' => '2026-07-25',
+            'nominal' => 3000000,
+            'status' => 'posted',
+        ]);
+
+        // Transactions DURING period (August)
+        Cashflow::factory()->create([
+            'cash_account_id' => $accA->id,
+            'tanggal' => '2026-08-05',
+            'nominal' => 12000000,
+            'jenis' => 'masuk',
+            'status' => 'posted',
+        ]);
+        Cashflow::factory()->create([
+            'cash_account_id' => $accB->id,
+            'tanggal' => '2026-08-10',
+            'nominal' => 4000000,
+            'jenis' => 'keluar',
+            'status' => 'posted',
+        ]);
+        FundTransfer::factory()->create([
+            'dari_cash_account_id' => $accB->id,
+            'ke_cash_account_id' => $accA->id,
+            'tanggal' => '2026-08-15',
+            'nominal' => 1500000,
+            'status' => 'posted',
+        ]);
+
+        $cashflowService = app(CashflowService::class);
+        $reportService = app(\App\Services\ReportService::class);
+
+        $statsA = $cashflowService->statistics('2026-08-01', '2026-08-31', cashAccountId: $accA->id);
+        $reportData = $reportService->cashFlow('2026-08-01', '2026-08-31');
+
+        $rowA = collect($reportData['rows'])->firstWhere('kode', $accA->kode);
+        $this->assertNotNull($rowA);
+
+        // Account A Opening balance: 20M + 5M (in) - 2M (out) - 3M (trOut) = 20M
+        $this->assertEquals($rowA['saldo_awal'], $statsA['opening_balance']);
+        $this->assertEquals(20000000.0, $statsA['opening_balance']);
+
+        // Account A August In: 12M
+        $this->assertEquals($rowA['masuk'], $statsA['total_masuk']);
+        $this->assertEquals(12000000.0, $statsA['total_masuk']);
+
+        // Account A August Out: 0
+        $this->assertEquals($rowA['keluar'], $statsA['total_keluar']);
+        $this->assertEquals(0.0, $statsA['total_keluar']);
+
+        // Account A Ending balance: 20M + 12M (in) - 0 (out) + 1.5M (trIn) = 33.5M
+        $this->assertEquals($rowA['saldo_akhir'], $statsA['saldo_rekening']);
+        $this->assertEquals(33500000.0, $statsA['saldo_rekening']);
+
+        // Check Livewire Cashflows/Index component: tab 'cash-in' and 'cash-out' MUST report identical factual stats
+        \Livewire\Livewire::actingAs($admin)
+            ->test(\App\Livewire\Cashflows\Index::class)
+            ->set('tab', 'cash-in')
+            ->set('startDate', '2026-08-01')
+            ->set('endDate', '2026-08-31')
+            ->set('cashAccountId', $accA->id)
+            ->assertSet('stats.total_masuk', 12000000.0)
+            ->assertSet('stats.total_keluar', 0.0)
+            ->assertSet('stats.opening_balance', 20000000.0)
+            ->assertSet('stats.saldo_rekening', 33500000.0);
+
+        \Livewire\Livewire::actingAs($admin)
+            ->test(\App\Livewire\Cashflows\Index::class)
+            ->set('tab', 'cash-out')
+            ->set('startDate', '2026-08-01')
+            ->set('endDate', '2026-08-31')
+            ->set('cashAccountId', $accA->id)
+            ->assertSet('stats.total_masuk', 12000000.0)
+            ->assertSet('stats.total_keluar', 0.0)
+            ->assertSet('stats.opening_balance', 20000000.0)
+            ->assertSet('stats.saldo_rekening', 33500000.0);
     }
 }

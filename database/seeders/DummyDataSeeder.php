@@ -116,16 +116,15 @@ class DummyDataSeeder extends Seeder
                     'project_id' => $project1->id,
                     'pihak_type_id' => $investorType->id,
                     'pihak_item_id' => $investor->id,
-                    'status' => 'approved', // create as approved, then post via service
-                    'submitted_by' => $admin?->id,
-                    'approved_by' => $admin?->id,
-                    'approved_at' => now(),
+                    'status' => 'posted',
+                    'posted_by' => $admin?->id,
+                    'posted_at' => now(),
                     'created_by' => $admin?->id,
                 ]
             );
 
             // Post via service to trigger syncRealisasiFromCashflow
-            if ($cashIn->wasRecentlyCreated || $cashIn->status->value === 'approved') {
+            if ($cashIn->wasRecentlyCreated) {
                 app(CashflowService::class)->post($cashIn);
             }
         }
@@ -148,15 +147,14 @@ class DummyDataSeeder extends Seeder
                     'project_id' => $project2->id,
                     'pihak_type_id' => $vendorType->id,
                     'pihak_item_id' => $vendor->id,
-                    'status' => 'approved',
-                    'submitted_by' => $admin?->id,
-                    'approved_by' => $admin?->id,
-                    'approved_at' => now(),
+                    'status' => 'posted',
+                    'posted_by' => $admin?->id,
+                    'posted_at' => now(),
                     'created_by' => $admin?->id,
                 ]
             );
 
-            if ($cashOut->wasRecentlyCreated || $cashOut->status->value === 'approved') {
+            if ($cashOut->wasRecentlyCreated) {
                 app(CashflowService::class)->post($cashOut);
             }
         }
@@ -179,15 +177,14 @@ class DummyDataSeeder extends Seeder
                     'project_id' => null,
                     'pihak_type_id' => $supplierType->id,
                     'pihak_item_id' => $supplier->id,
-                    'status' => 'approved',
-                    'submitted_by' => $admin?->id,
-                    'approved_by' => $admin?->id,
-                    'approved_at' => now(),
+                    'status' => 'posted',
+                    'posted_by' => $admin?->id,
+                    'posted_at' => now(),
                     'created_by' => $admin?->id,
                 ]
             );
 
-            if ($cashOutNonProj->wasRecentlyCreated || $cashOutNonProj->status->value === 'approved') {
+            if ($cashOutNonProj->wasRecentlyCreated) {
                 app(CashflowService::class)->post($cashOutNonProj);
             }
         }

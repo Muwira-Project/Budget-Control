@@ -76,27 +76,6 @@
         @endif
 
         @unless ($invalid)
-        {{-- ============ SECTION 1B: PENDING APPROVALS (admin only) ============ --}}
-        @if (auth()->user()->isAdmin() && $this->pendingApprovalsCount > 0)
-        <div class="rounded-lg border border-amber-200 bg-amber-50 p-4 shadow-sm ring-1 ring-amber-200">
-            <div class="flex items-center justify-between">
-                <div class="flex items-center gap-3">
-                    <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-amber-100">
-                        <x-icon name="bell-alert" class="h-5 w-5 text-amber-600" />
-                    </div>
-                    <div>
-                        <h3 class="font-semibold text-amber-900">Pending Approval</h3>
-                        <p class="text-sm text-amber-700">{{ $this->pendingApprovalsCount }} item(s) waiting for your review</p>
-                    </div>
-                </div>
-                <a href="{{ route('approvals.index') }}" wire:navigate class="inline-flex items-center gap-2 rounded-lg bg-amber-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-amber-700">
-                    Review Now
-                    <x-icon name="arrow-right" class="h-4 w-4" />
-                </a>
-            </div>
-        </div>
-        @endif
-
         {{-- ============ SECTION 2: FINANCIAL SUMMARY (4 metric cards) ============ --}}
         <section class="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             <x-metric-card label="Total Budget" :value="format_idr($stats['total_budget'])" icon="clipboard" tone="brand" hint="Accrual: approved project budget" :href="auth()->user()->isAdmin() ? route('budgeting.index') : null" />
@@ -217,31 +196,38 @@
                 <div class="flex items-center justify-between border-b border-slate-100 px-5 py-4">
                     <div>
                         <h3 class="flex items-center gap-2 font-semibold text-slate-900"><x-icon name="coins" class="h-5 w-5 text-brand-600" /> Cashflow Summary</h3>
-                        <p class="mt-0.5 text-sm text-slate-500">Cash basis - income, expense, and net cash position</p>
+                        <p class="mt-0.5 text-sm text-slate-500">Cash basis - opening, income, expense, and closing balance</p>
                     </div>
                     <a href="{{ route('cashflows.index') }}" wire:navigate class="text-xs font-semibold text-brand-600 hover:text-brand-700">View all →</a>
                 </div>
                 <div class="space-y-4 p-5">
-                    <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                        <div class="rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200">
+                            <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Opening</p>
+                            <p class="mt-1 text-base font-bold text-slate-800 sm:text-lg">{{ format_idr($stats['opening_balance'] ?? 0) }}</p>
+                        </div>
                         <div class="rounded-lg bg-emerald-50 p-3 ring-1 ring-emerald-100">
                             <p class="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-emerald-700"><x-icon name="arrow-up-right" class="h-3.5 w-3.5" /> Income</p>
-                            <p class="mt-1 text-lg font-bold text-emerald-800">{{ format_idr($stats['cash_in']) }}</p>
+                            <p class="mt-1 text-base font-bold text-emerald-800 sm:text-lg">{{ format_idr($stats['cash_in'] ?? 0) }}</p>
                         </div>
                         <div class="rounded-lg bg-red-50 p-3 ring-1 ring-red-100">
                             <p class="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-red-700"><x-icon name="arrow-down-right" class="h-3.5 w-3.5" /> Expense</p>
-                            <p class="mt-1 text-lg font-bold text-red-800">{{ format_idr($stats['cash_out']) }}</p>
+                            <p class="mt-1 text-base font-bold text-red-800 sm:text-lg">{{ format_idr($stats['cash_out'] ?? 0) }}</p>
                         </div>
                         <div class="rounded-lg bg-brand-50 p-3 ring-1 ring-brand-100">
-                            <p class="text-[11px] font-semibold uppercase tracking-wider text-brand-700">Net Cashflow</p>
-                            <p class="mt-1 text-lg font-bold text-brand-800">{{ format_idr($stats['saldo_kas']) }}</p>
+                            <p class="text-[11px] font-semibold uppercase tracking-wider text-brand-700">Closing</p>
+                            <p class="mt-1 text-base font-bold text-brand-800 sm:text-lg">{{ format_idr($stats['current_balance'] ?? 0) }}</p>
                         </div>
                     </div>
                     <div class="flex h-2 w-full overflow-hidden rounded-full bg-slate-100">
-                        @php $cashMax = max(1, $stats['cash_in'] + $stats['cash_out']); @endphp
-                        <div class="h-full bg-emerald-500" style="width: {{ $stats['cash_in'] / $cashMax * 100 }}%"></div>
-                        <div class="h-full bg-red-500" style="width: {{ $stats['cash_out'] / $cashMax * 100 }}%"></div>
+                        @php $cashMax = max(1, ($stats['cash_in'] ?? 0) + ($stats['cash_out'] ?? 0)); @endphp
+                        <div class="h-full bg-emerald-500" style="width: {{ (($stats['cash_in'] ?? 0) / $cashMax) * 100 }}%"></div>
+                        <div class="h-full bg-red-500" style="width: {{ (($stats['cash_out'] ?? 0) / $cashMax) * 100 }}%"></div>
                     </div>
-                    <p class="text-xs text-slate-500">Proportion of cash in vs cash out.</p>
+                    <div class="flex items-center justify-between text-xs text-slate-500">
+                        <span>Proportion Income vs Expense</span>
+                        <span class="font-semibold text-slate-700">Net Cashflow: {{ format_idr($stats['saldo_kas'] ?? 0) }}</span>
+                    </div>
                 </div>
             </div>
         </section>
@@ -377,20 +363,71 @@
             <div class="app-card overflow-hidden">
                 <div class="flex items-center justify-between border-b border-slate-100 px-5 py-4">
                     <div>
-                        <h3 class="flex items-center gap-2 font-semibold text-slate-900"><x-icon name="wallet" class="h-5 w-5 text-brand-600" /> Cash Activity</h3>
-                        <p class="mt-0.5 text-sm text-slate-500">Cash In, Cash Out & Fund Transfer</p>
+                        <h3 class="flex items-center gap-2 font-semibold text-slate-900"><x-icon name="wallet" class="h-5 w-5 text-brand-600" /> Cash Activity & Treasury</h3>
+                        <p class="mt-0.5 text-sm text-slate-500">Opening balance, cash in, cash out & saldo rekening kas/bank</p>
                     </div>
                     <a href="{{ route('cashflows.index') }}" wire:navigate class="text-xs font-semibold text-brand-600 hover:text-brand-700">View all &rarr;</a>
                 </div>
-                <div class="grid grid-cols-2 gap-3 p-5">
-                    <a href="{{ route('cashflows.index') }}" wire:navigate class="rounded-lg bg-emerald-50 p-3 text-center ring-1 ring-emerald-100 transition hover:bg-emerald-100/70">
-                        <p class="text-2xl font-bold text-emerald-700">{{ format_idr($stats['cash_in'] ?? 0) }}</p>
-                        <p class="text-[11px] font-semibold uppercase tracking-wider text-emerald-600">Cash In</p>
-                    </a>
-                    <a href="{{ route('cashflows.index') }}" wire:navigate class="rounded-lg bg-red-50 p-3 text-center ring-1 ring-red-100 transition hover:bg-red-100/70">
-                        <p class="text-2xl font-bold text-red-700">{{ format_idr($stats['cash_out'] ?? 0) }}</p>
-                        <p class="text-[11px] font-semibold uppercase tracking-wider text-red-600">Cash Out</p>
-                    </a>
+                <div class="space-y-4 p-5">
+                    {{-- 4 Metric Summary Cards --}}
+                    <div class="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                        <div class="rounded-lg bg-slate-50 p-3 ring-1 ring-slate-200">
+                            <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Opening</p>
+                            <p class="mt-1 text-base font-bold text-slate-800">{{ format_idr($stats['opening_balance'] ?? 0) }}</p>
+                            <p class="mt-0.5 text-[10px] text-slate-400">Total saldo awal</p>
+                        </div>
+                        <div class="rounded-lg bg-emerald-50 p-3 ring-1 ring-emerald-100">
+                            <p class="text-[11px] font-semibold uppercase tracking-wider text-emerald-700">Cash In</p>
+                            <p class="mt-1 text-base font-bold text-emerald-800">{{ format_idr($stats['cash_in'] ?? 0) }}</p>
+                            <p class="mt-0.5 text-[10px] text-emerald-600">Penerimaan kas</p>
+                        </div>
+                        <div class="rounded-lg bg-red-50 p-3 ring-1 ring-red-100">
+                            <p class="text-[11px] font-semibold uppercase tracking-wider text-red-700">Cash Out</p>
+                            <p class="mt-1 text-base font-bold text-red-800">{{ format_idr($stats['cash_out'] ?? 0) }}</p>
+                            <p class="mt-0.5 text-[10px] text-red-600">Pengeluaran kas</p>
+                        </div>
+                        <div class="rounded-lg bg-brand-50 p-3 ring-1 ring-brand-100">
+                            <p class="text-[11px] font-semibold uppercase tracking-wider text-brand-700">Total Saldo</p>
+                            <p class="mt-1 text-base font-bold text-brand-800">{{ format_idr($stats['current_balance'] ?? 0) }}</p>
+                            <p class="mt-0.5 text-[10px] text-brand-600">Saldo saat ini</p>
+                        </div>
+                    </div>
+
+                    {{-- Mini Account Balances --}}
+                    @if (!empty($stats['cash_accounts']))
+                    <div class="rounded-xl border border-slate-100 bg-slate-50/70 p-3.5">
+                        <div class="mb-2 flex items-center justify-between text-xs font-semibold text-slate-600">
+                            <span>Saldo per Rekening Kas & Bank</span>
+                            <a href="{{ route('reports.cash-flow') }}" wire:navigate class="text-brand-600 hover:text-brand-700 text-[11px]">Laporan Kas Besar &rarr;</a>
+                        </div>
+                        <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 max-h-36 overflow-y-auto pr-1">
+                            @foreach ($stats['cash_accounts'] as $acc)
+                            <div class="flex items-center justify-between rounded-lg bg-white p-2.5 shadow-sm ring-1 ring-slate-100">
+                                <div class="min-w-0 flex-1 pr-2">
+                                    <p class="text-xs font-semibold text-slate-800 truncate">{{ $acc['kode'] }} - {{ $acc['nama'] }}</p>
+                                    <p class="text-[10px] text-slate-400">{{ $acc['jenis'] }}</p>
+                                </div>
+                                <p class="text-xs font-bold text-slate-900 tabular-nums shrink-0">{{ format_idr($acc['saldo']) }}</p>
+                            </div>
+                            @endforeach
+                        </div>
+                    </div>
+                    @endif
+
+                    {{-- Quick Actions --}}
+                    <div class="flex flex-wrap items-center gap-2 pt-1">
+                        <a href="{{ route('cashflows.create', ['mode' => 'masuk']) }}" wire:navigate class="inline-flex items-center gap-1 rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-emerald-700">
+                            + Add Cash In
+                        </a>
+                        <a href="{{ route('cashflows.create', ['mode' => 'keluar']) }}" wire:navigate class="inline-flex items-center gap-1 rounded-lg bg-red-600 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-red-700">
+                            + Add Cash Out
+                        </a>
+                        @if (auth()->user()->isAdmin())
+                        <a href="{{ route('fund-transfers.create') }}" wire:navigate class="inline-flex items-center gap-1 rounded-lg bg-slate-700 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-slate-800">
+                            <x-icon name="arrow-path" class="h-3.5 w-3.5" /> Transfer Dana
+                        </a>
+                        @endif
+                    </div>
                 </div>
             </div>
             {{-- Receivable & Payable --}}

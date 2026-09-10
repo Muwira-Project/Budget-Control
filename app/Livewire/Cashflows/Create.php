@@ -71,14 +71,14 @@ class Create extends Component
                 'project_id' => $this->projectId,
                 'pihak_type_id' => $this->pihakTypeId,
                 'pihak_item_id' => $this->pihakItemId,
-                'status' => 'draft',
+                'status' => 'posted',
             ],
             (new StoreCashflowRequest)->rules(),
         )->validate();
 
         $service->create($validated);
 
-        session()->flash('status', ucfirst(str_replace('_', ' ', $sumber)).' saved as draft. Submit it for admin approval.');
+        session()->flash('status', ucfirst(str_replace('_', ' ', $sumber)).' saved successfully.');
 
         $this->redirectRoute('cashflows.index', navigate: true);
     }

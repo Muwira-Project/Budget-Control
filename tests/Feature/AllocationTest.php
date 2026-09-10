@@ -378,14 +378,6 @@ class AllocationTest extends TestCase
         $this->assertNotNull($cashflow);
         $this->assertSame('draft', $cashflow->status->value);
 
-        // Submit -> waiting.
-        app(CashflowService::class)->submit($cashflow);
-        $this->assertSame('waiting', $cashflow->fresh()->status->value);
-
-        // Approve -> approved.
-        app(CashflowService::class)->approve($cashflow->fresh());
-        $this->assertSame('approved', $cashflow->fresh()->status->value);
-
         // Post -> posted + voucher.
         app(CashflowService::class)->post($cashflow->fresh());
         $this->assertSame('posted', $cashflow->fresh()->status->value);

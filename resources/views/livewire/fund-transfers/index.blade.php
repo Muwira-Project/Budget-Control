@@ -43,8 +43,6 @@
                                         <td class="px-6 py-4">
                                             <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ match ($transfer->status->value) {
                                                 'posted' => 'bg-green-100 text-green-700',
-                                                'waiting' => 'bg-amber-100 text-amber-700',
-                                                'approved' => 'bg-blue-100 text-blue-700',
                                                 'rejected' => 'bg-red-100 text-red-700',
                                                 default => 'bg-gray-200 text-gray-600',
                                             } }}">
@@ -56,14 +54,9 @@
                                         <td class="px-6 py-4 text-right font-medium text-gray-900">{{ format_idr($transfer->nominal) }}</td>
                                         <td class="px-6 py-4 text-gray-500">{{ $transfer->keterangan }}</td>
                                         <td class="px-6 py-4 text-right whitespace-nowrap">
-                                            <x-action-buttons :delete-id="$transfer->isPosted() ? null : $transfer->id">
-                                                @if ($transfer->status->value === 'draft')
-                                                    <button type="button" wire:click="submit({{ $transfer->id }})" title="Submit for Approval"
-                                                        class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-amber-300 hover:bg-amber-50 hover:text-amber-600">
-                                                        <x-icon name="upload" class="h-4 w-4" />
-                                                    </button>
-                                                @endif
-                                            </x-action-buttons>
+                                            @if (! $transfer->isPosted())
+                                                <x-action-buttons :delete-id="$transfer->id" />
+                                            @endif
                                             @if ($transfer->status->value === 'posted')
                                                 <button type="button" onclick="openPrintPreview('{{ route('fund-transfers.print', $transfer) }}')" title="Cetak Voucher" class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-blue-300 hover:bg-blue-50 hover:text-blue-600">
                                                     <x-icon name="printer" class="h-4 w-4" />

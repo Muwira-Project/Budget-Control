@@ -31,19 +31,6 @@ class Index extends Component
     }
 
     /**
-     * Submit a draft fund transfer for admin approval.
-     */
-    public function submit(FundTransfer $transfer, FundTransferService $service): void
-    {
-        try {
-            $service->submit($transfer);
-            session()->flash('status', 'Fund transfer submitted for approval.');
-        } catch (\LogicException $exception) {
-            session()->flash('error', $exception->getMessage());
-        }
-    }
-
-    /**
      * The paginated list of fund transfers.
      */
     #[Computed]

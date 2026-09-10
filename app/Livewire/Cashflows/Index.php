@@ -48,43 +48,12 @@ class Index extends Component
     }
 
     /**
-     * Submit a draft manual cashflow entry for admin approval.
-     */
-    public function submit(Cashflow $cashflow, CashflowService $service): void
-    {
-        if (! $cashflow->isManual()) {
-            session()->flash('error', 'Records created automatically cannot be submitted.');
-
-            return;
-        }
-
-        if (! Gate::allows('manageDraft', $cashflow)) {
-            session()->flash('error', 'Staff can only submit their own draft cash entries.');
-
-            return;
-        }
-
-        try {
-            $service->submit($cashflow);
-            session()->flash('status', 'Cash record submitted for approval.');
-        } catch (\LogicException $exception) {
-            session()->flash('error', $exception->getMessage());
-        }
-    }
-
-    /**
-     * Delete a non-posted manual cashflow entry.
+     * Delete a posted cashflow entry is not allowed; only non-posted can be deleted.
      */
     public function delete(Cashflow $cashflow, CashflowService $service): void
     {
         if (! $cashflow->isManual()) {
             session()->flash('error', 'Records created automatically from settlements cannot be deleted.');
-
-            return;
-        }
-
-        if (! Gate::allows('manageDraft', $cashflow)) {
-            session()->flash('error', 'Staff can only delete their own draft cash entries.');
 
             return;
         }
@@ -171,7 +140,7 @@ class Index extends Component
         return app(CashflowService::class)->statistics(
             $this->startDate,
             $this->endDate,
-            $this->jenisForTab,
+            null,
             $this->sumberFilter !== '' ? $this->sumberFilter : null,
             $this->cashAccountId,
         );
@@ -230,29 +199,6 @@ class Index extends Component
     protected function bulkCollectionProperty(): string
     {
         return 'cashflows';
-    }
-
-    /**
-     * Bulk delete non-posted manual cash entries.
-     */
-    public function deleteSelected(CashflowService $service): void
-    {
-        $deleted = 0;
-        foreach ($this->selectedIds as $id) {
-            if (! $cashflow = Cashflow::find($id)) {
-                continue;
-            }
-            if (! $cashflow->isManual() || $cashflow->isPosted()) {
-                continue;
-            }
-            if (! Gate::allows('manageDraft', $cashflow)) {
-                continue;
-            }
-            $service->delete($cashflow);
-            $deleted++;
-        }
-        $this->selectedIds = [];
-        session()->flash('status', $deleted.' cash record(s) deleted.');
     }
 
     public function render()

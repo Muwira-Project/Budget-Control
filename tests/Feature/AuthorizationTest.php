@@ -38,13 +38,6 @@ class AuthorizationTest extends TestCase
         ], $overrides));
     }
 
-    public function test_staff_cannot_access_approvals_page(): void
-    {
-        $this->actingAs($this->staff());
-
-        $this->get('/approvals')->assertForbidden();
-    }
-
     public function test_staff_cannot_access_backup_page(): void
     {
         $this->actingAs($this->staff());
@@ -111,7 +104,6 @@ class AuthorizationTest extends TestCase
     {
         $this->actingAs($this->admin());
 
-        $this->get('/approvals')->assertOk();
         $this->get('/backup')->assertOk();
         $this->get('/users')->assertOk();
         $this->get('/users/create')->assertOk();

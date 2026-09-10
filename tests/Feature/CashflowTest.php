@@ -63,7 +63,7 @@ class CashflowTest extends TestCase
             'jenis' => 'masuk',
             'sumber' => 'pendapatan',
             'nominal' => 250000000,
-            'status' => 'draft',
+            'status' => 'posted',
         ]);
     }
 
