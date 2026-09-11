@@ -38,7 +38,7 @@
                 </div>
                 <div>
                     <x-input-label for="pihak_type_id" :value="__('Pihak (Vendor/Supplier/Mandor/Investor')" />
-                    <select id="pihak_type_id" wire:model="pihakTypeId" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                    <select id="pihak_type_id" wire:model.live="pihakTypeId" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                         <option value="">-- Pilih Tipe --</option>
                         @foreach ($this->pihakTypes() as $type)
                             <option value="{{ $type->id }}">{{ $type->nama }}</option>

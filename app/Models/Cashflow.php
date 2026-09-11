@@ -122,15 +122,19 @@ class Cashflow extends Model
             return $this->belongsTo(MasterItem::class, 'pihak_item_id');
         }
 
-        // Via payment (settlement entry)
-        return $this->hasOneThrough(
-            MasterItem::class,
-            Payment::class,
-            'id',
-            'id',
-            'payment_id',
-            'pihak_item_id',
-        );
+        // Via payment (settlement entry) - only if payment_id exists
+        if ($this->payment_id !== null) {
+            return $this->hasOneThrough(
+                MasterItem::class,
+                Payment::class,
+                'id',
+                'id',
+                'payment_id',
+                'pihak_item_id',
+            );
+        }
+
+        return $this->belongsTo(MasterItem::class, 'pihak_item_id')->whereRaw('1=0');
     }
 
     /**
@@ -144,15 +148,19 @@ class Cashflow extends Model
             return $this->belongsTo(MasterType::class, 'pihak_type_id');
         }
 
-        // Via payment (settlement entry)
-        return $this->hasOneThrough(
-            MasterType::class,
-            Payment::class,
-            'id',
-            'id',
-            'payment_id',
-            'pihak_type_id',
-        );
+        // Via payment (settlement entry) - only if payment_id exists
+        if ($this->payment_id !== null) {
+            return $this->hasOneThrough(
+                MasterType::class,
+                Payment::class,
+                'id',
+                'id',
+                'payment_id',
+                'pihak_type_id',
+            );
+        }
+
+        return $this->belongsTo(MasterType::class, 'pihak_type_id')->whereRaw('1=0');
     }
 
     /**
