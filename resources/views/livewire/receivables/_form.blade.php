@@ -1,12 +1,13 @@
 <div class="mt-6 grid grid-cols-1 gap-6">
     <div>
-        <x-input-label for="project_id" :value="__('Project')" />
-        <select id="project_id" wire:model.live="projectId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required>
-            <option value="">-- Select Project --</option>
+        <x-input-label for="project_id" :value="__('Project (optional)')" />
+        <select id="project_id" wire:model.live="projectId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            <option value="">-- No Project (Non-Project) --</option>
             @foreach ($this->projects as $project)
                 <option value="{{ $project->id }}">{{ $project->kode }} - {{ $project->nama }}</option>
             @endforeach
         </select>
+        <p class="mt-1 text-xs text-gray-500">Kosongkan untuk transaksi AR di luar project.</p>
         <x-input-error :messages="$errors->get('project_id')" class="mt-2" />
     </div>
 

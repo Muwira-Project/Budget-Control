@@ -14,7 +14,7 @@ enum CashflowJenis: string
     {
         return match ($this) {
             self::Masuk => 'Income',
-            self::Keluar => 'Expense',
+            self::Keluar => 'Outcome',
         };
     }
 }

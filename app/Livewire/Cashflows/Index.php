@@ -169,7 +169,7 @@ class Index extends Component
             'pendapatan' => 'Income',
             'pelunasan_ar' => 'AR Settlement',
             'pelunasan_ap' => 'AP Settlement',
-            'pengeluaran_lain' => 'Other Expense',
+            'pengeluaran_lain' => 'Other Outcome',
         ];
     }
 

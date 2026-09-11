@@ -59,7 +59,7 @@ class Edit extends Component
     {
         $validator = Validator::make(
             [
-                'project_id' => $this->projectId,
+                'project_id' => ! empty($this->projectId) ? (int) $this->projectId : null,
                 'pihak_type_id' => $this->pihakTypeId,
                 'pihak_item_id' => $this->pihakItemId,
                 'tanggal' => $this->tanggal,
@@ -72,11 +72,12 @@ class Edit extends Component
         );
 
         $validator->after(function ($validator): void {
-            if ($this->projectId !== null
+            // Only validate duplicate project when a project is selected
+            if (! empty($this->projectId)
                 && Receivable::where('project_id', $this->projectId)
                     ->where('id', '!=', $this->receivable->id)
                     ->exists()) {
-                $validator->errors()->add('project_id', 'This project already has a receivable.');
+                $validator->errors()->add('project_id', 'Proyek ini sudah memiliki receivable.');
             }
 
             if (($this->pihakTypeId === null) !== ($this->pihakItemId === null)) {
@@ -107,15 +108,12 @@ class Edit extends Component
     }
 
     /**
-     * The projects that do not have a receivable yet (excluding this one).
+     * All active projects (project_id is now optional for non-project AR).
      */
     #[Computed]
     public function projects()
     {
-        return Project::whereDoesntHave('receivable')
-            ->orWhereHas('receivable', fn ($query) => $query->where('id', $this->receivable->id))
-            ->orderBy('nama')
-            ->get();
+        return Project::orderBy('nama')->get();
     }
 
     /**

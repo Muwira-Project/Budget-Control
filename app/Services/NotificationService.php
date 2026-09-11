@@ -113,7 +113,7 @@ class NotificationService
     {
         $this->notifyAdmins(
             'AR '.ucfirst($action),
-            ($action === 'created' ? 'Receivable created' : 'Receivable updated').' for project #'.$receivable->project_id.' — invoice '.($receivable->nomor_invoice ?? 'n/a').', nominal '.number_format((float) $receivable->nominal, 0, ',', '.').'.',
+            ($action === 'created' ? 'Receivable created' : 'Receivable updated').($receivable->project_id ? ' for project #'.$receivable->project_id : ' (Non-Project)').' — invoice '.($receivable->nomor_invoice ?? 'n/a').', nominal '.number_format((float) $receivable->nominal, 0, ',', '.').'.',
             route('receivables.index'),
         );
     }

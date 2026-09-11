@@ -56,7 +56,7 @@
                 </div>
                 @if ($jenis === 'keluar')
                 <div class="sm:col-span-2">
-                    <x-input-label for="akun_id" :value="__('Expense Account (COA)')" />
+                    <x-input-label for="akun_id" :value="__('Outcome Account (COA)')" />
                     <select id="akun_id" wire:model="akunId" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                         <option value="">Select Account</option>
                         @foreach ($this->akuns() as $akun)

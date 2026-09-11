@@ -23,7 +23,7 @@ class StorePayableRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'project_id' => ['required', 'exists:projects,id'],
+            'project_id' => ['nullable', 'exists:projects,id'],
             'akun_id' => ['required', 'exists:akuns,id'],
             'pihak_type_id' => ['required', 'exists:master_types,id'],
             'pihak_item_id' => ['required', 'exists:master_items,id'],

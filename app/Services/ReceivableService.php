@@ -43,7 +43,7 @@ class ReceivableService
     {
         // Uniqueness is enforced here because SQLite cannot express a
         // partial unique index for active (non-soft-deleted) rows.
-        if (Receivable::where('project_id', $data['project_id'])->exists()) {
+        if (! empty($data['project_id']) && Receivable::where('project_id', $data['project_id'])->exists()) {
             throw ValidationException::withMessages(['project_id' => 'Project ini sudah memiliki piutang.']);
         }
 
@@ -84,10 +84,14 @@ class ReceivableService
             ]);
         }
 
+        if (! empty($data['project_id']) && Receivable::where('project_id', $data['project_id'])->where('id', '!=', $receivable->id)->exists()) {
+            throw ValidationException::withMessages(['project_id' => 'Project ini sudah memiliki piutang.']);
+        }
+
         $this->ensureUniqueInvoiceNumber($data['nomor_invoice'] ?? $receivable->nomor_invoice, $receivable->id);
 
         $receivable->update([
-            'project_id' => $data['project_id'],
+            'project_id' => ! empty($data['project_id']) ? $data['project_id'] : null,
             'pihak_type_id' => $data['pihak_type_id'] ?? $receivable->pihak_type_id,
             'pihak_item_id' => $data['pihak_item_id'] ?? $receivable->pihak_item_id,
             'tanggal' => $data['tanggal'],

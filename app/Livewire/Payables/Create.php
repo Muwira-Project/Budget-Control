@@ -54,7 +54,7 @@ class Create extends Component
     {
         $validator = Validator::make(
             [
-                'project_id' => $this->projectId,
+                'project_id' => ! empty($this->projectId) ? (int) $this->projectId : null,
                 'akun_id' => $this->akunId,
                 'pihak_type_id' => $this->pihakTypeId,
                 'pihak_item_id' => $this->pihakItemId,
@@ -74,7 +74,8 @@ class Create extends Component
                 $validator->errors()->add('pihak_item_id', 'Pilih salah satu pihak (vendor/supplier/mandor/investor).');
             }
 
-            if ($this->projectId !== null
+            // Only validate akun allocation when a project is selected
+            if (! empty($this->projectId)
                 && $this->akunId !== null
                 && ProjectAkun::where('project_id', $this->projectId)
                     ->where('akun_id', $this->akunId)
@@ -111,13 +112,19 @@ class Create extends Component
     }
 
     /**
-     * The approved allocations for the selected project.
+     * The approved allocations for the selected project,
+     * or all accounts when no project is selected (non-project AP).
      */
     #[Computed]
     public function akuns()
     {
+        if (empty($this->projectId)) {
+            // Non-project AP: show all active accounts
+            return Akun::orderBy('kode_akun')->get();
+        }
+
         return Akun::query()
-            ->when($this->projectId, fn ($query) => $query->whereIn('id', ProjectAkun::where('project_id', $this->projectId)->where('status', 'approved')->pluck('akun_id')))
+            ->whereIn('id', ProjectAkun::where('project_id', $this->projectId)->where('status', 'approved')->pluck('akun_id'))
             ->orderBy('kode_akun')
             ->get();
     }

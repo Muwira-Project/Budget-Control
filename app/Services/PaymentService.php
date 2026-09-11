@@ -47,7 +47,7 @@ class PaymentService
                 'sumber' => 'pelunasan_ar',
                 'payment_id' => $payment->id,
                 'nominal' => $data['nominal'],
-                'keterangan' => 'Pelunasan AR '.($receivable->project()->value('kode') ?: '#'.$receivable->project_id),
+                'keterangan' => 'Pelunasan AR '.($receivable->project?->kode ?: ($receivable->project_id ? '#'.$receivable->project_id : 'Non-Project')),
             ]);
 
             return $payment->refresh();

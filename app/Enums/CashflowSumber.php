@@ -20,7 +20,7 @@ enum CashflowSumber: string
             self::PemasukanManual => 'Manual Income',
             self::PelunasanAr => 'AR Settlement',
             self::PelunasanAp => 'AP Settlement',
-            self::PengeluaranLain => 'Other Expense',
+            self::PengeluaranLain => 'Other Outcome',
         };
     }
 }

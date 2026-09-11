@@ -54,7 +54,7 @@ class StoreProjectRequest extends FormRequest
             // For new projects, current status is implicitly Draft
             $newStatus = ProjectStatus::tryFrom($this->input('status'));
 
-            if ($newStatus && ! ProjectStatus::Draft->canTransitionTo($newStatus)) {
+            if ($newStatus && $newStatus !== ProjectStatus::Draft && ! ProjectStatus::Draft->canTransitionTo($newStatus)) {
                 $validator->errors()->add(
                     'status',
                     "Tidak bisa membuat project dengan status {$newStatus->label()}. Project baru harus berstatus Draft, In Progress, atau Cancelled."

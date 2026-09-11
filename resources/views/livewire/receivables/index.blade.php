@@ -126,7 +126,13 @@
                                     <tr class="hover:bg-gray-50">
                                         <td class="w-8 px-6 py-4"><input type="checkbox" wire:click="toggleSelected({{ $receivable->id }})" @checked(in_array($receivable->id, $this->selectedIds, true)) class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" /></td>
 
-                                        <td class="px-6 py-4 text-gray-700">{{ $receivable->project->kode }} - {{ $receivable->project->nama }}</td>
+                                        <td class="px-6 py-4 text-gray-700">
+                                            @if ($receivable->project)
+                                                {{ $receivable->project->kode }} - {{ $receivable->project->nama }}
+                                            @else
+                                                <span class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">Non-Project</span>
+                                            @endif
+                                        </td>
                                         <td class="px-6 py-4 text-gray-500 whitespace-nowrap">{{ $receivable->nomor_invoice ?? '-' }}</td>
                                         <td class="px-6 py-4 text-gray-700 whitespace-nowrap">{{ $receivable->tanggal->format('d M Y') }}</td>
                                         <td class="px-6 py-4 text-gray-500 whitespace-nowrap">{{ $receivable->jatuh_tempo?->format('d M Y') }}</td>

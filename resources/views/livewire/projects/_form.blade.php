@@ -107,15 +107,23 @@
         <x-input-label for="status" :value="__('Status')" />
         <select id="status" wire:model="status" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
             @php
-                $currentStatus = \App\Enums\ProjectStatus::tryFrom($this->status);
+                $isEdit = isset($this->project) && $this->project->exists;
+                $currentStatus = $isEdit ? $this->project->status : \App\Enums\ProjectStatus::tryFrom($this->status);
                 $allStatuses = \App\Enums\ProjectStatus::cases();
             @endphp
             @foreach ($allStatuses as $statusEnum)
                 @php
-                    $disabled = $currentStatus && !$currentStatus->canTransitionTo($statusEnum);
+                    if ($isEdit) {
+                        $isCurrent = $currentStatus && $currentStatus->value === $statusEnum->value;
+                        $disabled = $currentStatus && !$isCurrent && !$currentStatus->canTransitionTo($statusEnum);
+                    } else {
+                        // On create: Draft and allowed initial transitions (In Progress, Cancelled) are enabled
+                        $disabled = $statusEnum !== \App\Enums\ProjectStatus::Draft 
+                            && !\App\Enums\ProjectStatus::Draft->canTransitionTo($statusEnum);
+                    }
                 @endphp
                 <option value="{{ $statusEnum->value }}" {{ $disabled ? 'disabled' : '' }}>
-                    {{ $statusEnum->label() }} {{ $disabled ? '(tidak diizinkan)' : '' }}
+                    {{ $statusEnum->label() }}
                 </option>
             @endforeach
         </select>

@@ -14,7 +14,7 @@ enum PaymentJenis: string
     {
         return match ($this) {
             self::Masuk => 'Income (AR Settlement)',
-            self::Keluar => 'Expense (AP Settlement)',
+            self::Keluar => 'Outcome (AP Settlement)',
         };
     }
 }

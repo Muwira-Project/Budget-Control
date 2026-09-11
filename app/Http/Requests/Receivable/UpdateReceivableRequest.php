@@ -22,7 +22,7 @@ class UpdateReceivableRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'project_id' => ['required', 'exists:projects,id'],
+            'project_id' => ['nullable', 'exists:projects,id'],
             'tanggal' => ['required', 'date'],
             'nomor_invoice' => ['nullable', 'string', 'max:100'],
             'jatuh_tempo' => ['nullable', 'date', 'after_or_equal:tanggal'],
