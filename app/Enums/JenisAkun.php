@@ -14,7 +14,7 @@ enum JenisAkun: string
     {
         return match ($this) {
             self::Pendapatan => 'Income',
-            self::Pengeluaran => 'Expense',
+            self::Pengeluaran => 'Outcome',
         };
     }
 }

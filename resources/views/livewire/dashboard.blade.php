@@ -217,7 +217,7 @@
                             <p class="mt-1 text-base font-bold text-emerald-800 sm:text-lg">{{ format_idr($stats['cash_in'] ?? 0) }}</p>
                         </div>
                         <div class="rounded-lg bg-red-50 p-3 ring-1 ring-red-100">
-                            <p class="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-red-700"><x-icon name="arrow-down-right" class="h-3.5 w-3.5" /> Expense</p>
+                            <p class="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-red-700"><x-icon name="arrow-down-right" class="h-3.5 w-3.5" /> Outcome</p>
                             <p class="mt-1 text-base font-bold text-red-800 sm:text-lg">{{ format_idr($stats['cash_out'] ?? 0) }}</p>
                         </div>
                         <div class="rounded-lg bg-brand-50 p-3 ring-1 ring-brand-100">
@@ -231,7 +231,7 @@
                         <div class="h-full bg-red-500" style="width: {{ (($stats['cash_out'] ?? 0) / $cashMax) * 100 }}%"></div>
                     </div>
                     <div class="flex items-center justify-between text-xs text-slate-500">
-                        <span>Proportion Income vs Expense</span>
+                        <span>Proportion Income vs Outcome</span>
                         <span class="font-semibold text-slate-700">Net Cashflow: {{ format_idr($stats['saldo_kas'] ?? 0) }}</span>
                     </div>
                 </div>
@@ -468,7 +468,7 @@
                     <div class="rounded-xl border border-slate-100 bg-slate-50/70 p-3.5">
                         <div class="mb-2 flex items-center justify-between text-xs font-semibold text-slate-600">
                             <span>Saldo per Rekening Kas & Bank</span>
-                            <a href="{{ route('reports.cash-flow') }}" wire:navigate class="text-brand-600 hover:text-brand-700 text-[11px]">Laporan Kas Besar &rarr;</a>
+                            <a href="{{ route('cashflows.index') }}" wire:navigate class="text-brand-600 hover:text-brand-700 text-[11px]">Rincian Laporan &rarr;</a>
                         </div>
                         <div class="grid grid-cols-1 gap-2 sm:grid-cols-2 max-h-36 overflow-y-auto pr-1">
                             @foreach ($stats['cash_accounts'] as $acc)

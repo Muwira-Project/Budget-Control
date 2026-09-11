@@ -16,7 +16,7 @@
             <x-input-label for="jenis_akun" :value="__('Account Type')" />
             <select id="jenis_akun" wire:model="jenisAkun" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                 <option value="pendapatan">Income</option>
-                <option value="pengeluaran">Expense</option>
+                <option value="pengeluaran">Outcome</option>
             </select>
             <x-input-error :messages="$errors->get('jenis_akun')" class="mt-2" />
         </div>

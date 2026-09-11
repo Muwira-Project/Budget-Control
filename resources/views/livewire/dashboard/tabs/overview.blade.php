@@ -129,7 +129,7 @@
                     <p class="mt-1 text-lg font-bold text-emerald-800">{{ format_idr($stats['cash_in']) }}</p>
                 </div>
                 <div class="rounded-lg bg-red-50 p-3 ring-1 ring-red-100">
-                    <p class="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-red-700"><x-icon name="arrow-down-right" class="h-3.5 w-3.5" /> Expense</p>
+                    <p class="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-red-700"><x-icon name="arrow-down-right" class="h-3.5 w-3.5" /> Outcome</p>
                     <p class="mt-1 text-lg font-bold text-red-800">{{ format_idr($stats['cash_out']) }}</p>
                 </div>
                 <div class="rounded-lg bg-brand-50 p-3 ring-1 ring-brand-100">

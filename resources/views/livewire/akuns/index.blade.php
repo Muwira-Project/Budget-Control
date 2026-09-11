@@ -34,7 +34,7 @@
                             <select id="jenis_filter" wire:model.live="jenisAkun" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                                 <option value="">All Type</option>
                                 <option value="pendapatan">Income</option>
-                                <option value="pengeluaran">Expense</option>
+                                <option value="pengeluaran">Outcome</option>
                             </select>
                         </div>
                     </div>
