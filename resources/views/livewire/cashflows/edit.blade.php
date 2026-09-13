@@ -12,6 +12,21 @@
             </span>
         </div>
 
+        @if ($cashflow->payment_id)
+            <div class="mt-4 flex items-start gap-3 rounded-xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-800">
+                <svg class="mt-0.5 h-5 w-5 shrink-0 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+                <div>
+                    <span class="font-semibold">Transaksi Terhubung dengan Pembayaran AR/AP:</span>
+                    <p class="mt-0.5 text-xs text-blue-700">
+                        Transaksi kas ini dicatat otomatis dari pelunasan invoice (Payment #{{ $cashflow->payment_id }}).
+                        Perubahan nominal di sini tidak otomatis mengubah riwayat sisa invoice AR/AP. Jika ingin membatalkan/mengubah, gunakan menu AR / AP / Payments.
+                    </p>
+                </div>
+            </div>
+        @endif
+
         <form wire:submit="save" class="mt-6 rounded-2xl bg-white p-6 shadow-sm ring-1 ring-gray-200">
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>

@@ -34,12 +34,14 @@ class ReceivableExport implements FromQuery, ShouldAutoSize, WithHeadings, WithM
         }
 
         // Status filter
+        // NOTE: 'status' is a computed accessor (nominal_dibayar vs nominal), NOT a DB column.
+        // Use numeric comparisons — consistent with ReceivableService::applyStatusFilter().
         if (! empty($this->filters['status'])) {
             match ($this->filters['status']) {
-                'belum_dibayar' => $query->whereRaw('nominal - nominal_dibayar > 0 AND status != ?', ['lunas']),
-                'sebagian' => $query->whereRaw('nominal_dibayar > 0 AND nominal - nominal_dibayar > 0 AND status = ?', ['sebagian']),
-                'lunas' => $query->where('status', 'lunas'),
-                default => null,
+                'belum_dibayar' => $query->where('nominal_dibayar', 0),
+                'sebagian'      => $query->where('nominal_dibayar', '>', 0)->whereColumn('nominal_dibayar', '<', 'nominal'),
+                'lunas'         => $query->whereColumn('nominal_dibayar', '>=', 'nominal'),
+                default         => null,
             };
         }
 

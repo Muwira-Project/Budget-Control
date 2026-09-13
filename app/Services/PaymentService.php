@@ -42,12 +42,13 @@ class PaymentService
             $receivable->increment('nominal_dibayar', $data['nominal']);
 
             app(CashflowService::class)->create([
-                'tanggal' => $data['tanggal'],
-                'jenis' => 'masuk',
-                'sumber' => 'pelunasan_ar',
-                'payment_id' => $payment->id,
-                'nominal' => $data['nominal'],
-                'keterangan' => 'Pelunasan AR '.($receivable->project?->kode ?: ($receivable->project_id ? '#'.$receivable->project_id : 'Non-Project')),
+                'tanggal'          => $data['tanggal'],
+                'jenis'            => 'masuk',
+                'sumber'           => 'pelunasan_ar',
+                'payment_id'       => $payment->id,
+                'cash_account_id'  => $data['cash_account_id'] ?? null,
+                'nominal'          => $data['nominal'],
+                'keterangan'       => 'Pelunasan AR '.($receivable->project?->kode ?: ($receivable->project_id ? '#'.$receivable->project_id : 'Non-Project')),
             ]);
 
             return $payment->refresh();
@@ -81,12 +82,13 @@ class PaymentService
                 : $payable->project?->kode;
 
             app(CashflowService::class)->create([
-                'tanggal' => $data['tanggal'],
-                'jenis' => 'keluar',
-                'sumber' => 'pelunasan_ap',
-                'payment_id' => $payment->id,
-                'nominal' => $data['nominal'],
-                'keterangan' => 'Pelunasan AP '.($partyName ?: '#'.$payable->id),
+                'tanggal'          => $data['tanggal'],
+                'jenis'            => 'keluar',
+                'sumber'           => 'pelunasan_ap',
+                'payment_id'       => $payment->id,
+                'cash_account_id'  => $data['cash_account_id'] ?? null,
+                'nominal'          => $data['nominal'],
+                'keterangan'       => 'Pelunasan AP '.($partyName ?: '#'.$payable->id),
             ]);
 
             app(ActualService::class)->recordFromPayablePayment($payment);

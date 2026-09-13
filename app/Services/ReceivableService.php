@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\ProjectStatus;
+use App\Models\NumberSequence;
 use App\Models\Payment;
 use App\Models\Project;
 use App\Models\Receivable;
@@ -267,14 +268,16 @@ class ReceivableService
 
     /**
      * Generate a unique invoice number for the project.
+     *
+     * Uses NumberSequence for atomic, race-safe sequence generation
+     * (DB transaction + increment — safe under concurrent requests).
      */
     private function generateInvoiceNumber(Project $project): string
     {
-        $prefix = 'INV';
         $year = now()->format('Y');
-        $sequence = Receivable::whereYear('tanggal', $year)->count() + 1;
+        $sequence = NumberSequence::next('receivable_invoice', $year);
 
-        return sprintf('%s-%s-%04d', $prefix, $year, $sequence);
+        return sprintf('INV-%s-%04d', $year, $sequence);
     }
 
     /**
