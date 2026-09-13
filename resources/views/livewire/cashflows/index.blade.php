@@ -6,9 +6,19 @@
                 <p class="mt-1 text-sm text-gray-500">Cash In, Cash Out, dan Fund Transfer dalam satu tempat. Voucher diakses lewat tombol aksi per transaksi.</p>
             </div>
             @if (in_array($this->tab, ['cash-in', 'cash-out'], true))
-                <a href="{{ route('cashflows.create', ['mode' => $this->tab === 'cash-in' ? 'masuk' : 'keluar']) }}" wire:navigate class="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                    + {{ $this->tab === 'cash-in' ? 'Add Cash In' : 'Add Cash Out' }}
-                </a>
+                <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+                    <a href="{{ route('exports.cashflows') }}" class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                        <x-icon name="download" class="h-4 w-4 mr-2" />
+                        Export
+                    </a>
+                    <a href="{{ route('imports.cashflows') }}" wire:navigate class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                        <x-icon name="upload" class="h-4 w-4 mr-2" />
+                        Import
+                    </a>
+                    <a href="{{ route('cashflows.create', ['mode' => $this->tab === 'cash-in' ? 'masuk' : 'keluar']) }}" wire:navigate class="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                        + {{ $this->tab === 'cash-in' ? 'Add Cash In' : 'Add Cash Out' }}
+                    </a>
+                </div>
             @endif
         </div>
 

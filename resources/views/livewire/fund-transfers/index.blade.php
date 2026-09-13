@@ -5,9 +5,15 @@
                 <h2 class="text-xl font-semibold text-gray-800 leading-tight">{{ __('Fund Transfer') }}</h2>
                 <p class="mt-1 text-sm text-gray-500">Pemindahan dana antar rekening (bukan pendapatan/beban).</p>
             </div>
-            <a href="{{ route('fund-transfers.create') }}" wire:navigate class="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
-                + Add Fund Transfer
-            </a>
+            <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <a href="{{ route('imports.fund-transfers') }}" wire:navigate class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    <x-icon name="upload" class="h-4 w-4 mr-2" />
+                    Import
+                </a>
+                <a href="{{ route('fund-transfers.create') }}" wire:navigate class="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    + Add Fund Transfer
+                </a>
+            </div>
         </div>
 
         @if (session('status'))

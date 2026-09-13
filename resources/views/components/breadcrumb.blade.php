@@ -23,6 +23,8 @@ match ($name) {
 'realisasi.index' => $breadcrumbs[] = ['label' => 'Actual', 'route' => 'realisasi.index'],
 'imports.akuns' => [$breadcrumbs[] = ['label' => 'Import', 'route' => null], $breadcrumbs[] = ['label' => 'Import Account']],
 'imports.budgeting' => [$breadcrumbs[] = ['label' => 'Import', 'route' => null], $breadcrumbs[] = ['label' => 'Import Budgeting']],
+'imports.cashflows' => [$breadcrumbs[] = ['label' => 'Cash Activity', 'route' => 'cashflows.index'], $breadcrumbs[] = ['label' => 'Import Cash In/Out']],
+'imports.fund-transfers' => [$breadcrumbs[] = ['label' => 'Cash Activity', 'route' => 'cashflows.index'], $breadcrumbs[] = ['label' => 'Import Fund Transfer']],
 'cashflows.index' => [$breadcrumbs[] = ['label' => 'Cash Activity', 'route' => 'cashflows.index']],
 'cashflows.create' => [$breadcrumbs[] = ['label' => 'Cash Activity', 'route' => 'cashflows.index'], $breadcrumbs[] = ['label' => 'Add Cash Entry']],
 'cash-accounts.index' => [$breadcrumbs[] = ['label' => 'Cash Activity', 'route' => 'cashflows.index'], $breadcrumbs[] = ['label' => 'Cash Account', 'route' => 'cash-accounts.index']],

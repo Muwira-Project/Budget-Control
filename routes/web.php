@@ -29,6 +29,7 @@ use App\Livewire\FundTransfers\Index as IndexFundTransfer;
 use App\Livewire\Imports\ImportAkuns;
 use App\Livewire\Imports\ImportBudgetings;
 use App\Livewire\Imports\ImportCashflows;
+use App\Livewire\Imports\ImportFundTransfers;
 use App\Livewire\Imports\ImportPayables;
 use App\Livewire\Imports\ImportProjects;
 use App\Livewire\Imports\ImportReceivables;
@@ -187,6 +188,8 @@ Route::middleware(['auth', 'verified', 'draft-staff'])->group(function () {
     Route::get('/import/receivables/template', [ImportTemplateController::class, 'receivable'])->name('imports.receivables.template');
     Route::get('/import/payables', ImportPayables::class)->name('imports.payables');
     Route::get('/import/payables/template', [ImportTemplateController::class, 'payable'])->name('imports.payables.template');
+    Route::get('/import/fund-transfers', ImportFundTransfers::class)->name('imports.fund-transfers');
+    Route::get('/import/fund-transfers/template', [ImportTemplateController::class, 'fundTransfer'])->name('imports.fund-transfers.template');
 
     Route::get('/export/{type}', ExportIndex::class)
         ->whereIn('type', ['akuns', 'realisasi', 'vs', 'receivables', 'payables'])

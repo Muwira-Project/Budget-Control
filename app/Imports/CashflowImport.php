@@ -89,8 +89,27 @@ class CashflowImport extends BaseImport
         }
 
         // Validate Project (optional)
+        $normalizedProject = strtolower($projectCode);
+        $isNonProject = in_array($normalizedProject, [
+            '',
+            '-',
+            '--',
+            'none',
+            'null',
+            'non-project',
+            'non project',
+            'non_project',
+            'nonproject',
+            'non-proyek',
+            'non proyek',
+            'non_proyek',
+            'nonproyek',
+            'n/a',
+            'na',
+        ], true);
+
         $projectId = null;
-        if ($projectCode !== '') {
+        if (! $isNonProject) {
             $project = Project::where('kode', $projectCode)->first();
             if (! $project) {
                 return [false, null, 'Project "'.$projectCode.'" not found'];
@@ -115,8 +134,8 @@ class CashflowImport extends BaseImport
             $pihakItemId = $partyItem->id;
         }
 
-        // Check duplicate in file (by date + type + source + akun + nominal)
-        $key = $date.'-'.$type.'-'.$source.'-'.$akunCode.'-'.(string) $nominal;
+        // Check duplicate in file (by date + type + source + cash_account + akun + project + nominal + description)
+        $key = $date.'-'.$type.'-'.$source.'-'.$cashAccountCode.'-'.$akunCode.'-'.($projectId ?? 'non_project').'-'.(string) $nominal.'-'.$keterangan;
         if (isset($seenKeys[$key])) {
             return [false, null, 'Duplicate entry: same date/type/source/account/amount already in the file'];
         }
