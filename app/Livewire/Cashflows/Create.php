@@ -193,8 +193,9 @@ class Create extends Component
         return Receivable::query()
             ->whereColumn('nominal_dibayar', '<', 'nominal')
             ->when(
-                $this->scope === 'project' && $this->projectId,
-                fn ($q) => $q->where('project_id', $this->projectId)
+                $this->scope === 'project',
+                fn ($q) => $this->projectId ? $q->where('project_id', $this->projectId) : $q->whereRaw('1 = 0'),
+                fn ($q) => $this->scope === 'non_project' ? $q->whereNull('project_id') : $q
             )
             ->with(['project'])
             ->orderByDesc('tanggal')
@@ -204,15 +205,16 @@ class Create extends Component
     /**
      * Outstanding AP invoices (not fully paid).
      * Filtered by project when scope = project and a project is selected.
-     * Shows all outstanding when scope = non_project.
+     * Shows non-project outstanding when scope = non_project.
      */
     public function outstandingPayables()
     {
         return Payable::query()
             ->whereColumn('nominal_dibayar', '<', 'nominal')
             ->when(
-                $this->scope === 'project' && $this->projectId,
-                fn ($q) => $q->where('project_id', $this->projectId)
+                $this->scope === 'project',
+                fn ($q) => $this->projectId ? $q->where('project_id', $this->projectId) : $q->whereRaw('1 = 0'),
+                fn ($q) => $this->scope === 'non_project' ? $q->whereNull('project_id') : $q
             )
             ->with(['project', 'pihakItem'])
             ->orderByDesc('tanggal')
@@ -232,6 +234,13 @@ class Create extends Component
             'scope'         => 'required|in:project,non_project',
         ]);
 
+        if ($this->scope === 'project') {
+            $this->validate(
+                ['projectId' => 'required|exists:projects,id'],
+                ['projectId.required' => 'Silakan pilih project terlebih dahulu.']
+            );
+        }
+
         if ($this->isLinkedArAp()) {
             $this->saveAsArApSettlement($paymentService);
         } else {
@@ -248,7 +257,10 @@ class Create extends Component
     private function saveAsArApSettlement(PaymentService $paymentService): void
     {
         if ($this->jenis === 'masuk') {
-            $this->validate(['receivableId' => 'required|exists:receivables,id']);
+            $this->validate(
+                ['receivableId' => 'required|exists:receivables,id'],
+                ['receivableId.required' => 'Silakan pilih invoice AR yang akan dilunasi.']
+            );
 
             $receivable = Receivable::findOrFail($this->receivableId);
 
@@ -261,7 +273,10 @@ class Create extends Component
 
             session()->flash('status', 'Penerimaan AR berhasil dicatat. Saldo piutang telah diperbarui.');
         } else {
-            $this->validate(['payableId' => 'required|exists:payables,id']);
+            $this->validate(
+                ['payableId' => 'required|exists:payables,id'],
+                ['payableId.required' => 'Silakan pilih invoice AP yang akan dibayar.']
+            );
 
             $payable = Payable::findOrFail($this->payableId);
 

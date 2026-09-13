@@ -281,7 +281,7 @@ class ExportTest extends TestCase
         $row = $export->query()->get()->first();
 
         $this->assertSame(
-            ['AKN-001', 'Biaya Material', 'Expense', 'Material'],
+            ['AKN-001', 'Biaya Material', 'Outcome', 'Material'],
             $export->map($row),
         );
     }
