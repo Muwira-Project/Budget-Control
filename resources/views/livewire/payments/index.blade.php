@@ -69,9 +69,9 @@
                                         </td>
                                         <td class="px-6 py-4 text-gray-700">
                                             @if ($payment->receivable)
-                                                Receivable: {{ $payment->receivable->project->kode }}
+                                                Receivable: {{ $payment->receivable->project?->kode ?? 'Non-Project' }}
                                             @elseif ($payment->payable)
-                                                Payable: {{ $payment->payable->pihak }}
+                                                Payable: {{ $payment->payable->pihak ?? ($payment->payable->project?->kode ?? 'Non-Project') }}
                                             @endif
                                         </td>
                                         <td class="px-6 py-4 text-gray-500">{{ $payment->keterangan }}</td>

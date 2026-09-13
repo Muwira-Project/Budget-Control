@@ -22,7 +22,7 @@
                 </div>
                 <div class="grid grid-cols-1 gap-2 px-6 py-4 sm:grid-cols-2 sm:gap-4">
                     <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Project</dt>
-                    <dd class="text-gray-900">{{ $realisasi->project->kode }} - {{ $realisasi->project->nama }}</dd>
+                    <dd class="text-gray-900">{{ $realisasi->project ? ($realisasi->project->kode . ' - ' . $realisasi->project->nama) : 'Non-Project' }}</dd>
                 </div>
                 <div class="grid grid-cols-1 gap-2 px-6 py-4 sm:grid-cols-2 sm:gap-4">
                     <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Pihak</dt>

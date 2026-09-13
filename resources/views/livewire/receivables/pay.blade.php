@@ -6,7 +6,7 @@
             <form wire:submit="save" class="p-6">
                 <div class="mt-6 grid grid-cols-1 gap-6">
                     <div class="rounded-xl bg-gray-50 p-4 text-sm">
-                        <p class="text-gray-500">Project: <span class="font-medium text-gray-900">{{ $this->receivable->project->kode }} - {{ $this->receivable->project->nama }}</span></p>
+                        <p class="text-gray-500">Project: <span class="font-medium text-gray-900">{{ $this->receivable->project ? ($this->receivable->project->kode . ' - ' . $this->receivable->project->nama) : 'Non-Project' }}</span></p>
                         <p class="mt-1 text-gray-500">Amount Receivable: <span class="font-medium text-gray-900">{{ format_idr($this->receivable->nominal) }}</span></p>
                         <p class="mt-1 text-gray-500">Remaining: <span class="font-medium text-gray-900">{{ format_idr($this->receivable->sisa) }}</span></p>
                     </div>

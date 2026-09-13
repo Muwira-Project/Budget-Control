@@ -6,7 +6,7 @@
             <form wire:submit="save" class="p-6">
                 <div class="mt-6 grid grid-cols-1 gap-6">
                     <div class="rounded-xl bg-gray-50 p-4 text-sm">
-                        <p class="text-gray-500">Project: <span class="font-medium text-gray-900">{{ $this->payable->project->kode }} - {{ $this->payable->project->nama }}</span></p>
+                        <p class="text-gray-500">Project: <span class="font-medium text-gray-900">{{ $this->payable->project ? ($this->payable->project->kode . ' - ' . $this->payable->project->nama) : 'Non-Project' }}</span></p>
                         <p class="mt-1 text-gray-500">Party: <span class="font-medium text-gray-900">{{ $this->payable->pihak }}</span></p>
                         <p class="mt-1 text-gray-500">Amount Payable: <span class="font-medium text-gray-900">{{ format_idr($this->payable->nominal) }}</span></p>
                         <p class="mt-1 text-gray-500">Remaining: <span class="font-medium text-gray-900">{{ format_idr($this->payable->sisa) }}</span></p>

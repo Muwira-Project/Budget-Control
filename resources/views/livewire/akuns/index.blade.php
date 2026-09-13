@@ -133,8 +133,14 @@
                         <tbody class="divide-y divide-gray-100 bg-white">
                             @forelse ($this->akunRealisations as $realisasi)
                                 <tr class="hover:bg-gray-50">
-                                    <td class="px-6 py-3 whitespace-nowrap text-gray-700">{{ $realisasi->tanggal->format('d M Y') }}</td>
-                                    <td class="px-6 py-3 text-gray-700">{{ $realisasi->project->kode }} - {{ $realisasi->project->nama }}</td>
+                                    <td class="px-6 py-3 whitespace-nowrap text-gray-700">{{ $realisasi->tanggal ? $realisasi->tanggal->format('d M Y') : '-' }}</td>
+                                    <td class="px-6 py-3 text-gray-700">
+                                        @if ($realisasi->project)
+                                            {{ $realisasi->project->kode }} - {{ $realisasi->project->nama }}
+                                        @else
+                                            <span class="italic text-gray-400">Non-Project</span>
+                                        @endif
+                                    </td>
                                     <td class="px-6 py-3">
                                         @if ($realisasi->kategori)
                                             <span class="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">{{ $realisasi->kategori->nama }}</span>

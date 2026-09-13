@@ -133,4 +133,21 @@ class AkunTest extends TestCase
             ->assertSee('Maintenance')
             ->assertDontSee('Bahan Baku dan Gudang');
     }
+
+    public function test_show_account_detail_renders_with_non_project_realisasi(): void
+    {
+        $user = User::factory()->create();
+        $akun = Akun::factory()->create();
+        \App\Models\Realisasi::factory()->create([
+            'akun_id'    => $akun->id,
+            'project_id' => null, // Non-project
+            'nominal'    => 500000,
+        ]);
+
+        Livewire::actingAs($user)
+            ->test(IndexAkun::class)
+            ->call('showAccountDetail', $akun->id)
+            ->assertSee('Non-Project')
+            ->assertDontSeeHtml('Attempt to read property "kode" on null');
+    }
 }
