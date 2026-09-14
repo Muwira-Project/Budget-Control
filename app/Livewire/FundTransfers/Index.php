@@ -18,16 +18,12 @@ class Index extends Component
     use BulkSelection, PerPagePagination, WithPagination;
 
     /**
-     * Delete a non-posted fund transfer.
+     * Delete a fund transfer.
      */
     public function delete(FundTransfer $transfer, FundTransferService $service): void
     {
-        try {
-            $service->delete($transfer);
-            session()->flash('status', 'Fund transfer deleted.');
-        } catch (\LogicException $exception) {
-            session()->flash('error', $exception->getMessage());
-        }
+        $service->delete($transfer);
+        session()->flash('status', 'Fund transfer deleted.');
     }
 
     /**
@@ -51,13 +47,10 @@ class Index extends Component
             if (! $transfer = FundTransfer::find($id)) {
                 continue;
             }
-            if ($transfer->isPosted()) {
-                continue;
-            }
             try {
                 $service->delete($transfer);
                 $count++;
-            } catch (\LogicException) {
+            } catch (\Exception) {
             }
         }
         $this->selectedIds = [];

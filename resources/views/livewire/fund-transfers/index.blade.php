@@ -69,9 +69,7 @@
                                                         <x-icon name="printer" class="h-4 w-4" />
                                                     </button>
                                                 @endif
-                                                @if (! $transfer->isPosted())
-                                                    <x-action-buttons :delete-id="$transfer->id" />
-                                                @endif
+                                                <x-action-buttons :delete-id="$transfer->id" />
                                             </div>
                                         </td>
                                     </tr>

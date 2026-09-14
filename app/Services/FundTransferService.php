@@ -95,14 +95,11 @@ class FundTransferService
     }
 
     /**
-     * Delete a non-posted fund transfer.
+     * Delete a fund transfer (and its voucher if any).
      */
     public function delete(FundTransfer $transfer): void
     {
-        if ($transfer->isPosted()) {
-            throw new \LogicException('Posted fund transfers cannot be deleted.');
-        }
-
+        $transfer->voucher?->delete();
         $transfer->delete();
     }
 
