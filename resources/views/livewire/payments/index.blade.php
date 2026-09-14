@@ -104,6 +104,12 @@
                                                         <x-icon name="x-mark" class="h-4 w-4" />
                                                     </button>
                                                 @endif
+                                                @if (auth()->user()->isAdmin())
+                                                    <button type="button" @click.stop="$dispatch('open-confirm-modal', {{ $payment->id }})" title="Delete Settlement"
+                                                        class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-gray-600 transition hover:border-red-300 hover:bg-red-50 hover:text-red-600">
+                                                        <x-icon name="trash" class="h-4 w-4" />
+                                                    </button>
+                                                @endif
                                             </div>
                                         </td>
                                     </tr>

@@ -150,6 +150,12 @@ class PaymentService
             throw new \LogicException('Only pending settlements can be approved for cancellation.');
         }
 
+        $payment->update([
+            'status' => SettlementStatus::Cancelled,
+            'void_reviewed_by' => auth()->id(),
+            'void_reviewed_at' => now(),
+        ]);
+
         $this->delete($payment);
     }
 
@@ -180,7 +186,8 @@ class PaymentService
         return Payment::query()
             ->with(['receivable.project', 'payable.project', 'payable.pihakItem', 'payable.pihakType', 'voidRequestedBy'])
             ->when($jenis, fn ($query) => $query->where('jenis', $jenis))
-            ->when($status, fn ($query) => $query->where('status', $status))
+            ->when($status === 'cancelled', fn ($query) => $query->onlyTrashed()->where('status', SettlementStatus::Cancelled))
+            ->when($status && $status !== 'cancelled', fn ($query) => $query->where('status', $status))
             ->orderByDesc('tanggal')
             ->paginate($perPage)
             ->withQueryString();

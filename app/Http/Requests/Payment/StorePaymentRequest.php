@@ -23,7 +23,7 @@ class StorePaymentRequest extends FormRequest
     {
         return [
             'tanggal' => ['required', 'date'],
-            'nominal' => ['required', 'numeric', 'min:0'],
+            'nominal' => ['required', 'numeric', 'gt:0'],
             'keterangan' => ['nullable', 'string', 'max:1000'],
         ];
     }

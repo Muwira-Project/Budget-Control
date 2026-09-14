@@ -165,6 +165,60 @@ class PaymentTest extends TestCase
             ->call('approveVoid', $payment->id);
 
         $this->assertSoftDeleted('payments', ['id' => $payment->id]);
+        $this->assertSame('cancelled', Payment::onlyTrashed()->find($payment->id)->status->value);
         $this->assertSame(0.0, (float) $receivable->fresh()->nominal_dibayar);
+
+        // Filter status cancelled menampilkan settlement yang dibatalkan
+        $component = Livewire::actingAs($admin)
+            ->test(IndexPayment::class)
+            ->set('statusFilter', 'cancelled');
+
+        $ids = collect($component->instance()->payments->items())->pluck('id');
+        $this->assertTrue($ids->contains($payment->id));
+    }
+
+    public function test_admin_can_delete_payment_directly(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $receivable = Receivable::factory()->create(['nominal' => 100000000, 'nominal_dibayar' => 0]);
+        $payment = app(PaymentService::class)->createForReceivable($receivable, [
+            'tanggal' => '2026-07-20',
+            'nominal' => 25000000,
+        ]);
+
+        Livewire::actingAs($admin)
+            ->test(IndexPayment::class)
+            ->call('delete', $payment->id);
+
+        $this->assertSoftDeleted('payments', ['id' => $payment->id]);
+        $this->assertSame(0.0, (float) $receivable->fresh()->nominal_dibayar);
+    }
+
+    public function test_payment_rejects_zero_or_negative_nominal(): void
+    {
+        $user = User::factory()->create();
+        $receivable = Receivable::factory()->create(['nominal' => 100000000, 'nominal_dibayar' => 0]);
+
+        Livewire::actingAs($user)
+            ->test(PayReceivable::class, ['receivable' => $receivable])
+            ->set('tanggal', '2026-07-20')
+            ->set('nominal', '0')
+            ->call('save')
+            ->assertHasErrors(['nominal']);
+    }
+
+    public function test_payment_receivable_relationship_works_when_parent_is_soft_deleted(): void
+    {
+        $receivable = Receivable::factory()->create();
+        $payment = app(PaymentService::class)->createForReceivable($receivable, [
+            'tanggal' => '2026-07-20',
+            'nominal' => 10000000,
+        ]);
+
+        $receivable->delete();
+
+        $freshPayment = Payment::find($payment->id);
+        $this->assertNotNull($freshPayment->receivable);
+        $this->assertSame($receivable->id, $freshPayment->receivable->id);
     }
 }

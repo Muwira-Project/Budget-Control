@@ -177,7 +177,7 @@
                     </div>
                     <div class="border-t border-gray-100 px-6 py-4">
                         <x-pagination-footer :paginator="$this->receivables" />
-                    </div
+                    </div>
 
                     {{-- AR Summary Table at Bottom --}}
                     @if ($summaryPositionBottom && $this->arSummary)

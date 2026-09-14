@@ -58,7 +58,7 @@ class Payment extends Model
      */
     public function receivable(): BelongsTo
     {
-        return $this->belongsTo(Receivable::class);
+        return $this->belongsTo(Receivable::class)->withTrashed();
     }
 
     /**
@@ -66,7 +66,7 @@ class Payment extends Model
      */
     public function payable(): BelongsTo
     {
-        return $this->belongsTo(Payable::class);
+        return $this->belongsTo(Payable::class)->withTrashed();
     }
 
     public function voidRequestedBy(): BelongsTo
