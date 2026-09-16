@@ -49,8 +49,9 @@ trait BulkSelection
         }
 
         $items = $this->{$property};
-        $ids = $items->pluck('id')->all();
-        $intersect = array_intersect($ids, $this->selectedIds);
+        $ids = $items->getCollection()->pluck('id')->map(fn ($id) => (int) $id)->all();
+        $selectedIds = array_map('intval', $this->selectedIds);
+        $intersect = array_intersect($ids, $selectedIds);
 
         $this->selectedIds = count($intersect) === count($ids)
             ? []
