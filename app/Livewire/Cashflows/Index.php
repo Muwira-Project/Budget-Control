@@ -3,12 +3,15 @@
 namespace App\Livewire\Cashflows;
 
 use App\Enums\CashflowJenis;
+use App\Enums\SettlementStatus;
 use App\Livewire\Concerns\BulkSelection;
 use App\Livewire\Concerns\PerPagePagination;
 use App\Models\BudgetPlan;
 use App\Models\CashAccount;
 use App\Models\Cashflow;
+use App\Models\Payment;
 use App\Services\CashflowService;
+use App\Services\PaymentService;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Gate;
@@ -34,6 +37,11 @@ class Index extends Component
 
     public ?string $budgetNumberFilter = null;
 
+    // Void settlement
+    public ?int $voidingId = null;
+    public string $voidReason = '';
+    public ?int $approvingId = null;
+
     /**
      * Reset pagination when the active tab changes and prevent staff from
      * switching to admin-only tabs.
@@ -45,6 +53,73 @@ class Index extends Component
         if (! auth()->user()->isAdmin() && in_array($value, ['fund-transfer', 'cash-account'], true)) {
             $this->tab = 'cash-in';
         }
+    }
+
+    /** Open void settlement request modal (staff). */
+    public function requestVoid(int $cashflowId): void
+    {
+        $cashflow = Cashflow::find($cashflowId);
+        if ($cashflow === null || $cashflow->payment_id === null) {
+            return;
+        }
+        $this->voidingId = $cashflow->payment_id;
+        $this->voidReason = '';
+    }
+
+    /** Confirm void settlement request (staff). */
+    public function confirmVoid(PaymentService $service): void
+    {
+        if ($this->voidingId === null) {
+            return;
+        }
+
+        if (trim($this->voidReason) === '') {
+            session()->flash('error', 'Void reason is required.');
+
+            return;
+        }
+
+        $payment = Payment::find($this->voidingId);
+
+        if ($payment === null) {
+            $this->reset('voidingId', 'voidReason');
+
+            return;
+        }
+
+        try {
+            $service->requestVoid($payment, trim($this->voidReason));
+            session()->flash('status', 'Cancellation requested. Waiting for admin approval.');
+        } catch (\LogicException $exception) {
+            session()->flash('error', $exception->getMessage());
+        }
+
+        $this->reset('voidingId', 'voidReason');
+    }
+
+    /** Approve void settlement (admin only). */
+    public function approveVoid(int $paymentId, PaymentService $service): void
+    {
+        if (! Gate::allows('manageSettlements', Payment::class)) {
+            session()->flash('error', 'Only admins can approve cancellations.');
+
+            return;
+        }
+
+        $payment = Payment::find($paymentId);
+
+        if ($payment === null) {
+            return;
+        }
+
+        try {
+            $service->approveVoid($payment);
+            session()->flash('status', 'Settlement cancelled and balances restored.');
+        } catch (\LogicException $exception) {
+            session()->flash('error', $exception->getMessage());
+        }
+
+        $this->reset('approvingId');
     }
 
     /**

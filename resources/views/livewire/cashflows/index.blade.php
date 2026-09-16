@@ -150,7 +150,34 @@
                                                         <x-icon name="printer" class="h-4 w-4" />
                                                     </button>
                                                 @endif
-                                                <x-action-buttons :delete-id="$entry->id" />
+                                                @if ($entry->payment_id !== null)
+                                                    {{-- Void settlement for auto-generated entries --}}
+                                                    @php
+                                                        $payment = $entry->payment;
+                                                        $paymentStatus = $payment?->status->value ?? 'active';
+                                                    @endphp
+                                                    @if ($paymentStatus === 'active')
+                                                        @if (auth()->user()->isAdmin())
+                                                            {{-- Admin can directly approve void --}}
+                                                            <button type="button" wire:click="approveVoid({{ $payment->id }})" title="Void Settlement (Admin)" class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-red-600 transition hover:border-red-300 hover:bg-red-50 hover:text-red-700">
+                                                                <x-icon name="x-circle" class="h-4 w-4" />
+                                                            </button>
+                                                        @else
+                                                            {{-- Staff requests void --}}
+                                                            <button type="button" wire:click="requestVoid({{ $entry->id }})" title="Request Void Settlement" class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-amber-600 transition hover:border-amber-300 hover:bg-amber-50 hover:text-amber-700">
+                                                                <x-icon name="x-mark" class="h-4 w-4" />
+                                                            </button>
+                                                        @endif
+                                                    @elseif ($paymentStatus === 'pending_cancel' && auth()->user()->isAdmin())
+                                                        {{-- Admin can approve pending void --}}
+                                                        <button type="button" wire:click="approveVoid({{ $payment->id }})" title="Approve Void Settlement" class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-green-600 transition hover:border-green-300 hover:bg-green-50 hover:text-green-700">
+                                                            <x-icon name="check" class="h-4 w-4" />
+                                                        </button>
+                                                    @endif
+                                                @else
+                                                    {{-- Direct delete for manual entries --}}
+                                                    <x-action-buttons :delete-id="$entry->id" />
+                                                @endif
                                             </div>
                                         </td>
                                     </tr>
@@ -171,6 +198,27 @@
         @elseif ($this->tab === 'cash-account')
             <div class="mt-6">
                 <livewire:cash-accounts.index />
+            </div>
+        @endif
+
+        {{-- Request void settlement modal --}}
+        @if ($this->voidingId !== null)
+            <div class="fixed inset-0 z-50 overflow-y-auto" role="dialog" aria-modal="true">
+                <div class="flex min-h-full items-end justify-center p-4 text-center sm:items-center sm:p-0">
+                    <div class="fixed inset-0 bg-gray-500/75 transition-opacity" aria-hidden="true" wire:click="$set('voidingId', null)"></div>
+                    <div class="relative transform overflow-hidden rounded-2xl bg-white text-left shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-md">
+                        <div class="px-6 pt-6 pb-4">
+                            <h3 class="text-base font-semibold text-gray-900">Request Void Settlement</h3>
+                            <p class="mt-1 text-sm text-gray-500">Alasan pembatalan akan direview admin sebelum diproses.</p>
+                            <textarea wire:model="voidReason" rows="3" placeholder="Alasan pembatalan..." class="mt-4 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"></textarea>
+                            <x-input-error :messages="$errors->get('voidReason')" class="mt-2" />
+                        </div>
+                        <div class="flex justify-end gap-3 bg-gray-50 px-6 py-4">
+                            <button type="button" wire:click="$set('voidingId', null)" class="inline-flex items-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">Cancel</button>
+                            <button type="button" wire:click="confirmVoid" class="inline-flex items-center rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-red-500">Request Cancellation</button>
+                        </div>
+                    </div>
+                </div>
             </div>
         @endif
     </div>
