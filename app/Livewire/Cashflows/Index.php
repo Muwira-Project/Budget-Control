@@ -50,6 +50,7 @@ class Index extends Component
     /**
      * Delete a posted cashflow entry is not allowed; only non-posted can be deleted.
      */
+    /** Delete a cashflow entry (non-posted only). */
     public function delete(Cashflow $cashflow, CashflowService $service): void
     {
         if (! $cashflow->isManual()) {
@@ -63,6 +64,35 @@ class Index extends Component
             session()->flash('status', 'Cash record deleted successfully.');
         } catch (\LogicException $exception) {
             session()->flash('error', $exception->getMessage());
+        }
+    }
+
+    /** Bulk delete selected cashflow entries (non-posted only). */
+    public function deleteSelected(CashflowService $service): void
+    {
+        $deleted = 0;
+        $skipped = 0;
+        foreach ($this->selectedIds as $id) {
+            if (! $cashflow = Cashflow::find($id)) {
+                continue;
+            }
+            if (! $cashflow->isManual() || $cashflow->isPosted()) {
+                $skipped++;
+                continue;
+            }
+            try {
+                $service->delete($cashflow);
+                $deleted++;
+            } catch (\LogicException) {
+                $skipped++;
+            }
+        }
+        $this->selectedIds = [];
+        if ($deleted > 0) {
+            session()->flash('status', $deleted.' cash record(s) deleted.');
+        }
+        if ($skipped > 0) {
+            session()->flash('error', $skipped.' record(s) could not be deleted (posted or auto-generated).');
         }
     }
 
