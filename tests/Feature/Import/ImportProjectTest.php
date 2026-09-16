@@ -183,7 +183,7 @@ class ImportProjectTest extends TestCase
         $this->assertDatabaseCount('projects', 1);
     }
 
-    public function test_invalid_type_fails_the_row(): void
+    public function test_invalid_type_defaults_to_barang(): void
     {
         $this->seedMasterData();
         $user = User::factory()->create();
@@ -196,8 +196,30 @@ class ImportProjectTest extends TestCase
         $import = new ProjectImport;
         Excel::import($import, $path);
 
-        $this->assertSame(0, $import->successCount);
-        $this->assertStringContainsString('Type must be', $import->failures[0]['reason']);
+        // invalid_type doesn't start with 'barang' or 'jasa', so defaults to 'barang'
+        $this->assertSame(1, $import->successCount);
+        $this->assertDatabaseHas('projects', ['kode' => 'PRJ-005', 'jenis' => 'barang']);
+    }
+
+    public function test_fuzzy_type_matching_accepts_prefixed_values(): void
+    {
+        $this->seedMasterData();
+        $user = User::factory()->create();
+
+        $path = $this->storeXlsx('project-fuzzy-type.xlsx', [
+            ['Code', 'Name', 'Location', 'Division', 'PIC', 'Project Category', 'Sub Work', 'Period', 'Type', 'Qty', 'Unit', 'Unit Price', 'Tax', 'Start Date', 'Target Finish', 'Status'],
+            ['PRJ-010', 'Jasa Konstruksi', 'Jakarta', 'CONSTRUCTION', 'Test', 'Konstruksi', 'Work', '2026', 'jasa - konstruksi', 1, 'paket', 100000000, '', '2026-01-01', '2026-06-30', 'draft'],
+            ['PRJ-011', 'Barang Pasir', 'Bandung', 'CONSTRUCTION', 'Test', 'Konstruksi', 'Work', '2026', 'barang - Pasir', 500, 'm3', 250000, '', '2026-02-01', '2026-07-31', 'draft'],
+            ['PRJ-012', 'Jasa Desain', 'Surabaya', 'CONSTRUCTION', 'Test', 'Konstruksi', 'Work', '2026', 'jasa:desain arsitektur', 1, 'paket', 50000000, '', '2026-03-01', '2026-08-31', 'draft'],
+        ]);
+
+        $import = new ProjectImport;
+        Excel::import($import, $path);
+
+        $this->assertSame(3, $import->successCount);
+        $this->assertDatabaseHas('projects', ['kode' => 'PRJ-010', 'jenis' => 'jasa', 'pajak' => 2.0]);
+        $this->assertDatabaseHas('projects', ['kode' => 'PRJ-011', 'jenis' => 'barang', 'pajak' => 11.0]);
+        $this->assertDatabaseHas('projects', ['kode' => 'PRJ-012', 'jenis' => 'jasa', 'pajak' => 2.0]);
     }
 
     public function test_invalid_status_fails_the_row(): void

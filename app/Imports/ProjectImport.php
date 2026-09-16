@@ -33,7 +33,14 @@ class ProjectImport extends BaseImport
         $projectCategory = trim((string) $row->get('project_category'));
         $subWork = trim((string) $row->get('sub_work'));
         $periode = trim((string) $row->get('period'));
-        $jenis = strtolower(trim((string) $row->get('type')));
+        $jenisRaw = trim((string) $row->get('type'));
+        $jenis = $this->normalizeJenis($jenisRaw);
+
+        // Optional: default to 'barang' if not provided
+        if ($jenis === '') {
+            $jenis = 'barang';
+        }
+
         $qty = $this->normalizeNominal($row->get('qty'));
         $satuan = trim((string) $row->get('unit'));
         $hargaSatuan = $this->normalizeNominal($row->get('unit_price'));
@@ -155,5 +162,21 @@ class ProjectImport extends BaseImport
         } else {
             Project::create($data);
         }
+    }
+
+    /**
+     * Extract 'barang' or 'jasa' from a string like "jasa - konstruksi" or "barang Pasir".
+     * Returns empty string if neither is found at the start.
+     */
+    protected function normalizeJenis(string $input): string
+    {
+        $normalized = strtolower(trim($input));
+
+        // Match 'barang' or 'jasa' at the start, optionally followed by separator (-, :, space)
+        if (preg_match('/^(barang|jasa)\b/', $normalized, $matches)) {
+            return $matches[1];
+        }
+
+        return '';
     }
 }
