@@ -78,9 +78,16 @@ class VoucherService
 
     /**
      * Generate the next voucher number for the given year.
+     * Uses advisory lock on PostgreSQL to prevent race conditions.
      */
     protected function nextNomor(string $year): string
     {
+        // PostgreSQL: use advisory lock to serialize concurrent voucher generation per year
+        if (config('database.default') === 'pgsql' || config('database.connections.' . config('database.default') . '.driver') === 'pgsql') {
+            $lockKey = abs(crc32("voucher:$year"));
+            DB::select("SELECT pg_advisory_xact_lock($lockKey)");
+        }
+
         do {
             $next = NumberSequence::next('voucher', $year);
             $nomor = 'VC-'.$year.'-'.str_pad((string) $next, 4, '0', STR_PAD_LEFT);
