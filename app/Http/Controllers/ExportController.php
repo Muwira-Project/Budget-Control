@@ -6,16 +6,20 @@ use App\Exports\AkunExport;
 use App\Exports\AkunVsRealisasiExport;
 use App\Exports\CashflowExport;
 use App\Exports\CashFlowReportExport;
+use App\Exports\KategoriExport;
+use App\Exports\MasterItemExport;
 use App\Exports\MonitoringPeriodVarianceExport;
 use App\Exports\MonitoringSummaryExport;
 use App\Exports\MonitoringVarianceDetailExport;
 use App\Exports\PayableExport;
 use App\Exports\RealisasiExport;
 use App\Exports\ReceivableExport;
+use App\Models\MasterType;
 use App\Models\MonitoringPeriod;
 use App\Services\MonitoringPeriodService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 use Maatwebsite\Excel\Excel;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
@@ -165,6 +169,24 @@ class ExportController extends Controller
         return $format === 'csv'
             ? app(Excel::class)->download($export, $filename, Excel::CSV)
             : app(Excel::class)->download($export, $filename);
+    }
+
+    /**
+     * Download the master items export for a specific master type.
+     */
+    public function masterItems(Request $request, MasterType $masterType): BinaryFileResponse
+    {
+        $prefix = Str::studly($masterType->nama ?: 'MasterItem').'_';
+
+        return $this->download(new MasterItemExport($masterType, $request->query('search')), $prefix, $request->query('format', 'xlsx'));
+    }
+
+    /**
+     * Download the kategori export.
+     */
+    public function kategoris(Request $request): BinaryFileResponse
+    {
+        return $this->download(new KategoriExport($request->query('search')), 'Category_', $request->query('format', 'xlsx'));
     }
 
     /**

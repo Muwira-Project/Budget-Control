@@ -30,6 +30,8 @@ use App\Livewire\Imports\ImportAkuns;
 use App\Livewire\Imports\ImportBudgetings;
 use App\Livewire\Imports\ImportCashflows;
 use App\Livewire\Imports\ImportFundTransfers;
+use App\Livewire\Imports\ImportKategoris;
+use App\Livewire\Imports\ImportMasterItems;
 use App\Livewire\Imports\ImportPayables;
 use App\Livewire\Imports\ImportProjects;
 use App\Livewire\Imports\ImportReceivables;
@@ -155,6 +157,9 @@ Route::middleware(['auth', 'verified', 'draft-staff'])->group(function () {
     Route::get('/kategoris', IndexKategori::class)->name('kategoris.index');
     Route::get('/kategoris/create', CreateKategori::class)->name('kategoris.create');
     Route::get('/kategoris/{kategori}/edit', EditKategori::class)->name('kategoris.edit');
+    Route::get('/kategoris/export', [ExportController::class, 'kategoris'])->name('exports.kategoris');
+    Route::get('/import/kategoris', ImportKategoris::class)->name('imports.kategoris');
+    Route::get('/import/kategoris/template', [ImportTemplateController::class, 'kategori'])->name('imports.kategoris.template');
 
     Route::get('/master-types', IndexMasterType::class)->name('master-types.index');
     Route::get('/master-types/create', CreateMasterType::class)->name('master-types.create');
@@ -162,6 +167,9 @@ Route::middleware(['auth', 'verified', 'draft-staff'])->group(function () {
     Route::get('/master-types/{masterType}/items', IndexMasterItem::class)->name('master-items.index');
     Route::get('/master-types/{masterType}/items/create', CreateMasterItem::class)->name('master-items.create');
     Route::get('/master-items/{masterItem}/edit', EditMasterItem::class)->name('master-items.edit');
+    Route::get('/master-types/{masterType}/items/export', [ExportController::class, 'masterItems'])->name('exports.master-items');
+    Route::get('/master-types/{masterType}/items/import', ImportMasterItems::class)->name('imports.master-items');
+    Route::get('/master-types/{masterType}/items/import/template', [ImportTemplateController::class, 'masterItem'])->name('imports.master-items.template');
 
     Route::get('/users', IndexUser::class)->name('users.index');
     Route::get('/users/create', CreateUser::class)->name('users.create');

@@ -6,10 +6,14 @@ use App\Exports\AkunTemplateExport;
 use App\Exports\BudgetingTemplateExport;
 use App\Exports\CashflowTemplateExport;
 use App\Exports\FundTransferTemplateExport;
+use App\Exports\KategoriTemplateExport;
+use App\Exports\MasterItemTemplateExport;
 use App\Exports\PayableTemplateExport;
 use App\Exports\ProjectExport;
 use App\Exports\ProjectTemplateExport;
 use App\Exports\ReceivableTemplateExport;
+use App\Models\MasterType;
+use Illuminate\Support\Str;
 use Maatwebsite\Excel\Facades\Excel;
 
 class ImportTemplateController extends Controller
@@ -80,5 +84,23 @@ class ImportTemplateController extends Controller
     public function fundTransfer()
     {
         return Excel::download(new FundTransferTemplateExport, 'template-fund-transfer.xlsx');
+    }
+
+    /**
+     * Download the master item template for a specific master type.
+     */
+    public function masterItem(MasterType $masterType)
+    {
+        $slug = Str::slug($masterType->nama ?: 'master-item');
+
+        return Excel::download(new MasterItemTemplateExport($masterType), "template-{$slug}.xlsx");
+    }
+
+    /**
+     * Download the kategori import template.
+     */
+    public function kategori()
+    {
+        return Excel::download(new KategoriTemplateExport, 'template-category.xlsx');
     }
 }

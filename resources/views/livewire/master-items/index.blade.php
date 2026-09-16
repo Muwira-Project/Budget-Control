@@ -9,9 +9,18 @@
                     @if ($this->masterType->flag_ap) <span class="ml-1 rounded-full bg-red-100 px-2 py-0.5 text-xs font-medium text-red-700">AP</span>@endif
                 </p>
             </div>
-            <div class="flex items-center gap-3">
-                <a href="{{ route('master-types.index') }}" wire:navigate class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">
+            <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+                <a href="{{ route('master-types.index') }}" wire:navigate class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">
                     &larr; Back
+                </a>
+                <a href="{{ route('imports.master-items.template', $this->masterType) }}" class="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900">
+                    <x-icon name="download" class="mr-1.5 h-4 w-4" /> Template
+                </a>
+                <a href="{{ route('imports.master-items', $this->masterType) }}" wire:navigate class="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900">
+                    <x-icon name="upload" class="mr-1.5 h-4 w-4" /> Import
+                </a>
+                <a href="{{ route('exports.master-items', ['masterType' => $this->masterType, 'search' => $this->search]) }}" class="inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-600 shadow-sm transition hover:border-slate-300 hover:text-slate-900">
+                    <x-icon name="download" class="mr-1.5 h-4 w-4" /> Export
                 </a>
                 <a href="{{ route('master-items.create', $this->masterType) }}" wire:navigate class="inline-flex items-center justify-center rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
                     + Add {{ $this->masterType->nama }}
