@@ -26,21 +26,21 @@ class CashflowService
         }
 
         $cashflow = Cashflow::create([
-            'tanggal'         => $data['tanggal'],
-            'jenis'           => $data['jenis'],
-            'sumber'          => $data['sumber'],
-            'payment_id'      => $data['payment_id'] ?? null,
+            'tanggal' => $data['tanggal'],
+            'jenis' => $data['jenis'],
+            'sumber' => $data['sumber'],
+            'payment_id' => $data['payment_id'] ?? null,
             'cash_account_id' => $data['cash_account_id'] ?? CashAccount::defaultId(),
-            'akun_id'         => $data['akun_id'] ?? null,
-            'project_id'      => $data['project_id'] ?? null,
-            'pihak_type_id'   => $data['pihak_type_id'] ?? null,
-            'pihak_item_id'   => $data['pihak_item_id'] ?? null,
-            'nominal'         => $data['nominal'],
-            'keterangan'      => $data['keterangan'] ?? null,
-            'status'          => $status,
-            'created_by'      => $data['created_by'] ?? auth()->id(),
-            'posted_by'       => $data['posted_by'] ?? ($status === KasStatus::Posted ? auth()->id() : null),
-            'posted_at'       => $data['posted_at'] ?? ($status === KasStatus::Posted ? now() : null),
+            'akun_id' => $data['akun_id'] ?? null,
+            'project_id' => $data['project_id'] ?? null,
+            'pihak_type_id' => $data['pihak_type_id'] ?? null,
+            'pihak_item_id' => $data['pihak_item_id'] ?? null,
+            'nominal' => $data['nominal'],
+            'keterangan' => $data['keterangan'] ?? null,
+            'status' => $status,
+            'created_by' => $data['created_by'] ?? auth()->id(),
+            'posted_by' => $data['posted_by'] ?? ($status === KasStatus::Posted ? auth()->id() : null),
+            'posted_at' => $data['posted_at'] ?? ($status === KasStatus::Posted ? now() : null),
         ]);
 
         // For manual entries (no payment_id), create/sync Realisasi if tagged with project/party
@@ -59,20 +59,20 @@ class CashflowService
     public function update(Cashflow $cashflow, array $data): Cashflow
     {
         $cashflow->update([
-            'tanggal'         => $data['tanggal'] ?? $cashflow->tanggal,
-            'nominal'         => $data['nominal'] ?? $cashflow->nominal,
-            'keterangan'      => array_key_exists('keterangan', $data) ? $data['keterangan'] : $cashflow->keterangan,
+            'tanggal' => $data['tanggal'] ?? $cashflow->tanggal,
+            'nominal' => $data['nominal'] ?? $cashflow->nominal,
+            'keterangan' => array_key_exists('keterangan', $data) ? $data['keterangan'] : $cashflow->keterangan,
             'cash_account_id' => $data['cash_account_id'] ?? $cashflow->cash_account_id,
-            'akun_id'         => array_key_exists('akun_id', $data) ? $data['akun_id'] : $cashflow->akun_id,
-            'project_id'      => array_key_exists('project_id', $data) ? $data['project_id'] : $cashflow->project_id,
-            'pihak_type_id'   => array_key_exists('pihak_type_id', $data) ? $data['pihak_type_id'] : $cashflow->pihak_type_id,
-            'pihak_item_id'   => array_key_exists('pihak_item_id', $data) ? $data['pihak_item_id'] : $cashflow->pihak_item_id,
+            'akun_id' => array_key_exists('akun_id', $data) ? $data['akun_id'] : $cashflow->akun_id,
+            'project_id' => array_key_exists('project_id', $data) ? $data['project_id'] : $cashflow->project_id,
+            'pihak_type_id' => array_key_exists('pihak_type_id', $data) ? $data['pihak_type_id'] : $cashflow->pihak_type_id,
+            'pihak_item_id' => array_key_exists('pihak_item_id', $data) ? $data['pihak_item_id'] : $cashflow->pihak_item_id,
         ]);
 
         // Sync voucher if present
         if ($cashflow->voucher) {
             $cashflow->voucher->update([
-                'tanggal'    => $cashflow->tanggal,
+                'tanggal' => $cashflow->tanggal,
                 'keterangan' => $cashflow->keterangan,
             ]);
         }
@@ -88,13 +88,21 @@ class CashflowService
     }
 
     /**
-     * Delete a non-posted manual cashflow entry.
+     * Delete a manual cashflow entry.
      */
     public function delete(Cashflow $cashflow): void
     {
-        if ($cashflow->isPosted()) {
-            throw new \LogicException('Posted cash records cannot be deleted. Use the settlement void workflow if needed.');
+        if (! $cashflow->isManual()) {
+            throw new \LogicException('Records created automatically from settlements cannot be deleted. Use the settlement void workflow if needed.');
         }
+
+        // Delete any synced Realisasi for this manual cashflow entry
+        Realisasi::where('sumber', Realisasi::SUMBER_MANUAL)
+            ->where('sumber_id', $cashflow->id)
+            ->delete();
+
+        // Delete associated voucher if present
+        $cashflow->voucher?->delete();
 
         $cashflow->delete();
     }
@@ -109,7 +117,7 @@ class CashflowService
         }
 
         $cashflow->update([
-            'status'    => KasStatus::Posted,
+            'status' => KasStatus::Posted,
             'posted_by' => auth()->id(),
             'posted_at' => now(),
         ]);
@@ -162,9 +170,9 @@ class CashflowService
     public function reject(Cashflow $cashflow, string $reason): Cashflow
     {
         $cashflow->update([
-            'status'           => KasStatus::Rejected,
-            'rejected_by'      => auth()->id(),
-            'rejected_at'      => now(),
+            'status' => KasStatus::Rejected,
+            'rejected_by' => auth()->id(),
+            'rejected_at' => now(),
             'rejection_reason' => $reason,
         ]);
 
@@ -226,11 +234,11 @@ class CashflowService
         [$openingBalance, $saldoRekening] = $this->calculateAccountBalances($cashAccountId, $startDate, $endDate);
 
         return [
-            'total_masuk'     => $totalMasuk,
-            'total_keluar'    => $totalKeluar,
-            'saldo'           => $totalMasuk - $totalKeluar,
+            'total_masuk' => $totalMasuk,
+            'total_keluar' => $totalKeluar,
+            'saldo' => $totalMasuk - $totalKeluar,
             'opening_balance' => $openingBalance,
-            'saldo_rekening'  => $saldoRekening,
+            'saldo_rekening' => $saldoRekening,
         ];
     }
 

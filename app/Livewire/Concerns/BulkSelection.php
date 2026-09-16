@@ -30,6 +30,9 @@ trait BulkSelection
      */
     public function toggleSelected(int $id): void
     {
+        $id = (int) $id;
+        $this->selectedIds = array_map('intval', $this->selectedIds);
+
         if (in_array($id, $this->selectedIds, true)) {
             $this->selectedIds = array_values(array_diff($this->selectedIds, [$id]));
         } else {
@@ -53,9 +56,11 @@ trait BulkSelection
         $selectedIds = array_map('intval', $this->selectedIds);
         $intersect = array_intersect($ids, $selectedIds);
 
-        $this->selectedIds = count($intersect) === count($ids)
-            ? []
-            : array_values($ids);
+        if (count($intersect) === count($ids) && count($ids) > 0) {
+            $this->selectedIds = array_values(array_diff($selectedIds, $ids));
+        } else {
+            $this->selectedIds = array_values(array_unique(array_merge($selectedIds, $ids)));
+        }
     }
 
     /**

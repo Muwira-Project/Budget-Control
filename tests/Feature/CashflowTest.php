@@ -5,6 +5,7 @@ namespace Tests\Feature;
 use App\Livewire\Cashflows\Create as CreateCashflow;
 use App\Livewire\Cashflows\Index as IndexCashflow;
 use App\Models\Cashflow;
+use App\Models\Payment;
 use App\Models\User;
 use App\Services\CashflowService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -96,13 +97,84 @@ class CashflowTest extends TestCase
     public function test_manual_entry_can_be_deleted(): void
     {
         $user = User::factory()->create();
-        $entry = Cashflow::factory()->create(['status' => 'draft', 'created_by' => $user->id]);
+        $entry = Cashflow::factory()->create(['status' => 'posted', 'created_by' => $user->id]);
 
         Livewire::actingAs($user)
             ->test(IndexCashflow::class)
             ->call('delete', $entry->id);
 
         $this->assertSoftDeleted('cashflows', ['id' => $entry->id]);
+    }
+
+    public function test_deleting_selected_entry_removes_it_from_selected_ids(): void
+    {
+        $user = User::factory()->create();
+        $entry1 = Cashflow::factory()->create(['status' => 'posted', 'jenis' => 'masuk', 'created_by' => $user->id]);
+        $entry2 = Cashflow::factory()->create(['status' => 'posted', 'jenis' => 'masuk', 'created_by' => $user->id]);
+
+        $component = Livewire::actingAs($user)
+            ->test(IndexCashflow::class)
+            ->set('tab', 'cash-in')
+            ->set('selectedIds', [$entry1->id])
+            ->call('delete', $entry1->id);
+
+        $this->assertSoftDeleted('cashflows', ['id' => $entry1->id]);
+        $this->assertDatabaseHas('cashflows', ['id' => $entry2->id, 'deleted_at' => null]);
+        $this->assertSame([], $component->get('selectedIds'));
+    }
+
+    public function test_manual_entries_can_be_bulk_deleted(): void
+    {
+        $user = User::factory()->create();
+        $entry1 = Cashflow::factory()->create(['status' => 'posted', 'jenis' => 'masuk', 'created_by' => $user->id]);
+        $entry2 = Cashflow::factory()->create(['status' => 'posted', 'jenis' => 'masuk', 'created_by' => $user->id]);
+
+        Livewire::actingAs($user)
+            ->test(IndexCashflow::class)
+            ->set('tab', 'cash-in')
+            ->set('selectedIds', [$entry1->id, $entry2->id])
+            ->call('deleteSelected');
+
+        $this->assertSoftDeleted('cashflows', ['id' => $entry1->id]);
+        $this->assertSoftDeleted('cashflows', ['id' => $entry2->id]);
+    }
+
+    public function test_settlement_cashflow_cannot_be_deleted_directly(): void
+    {
+        $user = User::factory()->create();
+        $payment = Payment::factory()->create();
+        $entry = Cashflow::factory()->create([
+            'status' => 'posted',
+            'payment_id' => $payment->id,
+            'created_by' => $user->id,
+        ]);
+
+        Livewire::actingAs($user)
+            ->test(IndexCashflow::class)
+            ->call('delete', $entry->id)
+            ->assertSee('Records created automatically from settlements cannot be deleted');
+
+        $this->assertDatabaseHas('cashflows', ['id' => $entry->id, 'deleted_at' => null]);
+    }
+
+    public function test_toggle_all_visible_only_selects_manual_entries(): void
+    {
+        $user = User::factory()->create();
+        $manual = Cashflow::factory()->create(['status' => 'posted', 'jenis' => 'masuk', 'created_by' => $user->id]);
+        $payment = Payment::factory()->create();
+        $auto = Cashflow::factory()->create([
+            'status' => 'posted',
+            'jenis' => 'masuk',
+            'payment_id' => $payment->id,
+            'created_by' => $user->id,
+        ]);
+
+        $component = Livewire::actingAs($user)
+            ->test(IndexCashflow::class)
+            ->set('tab', 'cash-in')
+            ->call('toggleAllVisible');
+
+        $this->assertSame([$manual->id], $component->get('selectedIds'));
     }
 
     public function test_index_filters_by_jenis(): void

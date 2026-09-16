@@ -97,12 +97,28 @@
                 </p>
             @else
                 <x-confirm-modal message="Are you sure you want to delete this cash record?">
-                    <x-bulk-actions :paginator="$this->cashflows" :selected-ids="$this->selectedIds" />
+                    @php
+                        $selectableIds = $this->selectableIds;
+                        $selectedIds = array_map('intval', is_array($this->selectedIds) ? $this->selectedIds : []);
+                        $selectedOnPage = count(array_intersect($selectableIds, $selectedIds));
+                        $allSelectableOnPageSelected = count($selectableIds) > 0 && $selectedOnPage === count($selectableIds);
+                    @endphp
+                    <x-bulk-actions :paginator="$this->cashflows" :selected-ids="$this->selectedIds" :selectable-ids="$selectableIds" />
                     <div class="overflow-x-auto">
                         <table class="min-w-full divide-y divide-gray-100 text-sm">
                             <thead class="bg-gray-50 text-left text-xs font-semibold uppercase tracking-wider text-gray-500">
                                 <tr>
-                                    <th class="w-8 px-6 py-3"><input type="checkbox" disabled class="rounded border-gray-300 text-blue-600 cursor-not-allowed" aria-hidden="true" /></th>
+                                    <th class="w-8 px-6 py-3">
+                                        <input
+                                            type="checkbox"
+                                            wire:key="cashflow-header-select-all-{{ $this->tab }}"
+                                            wire:click="toggleAllVisible"
+                                            @checked($allSelectableOnPageSelected)
+                                            @disabled(empty($selectableIds))
+                                            class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 {{ empty($selectableIds) ? 'cursor-not-allowed opacity-50' : 'cursor-pointer' }}"
+                                            aria-label="Select all selectable rows on this page"
+                                        />
+                                    </th>
                                     <th class="px-6 py-3">Date</th>
                                     <th class="px-6 py-3">Type</th>
                                     <th class="px-6 py-3">Source</th>
@@ -116,8 +132,26 @@
                             </thead>
                             <tbody class="divide-y divide-gray-100 bg-white">
                                 @foreach ($this->cashflows as $entry)
-                                    <tr class="hover:bg-gray-50">
-                                        <td class="w-8 px-6 py-4"><input type="checkbox" wire:click="toggleSelected({{ $entry->id }})" @checked(in_array($entry->id, $this->selectedIds, true)) class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" /></td>
+                                    <tr wire:key="cashflow-row-{{ $entry->id }}" class="hover:bg-gray-50">
+                                        <td class="w-8 px-6 py-4">
+                                            @if ($entry->isManual())
+                                                <input
+                                                    type="checkbox"
+                                                    wire:key="cashflow-cb-{{ $entry->id }}"
+                                                    wire:click="toggleSelected({{ $entry->id }})"
+                                                    @checked(in_array((int) $entry->id, $selectedIds, true))
+                                                    class="rounded border-gray-300 text-blue-600 focus:ring-blue-500 cursor-pointer"
+                                                />
+                                            @else
+                                                <input
+                                                    type="checkbox"
+                                                    wire:key="cashflow-cb-disabled-{{ $entry->id }}"
+                                                    disabled
+                                                    title="Records created automatically from settlements cannot be deleted"
+                                                    class="rounded border-gray-200 bg-gray-100 text-gray-300 cursor-not-allowed opacity-40"
+                                                />
+                                            @endif
+                                        </td>
                                         <td class="px-6 py-4 text-gray-700 whitespace-nowrap">{{ $entry->tanggal->format('d M Y') }}</td>
                                         <td class="px-6 py-4">
                                             <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $entry->jenis->value === 'masuk' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }}">

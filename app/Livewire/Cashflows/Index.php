@@ -3,7 +3,6 @@
 namespace App\Livewire\Cashflows;
 
 use App\Enums\CashflowJenis;
-use App\Enums\SettlementStatus;
 use App\Livewire\Concerns\BulkSelection;
 use App\Livewire\Concerns\PerPagePagination;
 use App\Models\BudgetPlan;
@@ -39,7 +38,9 @@ class Index extends Component
 
     // Void settlement
     public ?int $voidingId = null;
+
     public string $voidReason = '';
+
     public ?int $approvingId = null;
 
     /**
@@ -49,6 +50,7 @@ class Index extends Component
     public function updatedTab(string $value): void
     {
         $this->resetPage();
+        $this->clearSelection();
 
         if (! auth()->user()->isAdmin() && in_array($value, ['fund-transfer', 'cash-account'], true)) {
             $this->tab = 'cash-in';
@@ -125,7 +127,7 @@ class Index extends Component
     /**
      * Delete a posted cashflow entry is not allowed; only non-posted can be deleted.
      */
-    /** Delete a cashflow entry (non-posted only). */
+    /** Delete a cashflow entry (manual only). */
     public function delete(Cashflow $cashflow, CashflowService $service): void
     {
         if (! $cashflow->isManual()) {
@@ -135,14 +137,16 @@ class Index extends Component
         }
 
         try {
+            $id = (int) $cashflow->id;
             $service->delete($cashflow);
+            $this->selectedIds = array_values(array_diff(array_map('intval', $this->selectedIds), [$id]));
             session()->flash('status', 'Cash record deleted successfully.');
         } catch (\LogicException $exception) {
             session()->flash('error', $exception->getMessage());
         }
     }
 
-    /** Bulk delete selected cashflow entries (non-posted only). */
+    /** Bulk delete selected cashflow entries (manual entries only). */
     public function deleteSelected(CashflowService $service): void
     {
         $deleted = 0;
@@ -151,8 +155,9 @@ class Index extends Component
             if (! $cashflow = Cashflow::find($id)) {
                 continue;
             }
-            if (! $cashflow->isManual() || $cashflow->isPosted()) {
+            if (! $cashflow->isManual()) {
                 $skipped++;
+
                 continue;
             }
             try {
@@ -167,33 +172,38 @@ class Index extends Component
             session()->flash('status', $deleted.' cash record(s) deleted.');
         }
         if ($skipped > 0) {
-            session()->flash('error', $skipped.' record(s) could not be deleted (posted or auto-generated).');
+            session()->flash('error', $skipped.' record(s) could not be deleted (auto-generated from settlements).');
         }
     }
 
     public function updatedStartDate(): void
     {
         $this->resetPage();
+        $this->clearSelection();
     }
 
     public function updatedEndDate(): void
     {
         $this->resetPage();
+        $this->clearSelection();
     }
 
     public function updatedSumberFilter(): void
     {
         $this->resetPage();
+        $this->clearSelection();
     }
 
     public function updatedCashAccountId(): void
     {
         $this->resetPage();
+        $this->clearSelection();
     }
 
     public function updatedBudgetNumberFilter(): void
     {
         $this->resetPage();
+        $this->clearSelection();
     }
 
     /**
@@ -304,6 +314,58 @@ class Index extends Component
     protected function bulkCollectionProperty(): string
     {
         return 'cashflows';
+    }
+
+    /**
+     * IDs of manual (deletable) cashflow entries currently visible on this page.
+     *
+     * @return array<int>
+     */
+    #[Computed]
+    public function selectableIds(): array
+    {
+        return $this->cashflows->getCollection()
+            ->filter(fn (Cashflow $item) => $item->isManual())
+            ->pluck('id')
+            ->map(fn ($id) => (int) $id)
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Toggle only manual entries on the currently visible page.
+     */
+    public function toggleAllVisible(): void
+    {
+        $ids = $this->selectableIds;
+        $selectedIds = array_map('intval', $this->selectedIds);
+        $intersect = array_intersect($ids, $selectedIds);
+
+        if (count($intersect) === count($ids) && count($ids) > 0) {
+            $this->selectedIds = array_values(array_diff($selectedIds, $ids));
+        } else {
+            $this->selectedIds = array_values(array_unique(array_merge($selectedIds, $ids)));
+        }
+    }
+
+    /**
+     * Guard toggleSelected so auto-generated entries cannot be selected for bulk deletion.
+     */
+    public function toggleSelected(int $id): void
+    {
+        $id = (int) $id;
+        $cashflow = Cashflow::find($id);
+        if ($cashflow && ! $cashflow->isManual()) {
+            return;
+        }
+
+        $this->selectedIds = array_map('intval', $this->selectedIds);
+
+        if (in_array($id, $this->selectedIds, true)) {
+            $this->selectedIds = array_values(array_diff($this->selectedIds, [$id]));
+        } else {
+            $this->selectedIds[] = $id;
+        }
     }
 
     public function render()

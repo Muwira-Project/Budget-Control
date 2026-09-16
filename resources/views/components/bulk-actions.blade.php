@@ -1,11 +1,14 @@
 @props([
     'paginator',
     'selectedIds' => [],
+    'selectableIds' => null,
 ])
 
 @if ($paginator instanceof \Illuminate\Pagination\LengthAwarePaginator)
     @php
-        $rowIds = $paginator->getCollection()->pluck('id')->map(fn ($id) => (int) $id)->all();
+        $rowIds = $selectableIds !== null
+            ? array_map('intval', $selectableIds)
+            : $paginator->getCollection()->pluck('id')->map(fn ($id) => (int) $id)->all();
         $selectedIds = array_map('intval', is_array($selectedIds) ? $selectedIds : []);
         $selectedOnPage = count(array_intersect($rowIds, $selectedIds));
         $totalSelected = count($selectedIds);
@@ -15,7 +18,7 @@
             <input
                 type="checkbox"
                 class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                @checked($totalSelected > 0 && $selectedOnPage === count($rowIds))
+                @checked(count($rowIds) > 0 && $selectedOnPage === count($rowIds))
                 @disabled($rowIds === [])
                 wire:click="toggleAllVisible"
                 aria-label="Select all rows on this page"
