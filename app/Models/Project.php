@@ -17,7 +17,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Validation\ValidationException;
 
-#[Fillable(['kode', 'po_number', 'nama', 'lokasi', 'division_id', 'pic', 'pic_id', 'project_category_id', 'sub_work', 'periode', 'jenis', 'qty', 'satuan', 'harga_satuan', 'pajak', 'tanggal_mulai', 'target_selesai', 'status', 'revisi_reason', 'revisi_at', 'revisi_by'])]
+#[Fillable(['kode', 'po_number', 'nama', 'lokasi', 'division_id', 'pic_id', 'project_category_id', 'sub_work', 'periode', 'jenis', 'qty', 'satuan', 'harga_satuan', 'pajak', 'tanggal_mulai', 'target_selesai', 'status', 'revisi_reason', 'revisi_at', 'revisi_by'])]
 class Project extends Model
 {
     /** @use HasFactory<ProjectFactory> */
