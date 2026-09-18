@@ -135,6 +135,14 @@ class Project extends Model
     }
 
     /**
+     * Get the project PIC (dynamic master item).
+     */
+    public function pic(): BelongsTo
+    {
+        return $this->belongsTo(MasterItem::class, 'pic_id');
+    }
+
+    /**
      * Get the per-akun allocations for the project.
      */
     public function projectAkuns(): HasMany
