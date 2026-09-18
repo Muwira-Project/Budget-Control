@@ -43,9 +43,14 @@
     </div>
 
     <div>
-        <x-input-label for="pic" :value="__('PIC (optional)')" />
-        <x-text-input id="pic" class="mt-1 block w-full" type="text" wire:model="pic" placeholder="e.g. Budi Santoso" />
-        <x-input-error :messages="$errors->get('pic')" class="mt-2" />
+        <x-input-label for="pic_id" :value="__('PIC (optional)')" />
+        <select id="pic_id" wire:model="picId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+            <option value="">Select PIC...</option>
+            @foreach ($this->picOptions() as $pic)
+                <option value="{{ $pic->id }}">{{ $pic->nama }}</option>
+            @endforeach
+        </select>
+        <x-input-error :messages="$errors->get('picId')" class="mt-2" />
     </div>
 
     <div>

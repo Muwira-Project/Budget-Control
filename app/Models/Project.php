@@ -137,7 +137,7 @@ class Project extends Model
     /**
      * Get the project PIC (dynamic master item).
      */
-    public function pic(): BelongsTo
+    public function picMaster(): BelongsTo
     {
         return $this->belongsTo(MasterItem::class, 'pic_id');
     }

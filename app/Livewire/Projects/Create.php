@@ -25,7 +25,7 @@ class Create extends Component
 
     public ?int $divisionId = null;
 
-    public ?string $pic = null;
+    public ?int $picId = null;
 
     public ?int $projectCategoryId = null;
 
@@ -86,7 +86,7 @@ class Create extends Component
                 'nama' => $this->nama,
                 'lokasi' => $this->lokasi,
                 'division_id' => $this->divisionId,
-                'pic' => $this->pic,
+                'pic_id' => $this->picId,
                 'project_category_id' => $this->projectCategoryId,
                 'sub_work' => $this->subWork,
                 'periode' => $this->periode,
@@ -130,6 +130,19 @@ class Create extends Component
     {
         return MasterItem::query()
             ->whereHas('masterType', fn ($query) => $query->where('kode', 'DIVISION')->where('aktif', true))
+            ->where('aktif', true)
+            ->orderBy('nama')
+            ->get();
+    }
+
+    /**
+     * The PICs available for the form (dynamic master).
+     */
+    #[Computed]
+    public function picOptions()
+    {
+        return MasterItem::query()
+            ->whereHas('masterType', fn ($query) => $query->where('kode', 'PIC')->where('aktif', true))
             ->where('aktif', true)
             ->orderBy('nama')
             ->get();

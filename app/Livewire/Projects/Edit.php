@@ -28,7 +28,7 @@ class Edit extends Component
 
     public ?int $divisionId = null;
 
-    public ?string $pic = null;
+    public ?int $picId = null;
 
     public ?int $projectCategoryId = null;
 
@@ -108,7 +108,7 @@ class Edit extends Component
         $this->nama = $project->nama;
         $this->lokasi = $project->lokasi;
         $this->divisionId = $project->division_id;
-        $this->pic = $project->pic;
+        $this->picId = $project->pic_id;
         $this->projectCategoryId = $project->project_category_id;
         $this->subWork = $project->sub_work;
         $this->periode = $project->periode;
@@ -134,7 +134,7 @@ class Edit extends Component
                 'nama' => $this->nama,
                 'lokasi' => $this->lokasi,
                 'division_id' => $this->divisionId,
-                'pic' => $this->pic,
+                'pic_id' => $this->picId,
                 'project_category_id' => $this->projectCategoryId,
                 'sub_work' => $this->subWork,
                 'periode' => $this->periode,
@@ -179,6 +179,19 @@ class Edit extends Component
     {
         return MasterItem::query()
             ->whereHas('masterType', fn ($query) => $query->where('kode', 'DIVISION')->where('aktif', true))
+            ->where('aktif', true)
+            ->orderBy('nama')
+            ->get();
+    }
+
+    /**
+     * The PICs available for the form (dynamic master).
+     */
+    #[Computed]
+    public function picOptions()
+    {
+        return MasterItem::query()
+            ->whereHas('masterType', fn ($query) => $query->where('kode', 'PIC')->where('aktif', true))
             ->where('aktif', true)
             ->orderBy('nama')
             ->get();
