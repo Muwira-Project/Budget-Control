@@ -104,6 +104,40 @@ class ImportProjectTest extends TestCase
                 'aktif' => true,
             ]
         );
+
+        // Create master type for PIC (idempotent)
+        $picType = MasterType::firstOrCreate(
+            ['kode' => 'PIC'],
+            [
+                'kode' => 'PIC',
+                'nama' => 'PIC',
+                'flag_project' => true,
+                'aktif' => true,
+                'is_system' => true,
+                'sort' => 15,
+            ]
+        );
+
+        // Create master items for PICs (idempotent)
+        MasterItem::firstOrCreate(
+            ['master_type_id' => $picType->id, 'kode' => 'PIC-001'],
+            [
+                'master_type_id' => $picType->id,
+                'kode' => 'PIC-001',
+                'nama' => 'Budi Santoso',
+                'aktif' => true,
+            ]
+        );
+
+        MasterItem::firstOrCreate(
+            ['master_type_id' => $picType->id, 'kode' => 'PIC-002'],
+            [
+                'master_type_id' => $picType->id,
+                'kode' => 'PIC-002',
+                'nama' => 'Siti Rahayu',
+                'aktif' => true,
+            ]
+        );
     }
 
     public function test_valid_projects_are_imported(): void
@@ -133,7 +167,7 @@ class ImportProjectTest extends TestCase
 
         $path = $this->storeXlsx('project-kategori.xlsx', [
             ['Code', 'Name', 'Location', 'Division', 'PIC', 'Project Category', 'Sub Work', 'Period', 'Type', 'Qty', 'Unit', 'Unit Price', 'Tax', 'Start Date', 'Target Finish', 'Status'],
-            ['PRJ-003', 'Gedung Baru', 'Surabaya', 'CONSTRUCTION', 'Andi', 'Konstruksi', 'Struktur', '2026', 'jasa', 1, 'paket', 100000000, 11, '2026-01-01', '2026-06-30', 'draft'],
+            ['PRJ-003', 'Gedung Baru', 'Surabaya', 'CONSTRUCTION', 'Budi Santoso', 'Konstruksi', 'Struktur', '2026', 'jasa', 1, 'paket', 100000000, 11, '2026-01-01', '2026-06-30', 'draft'],
         ]);
 
         $import = new ProjectImport;
@@ -151,7 +185,7 @@ class ImportProjectTest extends TestCase
 
         $path = $this->storeXlsx('project-duplicate.xlsx', [
             ['Code', 'Name', 'Location', 'Division', 'PIC', 'Project Category', 'Sub Work', 'Period', 'Type', 'Qty', 'Unit', 'Unit Price', 'Tax', 'Start Date', 'Target Finish', 'Status'],
-            ['PRJ-001', 'Updated Name', 'Jakarta', 'CONSTRUCTION', 'Budi', 'Konstruksi', 'Finishing', '2026', 'jasa', 1, 'paket', 600000000, 11, '2026-08-01', '2026-12-31', 'progress'],
+            ['PRJ-001', 'Updated Name', 'Jakarta', 'CONSTRUCTION', 'Budi Santoso', 'Konstruksi', 'Finishing', '2026', 'jasa', 1, 'paket', 600000000, 11, '2026-08-01', '2026-12-31', 'progress'],
         ]);
 
         $import = new ProjectImport;
@@ -170,8 +204,8 @@ class ImportProjectTest extends TestCase
 
         $path = $this->storeXlsx('project-duplicate-in-file.xlsx', [
             ['Code', 'Name', 'Location', 'Division', 'PIC', 'Project Category', 'Sub Work', 'Period', 'Type', 'Qty', 'Unit', 'Unit Price', 'Tax', 'Start Date', 'Target Finish', 'Status'],
-            ['PRJ-004', 'Project A', 'Jakarta', 'CONSTRUCTION', 'A', 'Konstruksi', 'Work A', '2026', 'jasa', 1, 'paket', 100000000, 11, '2026-01-01', '2026-06-30', 'draft'],
-            ['PRJ-004', 'Project B', 'Bandung', 'CIVIL', 'B', 'Infrastruktur', 'Work B', '2026', 'barang', 100, 'meter', 50000, 11, '2026-02-01', '2026-07-31', 'draft'],
+            ['PRJ-004', 'Project A', 'Jakarta', 'CONSTRUCTION', 'Budi Santoso', 'Konstruksi', 'Work A', '2026', 'jasa', 1, 'paket', 100000000, 11, '2026-01-01', '2026-06-30', 'draft'],
+            ['PRJ-004', 'Project B', 'Bandung', 'CIVIL', 'Siti Rahayu', 'Infrastruktur', 'Work B', '2026', 'barang', 100, 'meter', 50000, 11, '2026-02-01', '2026-07-31', 'draft'],
         ]);
 
         $import = new ProjectImport;
@@ -190,7 +224,7 @@ class ImportProjectTest extends TestCase
 
         $path = $this->storeXlsx('project-type-invalid.xlsx', [
             ['Code', 'Name', 'Location', 'Division', 'PIC', 'Project Category', 'Sub Work', 'Period', 'Type', 'Qty', 'Unit', 'Unit Price', 'Tax', 'Start Date', 'Target Finish', 'Status'],
-            ['PRJ-005', 'Invalid Type Project', 'Jakarta', 'CONSTRUCTION', 'Test', 'Konstruksi', 'Work', '2026', 'invalid_type', 1, 'paket', 100000000, 11, '2026-01-01', '2026-06-30', 'draft'],
+            ['PRJ-005', 'Invalid Type Project', 'Jakarta', 'CONSTRUCTION', 'Budi Santoso', 'Konstruksi', 'Work', '2026', 'invalid_type', 1, 'paket', 100000000, 11, '2026-01-01', '2026-06-30', 'draft'],
         ]);
 
         $import = new ProjectImport;
@@ -208,9 +242,9 @@ class ImportProjectTest extends TestCase
 
         $path = $this->storeXlsx('project-fuzzy-type.xlsx', [
             ['Code', 'Name', 'Location', 'Division', 'PIC', 'Project Category', 'Sub Work', 'Period', 'Type', 'Qty', 'Unit', 'Unit Price', 'Tax', 'Start Date', 'Target Finish', 'Status'],
-            ['PRJ-010', 'Jasa Konstruksi', 'Jakarta', 'CONSTRUCTION', 'Test', 'Konstruksi', 'Work', '2026', 'jasa - konstruksi', 1, 'paket', 100000000, '', '2026-01-01', '2026-06-30', 'draft'],
-            ['PRJ-011', 'Barang Pasir', 'Bandung', 'CONSTRUCTION', 'Test', 'Konstruksi', 'Work', '2026', 'barang - Pasir', 500, 'm3', 250000, '', '2026-02-01', '2026-07-31', 'draft'],
-            ['PRJ-012', 'Jasa Desain', 'Surabaya', 'CONSTRUCTION', 'Test', 'Konstruksi', 'Work', '2026', 'jasa:desain arsitektur', 1, 'paket', 50000000, '', '2026-03-01', '2026-08-31', 'draft'],
+            ['PRJ-010', 'Jasa Konstruksi', 'Jakarta', 'CONSTRUCTION', 'Budi Santoso', 'Konstruksi', 'Work', '2026', 'jasa - konstruksi', 1, 'paket', 100000000, '', '2026-01-01', '2026-06-30', 'draft'],
+            ['PRJ-011', 'Barang Pasir', 'Bandung', 'CONSTRUCTION', 'Siti Rahayu', 'Konstruksi', 'Work', '2026', 'barang - Pasir', 500, 'm3', 250000, '', '2026-02-01', '2026-07-31', 'draft'],
+            ['PRJ-012', 'Jasa Desain', 'Surabaya', 'CONSTRUCTION', 'Budi Santoso', 'Konstruksi', 'Work', '2026', 'jasa:desain arsitektur', 1, 'paket', 50000000, '', '2026-03-01', '2026-08-31', 'draft'],
         ]);
 
         $import = new ProjectImport;
@@ -271,6 +305,23 @@ class ImportProjectTest extends TestCase
 
         $this->assertSame(0, $import->successCount);
         $this->assertStringContainsString('Division', $import->failures[0]['reason']);
+    }
+
+    public function test_invalid_pic_fails_the_row(): void
+    {
+        $this->seedMasterData();
+        $user = User::factory()->create();
+
+        $path = $this->storeXlsx('project-pic-invalid.xlsx', [
+            ['Code', 'Name', 'Location', 'Division', 'PIC', 'Project Category', 'Sub Work', 'Period', 'Type', 'Qty', 'Unit', 'Unit Price', 'Tax', 'Start Date', 'Target Finish', 'Status'],
+            ['PRJ-009', 'Invalid PIC Project', 'Jakarta', 'CONSTRUCTION', 'NonExistentPIC', 'Konstruksi', 'Work', '2026', 'jasa', 1, 'paket', 100000000, 11, '2026-01-01', '2026-06-30', 'draft'],
+        ]);
+
+        $import = new ProjectImport;
+        Excel::import($import, $path);
+
+        $this->assertSame(0, $import->successCount);
+        $this->assertStringContainsString('PIC', $import->failures[0]['reason']);
     }
 
     public function test_wrong_header_is_fatal_and_nothing_is_imported(): void
@@ -366,8 +417,8 @@ class ImportProjectTest extends TestCase
 
         $path = $this->storeXlsx('project-tax-default.xlsx', [
             ['Code', 'Name', 'Location', 'Division', 'PIC', 'Project Category', 'Sub Work', 'Period', 'Type', 'Qty', 'Unit', 'Unit Price', 'Tax %', 'Start Date', 'Target Finish', 'Status'],
-            ['PRJ-009', 'Barang Project', 'Jakarta', 'CONSTRUCTION', 'Test', 'Konstruksi', 'Work', '2026', 'barang', 100, 'pcs', 10000, '', '2026-01-01', '2026-06-30', 'draft'],
-            ['PRJ-010', 'Jasa Project', 'Jakarta', 'CONSTRUCTION', 'Test', 'Konstruksi', 'Work', '2026', 'jasa', 1, 'paket', 5000000, '', '2026-01-01', '2026-06-30', 'draft'],
+            ['PRJ-009', 'Barang Project', 'Jakarta', 'CONSTRUCTION', 'Budi Santoso', 'Konstruksi', 'Work', '2026', 'barang', 100, 'pcs', 10000, '', '2026-01-01', '2026-06-30', 'draft'],
+            ['PRJ-010', 'Jasa Project', 'Jakarta', 'CONSTRUCTION', 'Siti Rahayu', 'Konstruksi', 'Work', '2026', 'jasa', 1, 'paket', 5000000, '', '2026-01-01', '2026-06-30', 'draft'],
         ]);
 
         $import = new ProjectImport;

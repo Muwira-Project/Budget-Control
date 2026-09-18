@@ -24,7 +24,7 @@ class ProjectExport implements FromCollection, WithHeadings, WithMapping
      */
     public function collection()
     {
-        return Project::with(['projectCategory', 'division', 'budgetPlans', 'projectAkuns'])
+        return Project::with(['projectCategory', 'division', 'picMaster', 'budgetPlans', 'projectAkuns'])
             ->when($this->periode, fn ($query) => $query->where('periode', $this->periode))
             ->orderBy('kode')
             ->get();
@@ -43,7 +43,7 @@ class ProjectExport implements FromCollection, WithHeadings, WithMapping
             $project->nama,
             $project->lokasi,
             $project->division?->nama,
-            $project->pic,
+            $project->picMaster?->nama,
             $project->projectCategory?->nama,
             $project->sub_work,
             $project->periode,

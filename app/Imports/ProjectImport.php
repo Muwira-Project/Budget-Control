@@ -108,6 +108,23 @@ class ProjectImport extends BaseImport
             $divisionId = $divisionItem->id;
         }
 
+        // Validate PIC if provided
+        $picId = null;
+        if ($pic !== '') {
+            $picItem = MasterItem::whereHas('masterType', fn ($query) => $query->where('kode', 'PIC')->where('aktif', true))
+                ->where('aktif', true)
+                ->where(function ($query) use ($pic) {
+                    $query->where('kode', $pic)->orWhere('nama', $pic);
+                })
+                ->first();
+
+            if (! $picItem) {
+                return [false, null, 'PIC "'.$pic.'" not found in Master PIC'];
+            }
+
+            $picId = $picItem->id;
+        }
+
         // Check duplicate in file
         if (isset($seenKeys[$kode])) {
             return [false, null, 'Code '.$kode.' is duplicated in the file'];
@@ -126,7 +143,7 @@ class ProjectImport extends BaseImport
                 'nama' => $nama,
                 'lokasi' => $lokasi ?: null,
                 'division_id' => $divisionId,
-                'pic' => $pic ?: null,
+                'pic_id' => $picId,
                 'project_category_id' => $projectCategoryId,
                 'sub_work' => $subWork ?: null,
                 'periode' => $periode ?: null,
