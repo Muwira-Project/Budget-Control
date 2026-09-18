@@ -56,6 +56,7 @@ class DummyDataSeeder extends Seeder
         $this->seedMasterAkuns();
         $this->seedPartyMasterTypes();
         $this->seedDivisionMasterType();
+        $this->seedPicMasterType();
         $this->seedVendors();
         $this->seedSuppliers();
         $this->seedMandors();
@@ -322,6 +323,40 @@ class DummyDataSeeder extends Seeder
             MasterItem::firstOrCreate(
                 ['master_type_id' => $divisionType->id, 'kode' => $div['kode']],
                 ['nama' => $div['nama'], 'aktif' => true],
+            );
+        }
+    }
+
+    /**
+     * Seed the PIC master type and its items.
+     * Flexible - admin can add/remove via Master -> Master Items.
+     */
+    protected function seedPicMasterType(): void
+    {
+        $picType = MasterType::firstOrCreate(
+            ['kode' => 'PIC'],
+            [
+                'nama' => 'PIC',
+                'deskripsi' => 'Person In Charge project',
+                'flag_project' => true,
+                'flag_ar' => false,
+                'flag_ap' => false,
+                'aktif' => true,
+                'is_system' => true,
+                'sort' => 15,
+            ],
+        );
+
+        $pics = [
+            ['kode' => 'PIC-001', 'nama' => 'Ahmad Wijaya', 'data' => ['telepon' => '0812-333-4001', 'email' => 'ahmad@company.com']],
+            ['kode' => 'PIC-002', 'nama' => 'Siti Rahayu', 'data' => ['telepon' => '0813-333-4002', 'email' => 'siti@company.com']],
+            ['kode' => 'PIC-003', 'nama' => 'Bambang Sutrisno', 'data' => ['telepon' => '0814-333-4003', 'email' => 'bambang@company.com']],
+        ];
+
+        foreach ($pics as $pic) {
+            MasterItem::firstOrCreate(
+                ['master_type_id' => $picType->id, 'kode' => $pic['kode']],
+                ['nama' => $pic['nama'], 'aktif' => true, 'data' => $pic['data']]
             );
         }
     }
