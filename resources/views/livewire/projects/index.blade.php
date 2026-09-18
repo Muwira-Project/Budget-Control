@@ -56,8 +56,8 @@
                                             <x-input-label for="filter_pic" :value="__('Filter PIC')" />
                                             <select id="filter_pic" wire:model="filterPic" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
                                                 <option value="">All PICs</option>
-                                                @foreach ($this->availablePics as $pic)
-                                                    <option value="{{ $pic }}">{{ $pic }}</option>
+                                                @foreach ($this->availablePics as $id => $pic)
+                                                    <option value="{{ $id }}">{{ $pic }}</option>
                                                 @endforeach
                                             </select>
                                         </div>
@@ -99,7 +99,7 @@
                                         </td>
                                         <td class="px-6 py-4 text-gray-500">{{ $project->lokasi }}</td>
                                         <td class="px-6 py-4 text-gray-700">{{ $project->division?->nama ?? '-' }}</td>
-                                        <td class="px-6 py-4 text-gray-700">{{ $project->pic ?? '-' }}</td>
+                                        <td class="px-6 py-4 text-gray-700">{{ $project->picMaster?->nama ?? '-' }}</td>
                                         <td class="px-6 py-4 text-right text-gray-900">
                                             @if ($project->nilai_total > 0)
                                                 {{ format_idr($project->nilai_total) }}
@@ -168,7 +168,7 @@
                 <div class="grid grid-cols-2 gap-2 border-b border-gray-100 px-6 py-3 sm:grid-cols-5">
                     <div>
                         <p class="text-xs uppercase tracking-wider text-slate-500">PIC</p>
-                        <p class="mt-0.5 text-sm font-medium text-slate-800">{{ $this->selectedProject->pic ?? '-' }}</p>
+                        <p class="mt-0.5 text-sm font-medium text-slate-800">{{ $this->selectedProject->picMaster?->nama ?? '-' }}</p>
                     </div>
                     <div>
                         <p class="text-xs uppercase tracking-wider text-slate-500">Division</p>

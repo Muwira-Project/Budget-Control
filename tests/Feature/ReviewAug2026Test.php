@@ -71,8 +71,8 @@ class ReviewAug2026Test extends TestCase
     public function test_creating_master_menu_with_custom_fields(): void
     {
         $type = app(MasterTypeService::class)->create([
-            'kode' => 'PIC',
-            'nama' => 'PIC',
+            'kode' => 'TEST_PIC',
+            'nama' => 'Test PIC',
             'fields' => [
                 ['label' => 'Telepon', 'tipe' => 'text', 'is_required' => false],
                 ['label' => 'Jabatan', 'tipe' => 'text', 'is_required' => true],

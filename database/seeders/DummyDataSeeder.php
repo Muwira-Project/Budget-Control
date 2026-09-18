@@ -506,13 +506,21 @@ class DummyDataSeeder extends Seeder
      */
     protected function seedProjects(): void
     {
+        // Get PIC master items
+        $picArian = MasterItem::whereHas('masterType', fn ($q) => $q->where('kode', 'PIC'))
+            ->where('nama', 'Arian')
+            ->first()?->id;
+        $picBudi = MasterItem::whereHas('masterType', fn ($q) => $q->where('kode', 'PIC'))
+            ->where('nama', 'Budi')
+            ->first()?->id;
+
         $projects = [
             [
                 'kode' => 'PRJ-2025-001',
                 'po_number' => 'PO-2025-001',
                 'nama' => 'Pembangunan Gedung Kantor',
                 'lokasi' => 'Jakarta',
-                'pic' => 'Arian',
+                'pic_id' => $picArian,
                 'division_id' => MasterItem::whereHas('masterType', fn ($q) => $q->where('kode', 'DIVISION'))
                     ->where('kode', 'CONSTRUCTION')
                     ->first()?->id,
@@ -540,7 +548,7 @@ class DummyDataSeeder extends Seeder
                 'po_number' => 'PO-2025-002',
                 'nama' => 'Renovasi Ruang Rapat',
                 'lokasi' => 'Jakarta',
-                'pic' => 'Budi',
+                'pic_id' => $picBudi,
                 'division_id' => MasterItem::whereHas('masterType', fn ($q) => $q->where('kode', 'DIVISION'))
                     ->where('kode', 'INTERIOR')
                     ->first()?->id,

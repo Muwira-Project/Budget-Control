@@ -77,14 +77,14 @@ class Index extends Component
     public function projects(): LengthAwarePaginator
     {
         return Project::query()
-            ->with(['division'])
+            ->with(['division', 'picMaster'])
             ->when($this->search !== '', fn ($query) => $query->where(function ($query) {
                 $query->where('kode', 'like', '%'.$this->search.'%')
                     ->orWhere('nama', 'like', '%'.$this->search.'%');
             }))
             ->when($this->filterPeriode, fn ($query) => $query->where('periode', $this->filterPeriode))
             ->when($this->filterStatus, fn ($query) => $query->where('status', $this->filterStatus))
-            ->when($this->filterPic, fn ($query) => $query->where('pic', 'like', '%'.$this->filterPic.'%'))
+            ->when($this->filterPic, fn ($query) => $query->where('pic_id', $this->filterPic))
             ->latest()
             ->paginate($this->perPage);
     }
@@ -109,13 +109,11 @@ class Index extends Component
     #[Computed]
     public function availablePics(): Collection
     {
-        return Project::query()
-            ->select('pic')
-            ->whereNotNull('pic')
-            ->where('pic', '!=', '')
-            ->distinct()
-            ->orderBy('pic')
-            ->pluck('pic');
+        return \App\Models\MasterItem::query()
+            ->whereHas('masterType', fn ($query) => $query->where('kode', 'PIC')->where('aktif', true))
+            ->where('aktif', true)
+            ->orderBy('nama')
+            ->pluck('nama', 'id');
     }
 
     /**
