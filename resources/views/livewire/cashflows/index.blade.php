@@ -185,6 +185,13 @@
                                                     </button>
                                                 @endif
                                                 @if ($entry->payment_id !== null)
+                                                    {{-- 
+                                                        Auto-generated entries from settlements (linked via payment_id).
+                                                        Cannot be directly deleted. Use void workflow instead:
+                                                        - Staff: Request cancellation (reason required)
+                                                        - Admin: Approve/reject void request
+                                                        Void restores balances to AR/AP invoices.
+                                                    --}}
                                                     {{-- Void settlement for auto-generated entries --}}
                                                     @php
                                                         $payment = $entry->payment;
