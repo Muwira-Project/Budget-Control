@@ -13,17 +13,17 @@
                     <p class="text-sm font-medium text-gray-700 mb-2">Mode Import</p>
                     <div class="flex flex-col sm:flex-row gap-4">
                         <label class="inline-flex items-center gap-2 cursor-pointer p-3 border rounded-lg hover:bg-gray-50 {{ $importMode === 'with_project' ? 'border-blue-500 bg-blue-50' : 'border-gray-200' }}">
-                            <input type="radio" wire:model="importMode" value="with_project" class="h-4 w-4 text-blue-600 focus:ring-blue-500" />
+                            <input type="radio" wire:model.live="importMode" value="with_project" class="h-4 w-4 text-blue-600 focus:ring-blue-500" />
                             <span class="text-sm text-gray-700">Dengan Project Code</span>
                         </label>
                         <label class="inline-flex items-center gap-2 cursor-pointer p-3 border rounded-lg hover:bg-gray-50 {{ $importMode === 'without_project' ? 'border-blue-500 bg-blue-50' : 'border-gray-200' }}">
-                            <input type="radio" wire:model="importMode" value="without_project" class="h-4 w-4 text-blue-600 focus:ring-blue-500" />
+                            <input type="radio" wire:model.live="importMode" value="without_project" class="h-4 w-4 text-blue-600 focus:ring-blue-500" />
                             <span class="text-sm text-gray-700">Tanpa Project Code (Invoice unik global)</span>
                         </label>
                     </div>
                     <p class="mt-1 text-xs text-gray-500">
                         {{ $importMode === 'with_project'
-                            ? 'Project Code wajib diisi. Invoice No. unik per project.'
+                            ? 'Project Code wajib diisi. Invoice No. harus unik secara global.'
                             : 'Project Code dikosongkan. Invoice No. harus unik global (seluruh data).' }}
                     </p>
                 </div>
@@ -42,7 +42,7 @@
                     <code class="bg-gray-100 px-1 rounded">investor</code>.<br>
                     Date format: YYYY-MM-DD.
                     {{ $importMode === 'with_project'
-                        ? 'Invoice No. must be unique per project.'
+                        ? 'Invoice No. must be globally unique.'
                         : 'Invoice No. must be globally unique.' }}
                     Amount and Paid are numeric.
                 </p>

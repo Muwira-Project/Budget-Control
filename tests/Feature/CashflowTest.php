@@ -106,6 +106,39 @@ class CashflowTest extends TestCase
         $this->assertSoftDeleted('cashflows', ['id' => $entry->id]);
     }
 
+    public function test_admin_can_post_imported_cashflow_draft(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $entry = Cashflow::factory()->create(['status' => 'draft', 'payment_id' => null]);
+
+        Livewire::actingAs($admin)
+            ->test(IndexCashflow::class)
+            ->call('postDraft', $entry->id)
+            ->assertSee('Cash record posted successfully.');
+
+        $this->assertDatabaseHas('cashflows', ['id' => $entry->id, 'status' => 'posted']);
+    }
+
+    public function test_admin_can_bulk_post_only_selected_cashflow_drafts(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $draftA = Cashflow::factory()->create(['status' => 'draft', 'jenis' => 'keluar', 'payment_id' => null]);
+        $draftB = Cashflow::factory()->create(['status' => 'draft', 'jenis' => 'keluar', 'payment_id' => null]);
+        $posted = Cashflow::factory()->create(['status' => 'posted', 'jenis' => 'keluar', 'payment_id' => null]);
+
+        Livewire::actingAs($admin)
+            ->test(IndexCashflow::class)
+            ->set('tab', 'cash-out')
+            ->set('selectedIds', [$draftA->id, $draftB->id, $posted->id])
+            ->assertSee('Post selected (2)')
+            ->call('postSelected')
+            ->assertSee('2 cash record(s) posted. 1 non-draft or unavailable row(s) skipped.');
+
+        $this->assertDatabaseHas('cashflows', ['id' => $draftA->id, 'status' => 'posted']);
+        $this->assertDatabaseHas('cashflows', ['id' => $draftB->id, 'status' => 'posted']);
+        $this->assertDatabaseHas('cashflows', ['id' => $posted->id, 'status' => 'posted']);
+    }
+
     public function test_deleting_selected_entry_removes_it_from_selected_ids(): void
     {
         $user = User::factory()->create();

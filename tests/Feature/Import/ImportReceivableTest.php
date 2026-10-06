@@ -2,13 +2,16 @@
 
 namespace Tests\Feature\Import;
 
+use App\Exports\ReceivableTemplateExport;
 use App\Imports\ReceivableImport;
+use App\Livewire\Imports\ImportReceivables;
 use App\Models\MasterItem;
 use App\Models\MasterType;
 use App\Models\Project;
 use App\Models\Receivable;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Facades\Excel;
 use Tests\TestCase;
@@ -112,6 +115,29 @@ class ImportReceivableTest extends TestCase
         $this->assertStringContainsString('global unique', $import->failures[0]['reason']);
     }
 
+    public function test_import_with_project_code_rejects_invoice_used_by_another_project(): void
+    {
+        $otherProject = Project::factory()->create(['kode' => 'PRJ-002']);
+        Receivable::factory()->create([
+            'project_id' => $this->project->id,
+            'nomor_invoice' => 'INV-GLOBAL',
+            'pihak_type_id' => $this->vendorType->id,
+            'pihak_item_id' => $this->vendor->id,
+        ]);
+        $path = $this->storeXlsx('receivable-global-duplicate.xlsx', [
+            ['Project Code', 'Party Type Code', 'Party Name', 'Date', 'Invoice No.', 'Due Date', 'Amount', 'Paid', 'Description'],
+            ['PRJ-002', 'VENDOR', 'PT Vendor Utama', '2026-08-15', 'INV-GLOBAL', '2026-09-14', 50000000, 0, 'Duplicate across projects'],
+        ]);
+
+        $import = new ReceivableImport(true);
+        Excel::import($import, $path);
+
+        $this->assertSame(0, $import->successCount);
+        $this->assertCount(1, $import->failures);
+        $this->assertStringContainsString('global unique', $import->failures[0]['reason']);
+        $this->assertDatabaseMissing('receivables', ['project_id' => $otherProject->id, 'nomor_invoice' => 'INV-GLOBAL']);
+    }
+
     /** @test */
     public function test_import_with_project_code_missing_project_fails(): void
     {
@@ -169,12 +195,78 @@ class ImportReceivableTest extends TestCase
         $response->assertRedirect(route('login'));
     }
 
+    public function test_template_headers_match_both_receivable_import_modes(): void
+    {
+        $withProjectTemplate = (new ReceivableTemplateExport(true))->array();
+        $withoutProjectTemplate = (new ReceivableTemplateExport(false))->array();
+        $withProject = $withProjectTemplate[0];
+        $withoutProject = $withoutProjectTemplate[0];
+
+        $this->assertSame(
+            ['Project Code', 'Party Type Code', 'Party Name', 'Date', 'Invoice No.', 'Due Date', 'Amount', 'Paid', 'Description'],
+            $withProject,
+        );
+        $this->assertSame(
+            ['Party Type Code', 'Party Name', 'Date', 'Invoice No.', 'Due Date', 'Amount', 'Paid', 'Description'],
+            $withoutProject,
+        );
+        $this->assertCount(1, $withProjectTemplate, 'Template should not include sample transactions or notes.');
+        $this->assertCount(1, $withoutProjectTemplate, 'Template should not include sample transactions or notes.');
+    }
+
+    public function test_generated_receivable_templates_import_in_both_modes(): void
+    {
+        foreach ([true, false] as $useProjectCode) {
+            $headers = (new ReceivableTemplateExport($useProjectCode))->array()[0];
+            $values = [
+                'Project Code' => 'PRJ-001',
+                'Party Type Code' => 'VENDOR',
+                'Party Name' => 'PT Vendor Utama',
+                'Date' => '2026-08-15',
+                'Invoice No.' => $useProjectCode ? 'INV-TEMPLATE-WITH' : 'INV-TEMPLATE-WITHOUT',
+                'Due Date' => '2026-09-14',
+                'Amount' => 50000000,
+                'Paid' => 0,
+                'Description' => 'Template round trip',
+            ];
+            $path = $this->storeXlsx(
+                $useProjectCode ? 'receivable-template-with-project.xlsx' : 'receivable-template-without-project.xlsx',
+                [$headers, array_map(fn (string $header) => $values[$header], $headers)],
+            );
+
+            $import = new ReceivableImport($useProjectCode);
+            Excel::import($import, $path);
+
+            $this->assertSame(1, $import->successCount);
+            $this->assertEmpty($import->failures);
+            $this->assertNull($import->fatalError);
+            $this->assertDatabaseHas('receivables', [
+                'project_id' => $useProjectCode ? $this->project->id : null,
+                'nomor_invoice' => $values['Invoice No.'],
+            ]);
+        }
+    }
+
+    public function test_receivable_template_link_tracks_the_selected_mode(): void
+    {
+        Livewire::actingAs($this->user)
+            ->test(ImportReceivables::class)
+            ->assertSet('importMode', 'with_project')
+            ->assertSee('use_project_code=1', false)
+            ->set('importMode', 'without_project')
+            ->assertSee('use_project_code=0', false);
+    }
+
     private function storeXlsx(string $filename, array $rows): string
     {
         Excel::store(new class($rows) implements FromArray
         {
             public function __construct(private array $rows) {}
-            public function array(): array { return $this->rows; }
+
+            public function array(): array
+            {
+                return $this->rows;
+            }
         }, $filename);
 
         return storage_path('app/private/'.$filename);

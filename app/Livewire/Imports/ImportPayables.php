@@ -24,7 +24,7 @@ class ImportPayables extends Component
     public $file;
 
     #[Validate('in:with_project,without_project')]
-    public string $importMode = 'without_project';
+    public string $importMode = 'with_project';
 
     /** Import report: success count, failed rows, and fatal error message. */
     public array $report = [];
@@ -56,6 +56,7 @@ class ImportPayables extends Component
     public function downloadTemplate(): RedirectResponse
     {
         $useProjectCode = $this->importMode === 'with_project';
+
         return redirect()->route('imports.payables.template', ['use_project_code' => $useProjectCode]);
     }
 

@@ -118,27 +118,14 @@ class ReceivableImport extends BaseImport
         }
 
         // Check duplicate invoice within this import
-        $importKey = $this->useProjectCode ? "{$project->id}|{$invoiceNo}" : $invoiceNo;
+        $importKey = $invoiceNo;
         if (isset($seenKeys[$importKey])) {
-            $msg = $this->useProjectCode
-                ? "Duplicate invoice '{$invoiceNo}' for project '{$projectCode}' in this import."
-                : "Duplicate invoice '{$invoiceNo}' in this import (global).";
-            return [false, null, $msg];
+            return [false, null, "Duplicate invoice '{$invoiceNo}' in this import (global)."];
         }
 
-        // Check duplicate invoice in database
-        if ($this->useProjectCode) {
-            $existing = Receivable::where('project_id', $project->id)
-                ->where('nomor_invoice', $invoiceNo)
-                ->exists();
-            if ($existing) {
-                return [false, null, "Invoice '{$invoiceNo}' already exists for project '{$projectCode}' - skipped."];
-            }
-        } else {
-            $existing = Receivable::where('nomor_invoice', $invoiceNo)->exists();
-            if ($existing) {
-                return [false, null, "Invoice '{$invoiceNo}' already exists (global unique) - skipped."];
-            }
+        // The database enforces invoice numbers as globally unique in both modes.
+        if (Receivable::where('nomor_invoice', $invoiceNo)->exists()) {
+            return [false, null, "Invoice '{$invoiceNo}' already exists (global unique) - skipped."];
         }
 
         // Validate dates

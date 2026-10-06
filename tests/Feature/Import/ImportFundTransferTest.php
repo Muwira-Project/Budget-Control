@@ -3,12 +3,15 @@
 namespace Tests\Feature\Import;
 
 use App\Imports\FundTransferImport;
+use App\Exports\FundTransferTemplateExport;
 use App\Models\CashAccount;
 use App\Models\FundTransfer;
 use App\Models\User;
+use App\Livewire\FundTransfers\Index as FundTransferIndex;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Facades\Excel;
+use Livewire\Livewire;
 use Tests\TestCase;
 
 class ImportFundTransferTest extends TestCase
@@ -94,11 +97,54 @@ class ImportFundTransferTest extends TestCase
     {
         $response = $this->actingAs($this->user)->get(route('imports.fund-transfers.template'));
         $response->assertOk();
+        $this->assertCount(1, (new FundTransferTemplateExport)->array());
     }
 
     public function test_fund_transfer_import_page_rendered(): void
     {
         $response = $this->actingAs($this->user)->get(route('imports.fund-transfers'));
         $response->assertOk();
+    }
+
+    public function test_admin_can_post_imported_fund_transfer_draft(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $transfer = FundTransfer::factory()->create([
+            'status' => 'draft',
+            'dari_cash_account_id' => $this->bank1->id,
+            'ke_cash_account_id' => $this->bank2->id,
+        ]);
+
+        Livewire::actingAs($admin)
+            ->test(FundTransferIndex::class)
+            ->call('postDraft', $transfer->id)
+            ->assertSee('Fund transfer posted successfully.');
+
+        $this->assertDatabaseHas('fund_transfers', ['id' => $transfer->id, 'status' => 'posted']);
+    }
+
+    public function test_admin_can_bulk_post_only_selected_fund_transfer_drafts(): void
+    {
+        $admin = User::factory()->admin()->create();
+        $draftA = FundTransfer::factory()->create([
+            'status' => 'draft', 'dari_cash_account_id' => $this->bank1->id, 'ke_cash_account_id' => $this->bank2->id,
+        ]);
+        $draftB = FundTransfer::factory()->create([
+            'status' => 'draft', 'dari_cash_account_id' => $this->bank2->id, 'ke_cash_account_id' => $this->bank1->id,
+        ]);
+        $posted = FundTransfer::factory()->create([
+            'status' => 'posted', 'dari_cash_account_id' => $this->bank1->id, 'ke_cash_account_id' => $this->bank2->id,
+        ]);
+
+        Livewire::actingAs($admin)
+            ->test(FundTransferIndex::class)
+            ->set('selectedIds', [$draftA->id, $draftB->id, $posted->id])
+            ->assertSee('Post selected (2)')
+            ->call('postSelected')
+            ->assertSee('2 fund transfer(s) posted. 1 non-draft or unavailable row(s) skipped.');
+
+        $this->assertDatabaseHas('fund_transfers', ['id' => $draftA->id, 'status' => 'posted']);
+        $this->assertDatabaseHas('fund_transfers', ['id' => $draftB->id, 'status' => 'posted']);
+        $this->assertDatabaseHas('fund_transfers', ['id' => $posted->id, 'status' => 'posted']);
     }
 }

@@ -6,6 +6,7 @@
                 <p class="mt-1 text-sm text-gray-500">Pemindahan dana antar rekening (bukan pendapatan/beban).</p>
             </div>
             <div class="flex flex-col gap-2 sm:flex-row sm:items-center">
+                <a href="{{ route('exports.fund-transfers') }}" class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50">Export</a>
                 <a href="{{ route('imports.fund-transfers') }}" wire:navigate class="inline-flex items-center justify-center rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
                     <x-icon name="upload" class="h-4 w-4 mr-2" />
                     Import
@@ -21,7 +22,7 @@
         @endif
 
         <x-confirm-modal message="Are you sure you want to delete this fund transfer?">
-            <x-bulk-actions :paginator="$this->transfers" :selected-ids="$this->selectedIds" />
+            <x-bulk-actions :paginator="$this->transfers" :selected-ids="$this->selectedIds" :postable-count="$this->postableSelectedCount" />
                 <div class="mt-6 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-200">
                 @if ($this->transfers->isEmpty())
                     <p class="p-6 text-sm text-gray-500">No fund transfers yet. Click "Add Fund Transfer".</p>
@@ -61,6 +62,9 @@
                                         <td class="px-6 py-4 text-gray-500">{{ $transfer->keterangan }}</td>
                                         <td class="px-6 py-4 text-right whitespace-nowrap">
                                             <div class="inline-flex items-center gap-1.5">
+                                                @if ($transfer->status->value === 'draft' && auth()->user()->isAdmin())
+                                                    <button type="button" wire:click="postDraft({{ $transfer->id }})" title="Post Draft" class="inline-flex h-8 items-center justify-center rounded-lg border border-green-200 bg-green-50 px-2 text-xs font-medium text-green-700 hover:bg-green-100">Post</button>
+                                                @endif
                                                 <a href="{{ route('fund-transfers.edit', $transfer) }}" wire:navigate title="Edit Transfer" class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-blue-600 shadow-sm transition hover:border-blue-400 hover:bg-blue-50 hover:text-blue-700">
                                                     <x-icon name="edit" class="h-4 w-4" />
                                                 </a>

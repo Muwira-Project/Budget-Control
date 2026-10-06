@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Exports\AkunTemplateExport;
 use App\Exports\BudgetingTemplateExport;
 use App\Exports\CashflowTemplateExport;
+use App\Exports\CashAccountTemplateExport;
 use App\Exports\FundTransferTemplateExport;
 use App\Exports\KategoriTemplateExport;
 use App\Exports\MasterItemTemplateExport;
@@ -76,6 +77,11 @@ class ImportTemplateController extends Controller
     public function cashflow()
     {
         return Excel::download(new CashflowTemplateExport, 'template-cashflow.xlsx');
+    }
+
+    public function cashAccount()
+    {
+        return Excel::download(new CashAccountTemplateExport, 'template-cash-accounts.xlsx');
     }
 
     /**

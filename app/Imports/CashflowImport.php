@@ -120,6 +120,10 @@ class CashflowImport extends BaseImport
         // Validate Party Type (optional)
         $pihakTypeId = null;
         $pihakItemId = null;
+        if (($partyTypeCode === '') !== ($partyCode === '')) {
+            return [false, null, 'Party Type and Party must both be provided, or both be left blank'];
+        }
+
         if ($partyTypeCode !== '' && $partyCode !== '') {
             $partyType = MasterType::where('kode', $partyTypeCode)->first();
             if (! $partyType) {

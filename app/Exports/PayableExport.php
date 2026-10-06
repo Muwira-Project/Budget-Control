@@ -36,9 +36,9 @@ class PayableExport implements FromQuery, ShouldAutoSize, WithHeadings, WithMapp
         // Status filter
         if (! empty($this->filters['status'])) {
             match ($this->filters['status']) {
-                'belum_bayar' => $query->whereRaw('nominal - nominal_dibayar > 0 AND status != ?', ['lunas']),
-                'sebagian' => $query->whereRaw('nominal_dibayar > 0 AND nominal - nominal_dibayar > 0 AND status = ?', ['sebagian']),
-                'lunas' => $query->where('status', 'lunas'),
+                'belum_bayar' => $query->where('nominal_dibayar', 0),
+                'sebagian' => $query->where('nominal_dibayar', '>', 0)->whereColumn('nominal_dibayar', '<', 'nominal'),
+                'lunas' => $query->whereColumn('nominal_dibayar', '>=', 'nominal'),
                 default => null,
             };
         }

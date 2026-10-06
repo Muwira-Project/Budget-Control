@@ -13,6 +13,7 @@ use App\Services\CashflowService;
 use App\Services\PaymentService;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Livewire\Attributes\Computed;
 use Livewire\Attributes\Layout;
@@ -144,6 +145,59 @@ class Index extends Component
         } catch (\LogicException $exception) {
             session()->flash('error', $exception->getMessage());
         }
+    }
+
+    /** Post an imported manual draft after it has been reviewed. */
+    public function postDraft(int $cashflowId, CashflowService $service): void
+    {
+        if (! auth()->user()->isAdmin()) {
+            session()->flash('error', 'Only admins can post imported cash records.');
+
+            return;
+        }
+
+        $cashflow = Cashflow::find($cashflowId);
+        if ($cashflow === null || ! $cashflow->isManual() || ! $cashflow->status->isDraft()) {
+            session()->flash('error', 'This cash record is no longer an unposted manual draft.');
+
+            return;
+        }
+
+        $service->post($cashflow);
+        session()->flash('status', 'Cash record posted successfully.');
+    }
+
+    /** Post all selected manual cashflow drafts after admin review. */
+    public function postSelected(CashflowService $service): void
+    {
+        if (! auth()->user()->isAdmin()) {
+            session()->flash('error', 'Only admins can post imported cash records.');
+
+            return;
+        }
+
+        $ids = array_values(array_unique(array_map('intval', $this->selectedIds)));
+        $posted = 0;
+        $skipped = 0;
+
+        foreach ($ids as $id) {
+            $cashflow = Cashflow::query()->whereKey($id)->where('status', 'draft')->whereNull('payment_id')->first();
+            if ($cashflow === null) {
+                $skipped++;
+
+                continue;
+            }
+
+            try {
+                DB::transaction(fn () => $service->post($cashflow));
+                $posted++;
+            } catch (\Throwable) {
+                $skipped++;
+            }
+        }
+
+        $this->selectedIds = [];
+        session()->flash('status', $posted.' cash record(s) posted.'.($skipped > 0 ? ' '.$skipped.' non-draft or unavailable row(s) skipped.' : ''));
     }
 
     /** Bulk delete selected cashflow entries (manual entries only). */
@@ -330,6 +384,21 @@ class Index extends Component
             ->map(fn ($id) => (int) $id)
             ->values()
             ->all();
+    }
+
+    /** Number of selected manual drafts available for posting. */
+    #[Computed]
+    public function postableSelectedCount(): int
+    {
+        if (! auth()->user()->isAdmin() || $this->selectedIds === []) {
+            return 0;
+        }
+
+        return Cashflow::query()
+            ->whereIn('id', array_values(array_unique(array_map('intval', $this->selectedIds))))
+            ->where('status', 'draft')
+            ->whereNull('payment_id')
+            ->count();
     }
 
     /**

@@ -3,6 +3,7 @@
 namespace Tests\Feature\Import;
 
 use App\Imports\CashflowImport;
+use App\Exports\CashflowTemplateExport;
 use App\Models\Akun;
 use App\Models\CashAccount;
 use App\Models\Cashflow;
@@ -126,5 +127,21 @@ class ImportCashflowTest extends TestCase
     {
         $response = $this->actingAs($this->user)->get(route('imports.cashflows.template'));
         $response->assertOk();
+        $this->assertCount(1, (new CashflowTemplateExport)->array());
+    }
+
+    public function test_import_rejects_partial_party_information(): void
+    {
+        $this->actingAs($this->user);
+        $path = $this->storeXlsx('cashflow-partial-party.xlsx', [
+            ['Date', 'Type', 'Source', 'Cash Account', 'Account (COA)', 'Project', 'Party Type', 'Party', 'Amount', 'Description'],
+            ['2026-08-15', 'keluar', 'pengeluaran_lain', 'BANK-001', '5-101', '', 'SUPPLIER', '', 1000000, 'Party missing'],
+        ]);
+
+        $import = new CashflowImport;
+        Excel::import($import, $path);
+
+        $this->assertSame(0, $import->successCount);
+        $this->assertStringContainsString('must both be provided', $import->failures[0]['reason']);
     }
 }

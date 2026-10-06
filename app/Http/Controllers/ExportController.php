@@ -5,7 +5,9 @@ namespace App\Http\Controllers;
 use App\Exports\AkunExport;
 use App\Exports\AkunVsRealisasiExport;
 use App\Exports\CashflowExport;
+use App\Exports\CashAccountExport;
 use App\Exports\CashFlowReportExport;
+use App\Exports\FundTransferExport;
 use App\Exports\KategoriExport;
 use App\Exports\MasterItemExport;
 use App\Exports\MonitoringPeriodVarianceExport;
@@ -152,6 +154,16 @@ class ExportController extends Controller
         };
     }
 
+    public function fundTransfers(Request $request): BinaryFileResponse
+    {
+        return $this->download(new FundTransferExport, 'Fund_Transfers_', $request->query('format', 'xlsx'));
+    }
+
+    public function cashAccounts(Request $request): BinaryFileResponse
+    {
+        return $this->download(new CashAccountExport, 'Cash_Accounts_', $request->query('format', 'xlsx'));
+    }
+
     /**
      * Download the Cash Flow per Account (Kas Besar) summary report.
      */
@@ -254,11 +266,15 @@ class ExportController extends Controller
      */
     private function download(mixed $export, string $baseName, string $format): BinaryFileResponse
     {
-        $extension = $format === 'pdf' ? 'pdf' : 'xlsx';
+        $format = in_array($format, ['csv', 'pdf'], true) ? $format : 'xlsx';
+        $extension = $format;
         $filename = $baseName.now()->format('Ymd').'.'.$extension;
+        $writerType = match ($format) {
+            'csv' => Excel::CSV,
+            'pdf' => Excel::DOMPDF,
+            default => Excel::XLSX,
+        };
 
-        return $format === 'pdf'
-            ? app(Excel::class)->download($export, $filename, Excel::DOMPDF)
-            : app(Excel::class)->download($export, $filename);
+        return app(Excel::class)->download($export, $filename, $writerType);
     }
 }

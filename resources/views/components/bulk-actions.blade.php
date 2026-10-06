@@ -2,6 +2,7 @@
     'paginator',
     'selectedIds' => [],
     'selectableIds' => null,
+    'postableCount' => 0,
 ])
 
 @if ($paginator instanceof \Illuminate\Pagination\LengthAwarePaginator)
@@ -36,6 +37,16 @@
 
         @if ($totalSelected > 0)
             <div class="flex items-center gap-2">
+                @if ($postableCount > 0)
+                    <button
+                        type="button"
+                        wire:click="postSelected"
+                        onclick="return confirm('Post {{ $postableCount }} draft row(s)? This will update account balances.')"
+                        class="inline-flex items-center rounded-md bg-green-700 px-3 py-1.5 text-xs font-semibold text-white shadow-sm hover:bg-green-800 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2"
+                    >
+                        Post selected ({{ $postableCount }})
+                    </button>
+                @endif
                 <button
                     type="button"
                     wire:click="deleteSelected"

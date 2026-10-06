@@ -22,7 +22,7 @@
             <tbody>
                 @forelse (collect($stats['profit_projects'] ?? []) as $project)
                     @php
-                        $pBudget = $project['nilai'];
+                        $pBudget = (float) ($project['budget'] ?? 0);
                         $pActual = (float) $project['realisasi'];
                         $pVariance = $pBudget - $pActual;
                         $pPct = $pBudget > 0 ? min(100, round($pActual / $pBudget * 100, 1)) : 0;
@@ -74,7 +74,7 @@
             <tbody>
                 @foreach ($stats['kategori_breakdown'] as $nama => $total)
                     @php $percent = $kategoriTotal > 0 ? ($total / $kategoriTotal) * 100 : 0; $hue = $categoryHues[$loop->index % count($categoryHues)]; @endphp
-                    <tr class="cursor-pointer" wire:click="showCategoryDetail('{{ addslashes($nama) }}')">
+                    <tr @class(['cursor-pointer' => $nama !== 'Uncategorized']) @if ($nama !== 'Uncategorized') wire:click="showCategoryDetail('{{ addslashes($nama) }}')" @endif>
                         <td class="font-medium text-slate-900">{{ $nama }}</td>
                         <td class="text-right tabular-nums text-slate-700">{{ format_idr($total) }}</td>
                         <td class="text-right tabular-nums font-medium text-slate-600">{{ number_format($percent, 1) }}%</td>
