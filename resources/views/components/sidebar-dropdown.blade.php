@@ -4,12 +4,41 @@
     'active' => false,
 ])
 
-<div x-data="{ isOpen: @js($active) }" {{ $attributes }}>
+<div
+    x-data="{
+        isOpen: @js($active),
+        flyoutStyle: '',
+        init() {
+            if (this.collapsed) this.isOpen = false;
+        },
+        toggleMenu() {
+            this.isOpen = !this.isOpen;
+
+            if (!this.isOpen || !this.collapsed) return;
+
+            this.$nextTick(() => {
+                const trigger = this.$refs.trigger;
+                const flyout = this.$refs.flyout;
+                if (!trigger || !flyout) return;
+
+                const rect = trigger.getBoundingClientRect();
+                const maxTop = Math.max(8, window.innerHeight - flyout.offsetHeight - 8);
+                const top = Math.min(Math.max(8, rect.top), maxTop);
+                this.flyoutStyle = `left: ${Math.round(rect.right + 12)}px; top: ${Math.round(top)}px;`;
+            });
+        },
+    }"
+    @click.outside="isOpen = false"
+    @keydown.escape.window="isOpen = false"
+    @scroll.window="if (collapsed) isOpen = false"
+    {{ $attributes }}
+>
     <button
+        x-ref="trigger"
         type="button"
-        @click="isOpen = ! isOpen"
-        aria-expanded="false"
+        @click="toggleMenu()"
         :aria-expanded="isOpen ? 'true' : 'false'"
+        aria-haspopup="true"
         :title="collapsed ? '{{ $label }}' : ''"
         @class([
             'group flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-sm transition',
@@ -26,5 +55,22 @@
 
     <div x-show="isOpen && !collapsed" x-cloak class="mt-1 space-y-0.5 border-l border-white/10 ps-3 ms-4">
         {{ $slot }}
+    </div>
+
+    <div
+        x-ref="flyout"
+        x-show="isOpen && collapsed"
+        x-cloak
+        x-transition.opacity
+        :style="flyoutStyle"
+        @click="isOpen = false"
+        class="fixed z-[60] max-h-[calc(100vh_-_1rem)] w-60 overflow-y-auto rounded-xl border border-white/10 bg-brand-950 p-3 shadow-2xl ring-1 ring-black/10"
+    >
+        <div x-data="{ collapsed: false }">
+            <div class="mb-2 px-3 pb-2 text-xs font-semibold uppercase tracking-wider text-slate-400">{{ $label }}</div>
+            <div class="space-y-0.5 border-l border-white/10 ps-3 ms-4">
+                {{ $slot }}
+            </div>
+        </div>
     </div>
 </div>

@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use App\Enums\ProjectStatus;
+use App\Enums\SettlementStatus;
+use App\Models\Cashflow;
 use App\Models\NumberSequence;
 use App\Models\Payment;
 use App\Models\Project;
@@ -13,6 +15,8 @@ use Illuminate\Validation\ValidationException;
 
 class ReceivableService
 {
+    private const PROJECT_REVISION_HOLD_PREFIX = 'Project revision: ';
+
     /**
      * Guard: reject a duplicate active invoice number (case-insensitive).
      * Soft-deleted rows are ignored so a trashed record can be re-entered.
@@ -139,6 +143,33 @@ class ReceivableService
         return $receivable->refresh();
     }
 
+    /** Hold the project's receivable when a completed project enters revision. */
+    public function holdForProjectRevision(Project $project): ?Receivable
+    {
+        $receivable = Receivable::query()->where('project_id', $project->id)->first();
+
+        if ($receivable === null || $receivable->isHeld()) {
+            return $receivable;
+        }
+
+        $reason = trim((string) $project->revisi_reason);
+
+        return $this->hold(
+            $receivable,
+            self::PROJECT_REVISION_HOLD_PREFIX.($reason !== '' ? $reason : 'Project requires revision.'),
+        );
+    }
+
+    /** Release only a hold created by a project revision transition. */
+    public function releaseProjectRevisionHold(Receivable $receivable): Receivable
+    {
+        if (str_starts_with((string) $receivable->hold_reason, self::PROJECT_REVISION_HOLD_PREFIX)) {
+            return $this->release($receivable);
+        }
+
+        return $receivable;
+    }
+
     /**
      * Delete a receivable. Any payments linked to it are removed as well so the
      * AR balance stays consistent (the FK cascade no longer applies because
@@ -233,35 +264,70 @@ class ReceivableService
         $trashedReceivable = Receivable::onlyTrashed()->where('project_id', $project->id)->first();
 
         if ($trashedReceivable) {
-            // Restore the soft-deleted receivable
-            $trashedReceivable->restore();
-            $trashedReceivable->update([
-                'tanggal' => now()->toDateString(),
-                'jatuh_tempo' => null,
-                'nominal' => $project->nilai_total,
-                'nominal_dibayar' => 0,
-                'keterangan' => 'Receivable from contract '.$project->kode,
-                'pihak_type_id' => $project->customer_type_id ?? null,
-                'pihak_item_id' => $project->customer_item_id ?? null,
-                'nomor_invoice' => $this->generateInvoiceNumber($project),
-            ]);
+            return DB::transaction(function () use ($trashedReceivable, $project): Receivable {
+                $payments = Payment::onlyTrashed()
+                    ->where('receivable_id', $trashedReceivable->id)
+                    ->whereIn('status', [SettlementStatus::Active, SettlementStatus::PendingCancel])
+                    ->get();
+                $restoredPaidAmount = (float) $trashedReceivable->nominal_dibayar
+                    + (float) $payments->sum(fn (Payment $payment): float => (float) $payment->nominal);
 
-            return $trashedReceivable->refresh();
+                if ((float) $project->nilai_total < $restoredPaidAmount) {
+                    throw ValidationException::withMessages([
+                        'harga_satuan' => 'Nilai kontrak tidak boleh lebih kecil dari pembayaran AR yang sudah tercatat. Sesuaikan nilai kontrak atau riwayat pembayaran terlebih dahulu.',
+                    ]);
+                }
+
+                $trashedReceivable->restore();
+                $trashedReceivable->update([
+                    'nominal' => $project->nilai_total,
+                    'nominal_dibayar' => $restoredPaidAmount,
+                    'keterangan' => 'Receivable from contract '.$project->kode,
+                    'pihak_type_id' => $project->customer_type_id ?? null,
+                    'pihak_item_id' => $project->customer_item_id ?? null,
+                ]);
+
+                foreach ($payments as $payment) {
+                    Cashflow::onlyTrashed()->where('payment_id', $payment->id)->restore();
+                    $payment->restore();
+                }
+
+                return $trashedReceivable->refresh();
+            });
         }
 
-        $receivable = Receivable::updateOrCreate(
-            ['project_id' => $project->id],
-            [
-                'tanggal' => now()->toDateString(),
-                'jatuh_tempo' => null,
-                'nominal' => $project->nilai_total,
-                'nominal_dibayar' => 0,
+        $receivable = Receivable::query()->where('project_id', $project->id)->first();
+
+        if ($receivable !== null) {
+            $revisedNominal = (float) $project->nilai_total;
+
+            if ($revisedNominal < (float) $receivable->nominal_dibayar) {
+                throw ValidationException::withMessages([
+                    'harga_satuan' => 'Nilai kontrak revisi tidak boleh lebih kecil dari pembayaran AR yang sudah tercatat. Selesaikan selisih pembayaran terlebih dahulu.',
+                ]);
+            }
+
+            $receivable->update([
+                'nominal' => $revisedNominal,
                 'keterangan' => 'Receivable from contract '.$project->kode,
                 'pihak_type_id' => $project->customer_type_id ?? null,
                 'pihak_item_id' => $project->customer_item_id ?? null,
-                'nomor_invoice' => $this->generateInvoiceNumber($project),
-            ]
-        );
+            ]);
+
+            return $receivable->refresh();
+        }
+
+        $receivable = Receivable::create([
+            'project_id' => $project->id,
+            'tanggal' => now()->toDateString(),
+            'nomor_invoice' => $this->generateInvoiceNumber($project),
+            'jatuh_tempo' => null,
+            'nominal' => $project->nilai_total,
+            'nominal_dibayar' => 0,
+            'keterangan' => 'Receivable from contract '.$project->kode,
+            'pihak_type_id' => $project->customer_type_id ?? null,
+            'pihak_item_id' => $project->customer_item_id ?? null,
+        ]);
 
         return $receivable;
     }

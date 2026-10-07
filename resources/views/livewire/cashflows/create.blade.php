@@ -103,7 +103,13 @@
                         <input id="link_direct" type="radio" wire:model.live="linkMode" value="direct" class="accent-slate-700" />
                         <div>
                             <p class="font-semibold text-slate-800">Kas Langsung</p>
-                            <p class="text-xs text-slate-500">Tanpa AR/AP — catat kas manual biasa</p>
+                            <p class="text-xs text-slate-500">
+                                @if ($jenis === 'keluar')
+                                    Tanpa memilih invoice. Jika pihak diisi, sistem mencatat Realisasi dan membuat AP.
+                                @else
+                                    Catat penerimaan kas tanpa memilih invoice AR; tidak membuat AP/AR baru.
+                                @endif
+                            </p>
                         </div>
                     </label>
                 </div>

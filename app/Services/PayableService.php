@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Enums\SettlementStatus;
+use App\Models\Cashflow;
 use App\Models\Payable;
 use App\Models\Payment;
 use App\Models\Project;
@@ -156,31 +158,68 @@ class PayableService
      */
     public function syncFromRealisasi(Realisasi $realisasi): ?Payable
     {
-        if ($realisasi->pihak_type_id === null || $realisasi->pihak_item_id === null) {
-            return null;
-        }
+        return DB::transaction(function () use ($realisasi): ?Payable {
+            $payable = Payable::withTrashed()->where('realisasi_id', $realisasi->id)->first();
 
-        $data = [
-            'project_id' => $realisasi->project_id,
-            'akun_id' => $realisasi->akun_id,
-            'pihak_type_id' => $realisasi->pihak_type_id,
-            'pihak_item_id' => $realisasi->pihak_item_id,
-            'tanggal' => $realisasi->tanggal->format('Y-m-d'),
-            'nominal' => $realisasi->nominal,
-            'jenis_pajak' => null,
-            'pajak_include' => true,
-            'keterangan' => 'Dari realisasi #'.$realisasi->id.($realisasi->keterangan ? ': '.$realisasi->keterangan : ''),
-        ];
+            if ($realisasi->pihak_type_id === null || $realisasi->pihak_item_id === null) {
+                if ($payable !== null && ! $payable->trashed()) {
+                    if (Payment::query()->where('payable_id', $payable->id)->exists() || (float) $payable->nominal_dibayar > 0) {
+                        throw ValidationException::withMessages([
+                            'pihak_item_id' => 'Remove or reverse AP settlements before removing the party from this realization.',
+                        ]);
+                    }
 
-        $payable = Payable::where('realisasi_id', $realisasi->id)->first();
+                    $payable->delete();
+                }
 
-        if ($payable) {
-            $payable->update($data);
+                return null;
+            }
+
+            $data = [
+                'project_id' => $realisasi->project_id,
+                'akun_id' => $realisasi->akun_id,
+                'pihak_type_id' => $realisasi->pihak_type_id,
+                'pihak_item_id' => $realisasi->pihak_item_id,
+                'tanggal' => $realisasi->tanggal->format('Y-m-d'),
+                'nominal' => $realisasi->nominal,
+                'jenis_pajak' => null,
+                'pajak_include' => true,
+                'keterangan' => 'Dari realisasi #'.$realisasi->id.($realisasi->keterangan ? ': '.$realisasi->keterangan : ''),
+            ];
+
+            $payments = $payable?->trashed()
+                ? Payment::onlyTrashed()
+                    ->where('payable_id', $payable->id)
+                    ->whereIn('status', [SettlementStatus::Active, SettlementStatus::PendingCancel])
+                    ->get()
+                : collect();
+            $restoredPaidAmount = (float) ($payable?->nominal_dibayar ?? 0)
+                + (float) $payments->sum(fn (Payment $payment): float => (float) $payment->nominal);
+
+            if ($payable !== null && (float) $data['nominal'] < $restoredPaidAmount) {
+                throw ValidationException::withMessages([
+                    'nominal' => 'The realization amount cannot be lower than the amount already paid against its AP.',
+                ]);
+            }
+
+            if ($payable === null) {
+                $payable = Payable::create($data + ['realisasi_id' => $realisasi->id]);
+            } else {
+                if ($payable->trashed()) {
+                    $payable->restore();
+                }
+
+                $payable->update($data + ['nominal_dibayar' => $restoredPaidAmount]);
+
+                foreach ($payments as $payment) {
+                    Cashflow::onlyTrashed()->where('payment_id', $payment->id)->restore();
+                    $payment->restore();
+                    app(ActualService::class)->recordFromPayablePayment($payment);
+                }
+            }
 
             return $payable->refresh();
-        }
-
-        return Payable::create($data + ['realisasi_id' => $realisasi->id]);
+        });
     }
 
     /**

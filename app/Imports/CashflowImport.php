@@ -60,8 +60,16 @@ class CashflowImport extends BaseImport
             return [false, null, 'Source is required'];
         }
 
-        if (! in_array($source, ['pendapatan', 'pelunasan_ar', 'pelunasan_ap', 'pengeluaran_lain'], true)) {
-            return [false, null, 'Source must be "pendapatan", "pelunasan_ar", "pelunasan_ap", or "pengeluaran_lain"'];
+        if (in_array($source, ['pelunasan_ar', 'pelunasan_ap'], true)) {
+            return [false, null, 'AR/AP settlements must be recorded through the payment workflow, not imported as standalone cash activity'];
+        }
+
+        if (! in_array($source, ['pendapatan', 'pengeluaran_lain'], true)) {
+            return [false, null, 'Source must be "pendapatan" or "pengeluaran_lain"'];
+        }
+
+        if (($source === 'pendapatan' && $type !== 'masuk') || ($source === 'pengeluaran_lain' && $type !== 'keluar')) {
+            return [false, null, 'Source must match the transaction type: income is Cash In and other expense is Cash Out'];
         }
 
         if ($akunCode === '') {

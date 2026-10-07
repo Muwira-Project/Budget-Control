@@ -175,7 +175,7 @@ class ProjectImport extends BaseImport
         unset($data['_is_update'], $data['_existing_id']);
 
         if ($isUpdate && $existingId) {
-            Project::where('id', $existingId)->update($data);
+            Project::query()->findOrFail($existingId)->update($data);
         } else {
             Project::create($data);
         }

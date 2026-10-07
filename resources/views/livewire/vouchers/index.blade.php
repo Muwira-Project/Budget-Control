@@ -48,12 +48,12 @@
                                     <td class="px-6 py-4 font-medium text-gray-900">{{ $voucher->nomor }}</td>
                                     <td class="px-6 py-4 text-gray-700 whitespace-nowrap">{{ $voucher->tanggal->format('d M Y') }}</td>
                                     <td class="px-6 py-4">
-                                        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $voucher->jenis === 'masuk' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700' }}">
-                                            {{ $voucher->jenis === 'masuk' ? 'Income' : 'Expense' }}
+                                        <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $voucher->fund_transfer_id ? 'bg-blue-100 text-blue-700' : ($voucher->jenis === 'masuk' ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700') }}">
+                                            {{ $voucher->fund_transfer_id ? 'Transfer' : ($voucher->jenis === 'masuk' ? 'Income' : 'Expense') }}
                                         </span>
                                     </td>
-                                    <td class="px-6 py-4 text-gray-500">{{ $voucher->cashflow?->keterangan ?? $voucher->keterangan }}</td>
-                                    <td class="px-6 py-4 text-right font-medium text-gray-900">{{ $voucher->cashflow ? format_idr($voucher->cashflow->nominal) : '-' }}</td>
+                                    <td class="px-6 py-4 text-gray-500">{{ $voucher->cashflow?->keterangan ?? $voucher->fundTransfer?->keterangan ?? $voucher->keterangan }}</td>
+                                    <td class="px-6 py-4 text-right font-medium text-gray-900">{{ format_idr($voucher->nominal) }}</td>
                                 </tr>
                             @endforeach
                         </tbody>

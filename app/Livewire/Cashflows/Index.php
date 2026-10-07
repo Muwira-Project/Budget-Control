@@ -226,7 +226,7 @@ class Index extends Component
             session()->flash('status', $deleted.' cash record(s) deleted.');
         }
         if ($skipped > 0) {
-            session()->flash('error', $skipped.' record(s) could not be deleted (auto-generated from settlements).');
+            session()->flash('error', $skipped.' record(s) could not be deleted because they are settlement records or belong to another user.');
         }
     }
 

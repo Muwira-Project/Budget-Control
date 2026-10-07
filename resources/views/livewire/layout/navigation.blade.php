@@ -81,6 +81,7 @@ new class extends Component
         }
         this.$watch('collapsed', (value) => {
             localStorage.setItem('sidebar_collapsed', value);
+            window.dispatchEvent(new CustomEvent('sidebar-toggled', { detail: { collapsed: value } }));
         });
     },
     toggleCollapse() {
@@ -99,13 +100,6 @@ new class extends Component
                     <span class="block text-[10px] font-semibold uppercase tracking-[0.24em] text-emerald-300/80">MyFinance</span>
                 </span>
             </a>
-            <button
-                type="button"
-                @click="toggleCollapse()"
-                class="hidden rounded-lg p-1.5 text-slate-400 transition hover:bg-white/10 hover:text-white lg:block"
-                :title="collapsed ? 'Expand Sidebar' : 'Collapse Sidebar'">
-                <x-icon name="arrows-right-left" class="h-4 w-4" />
-            </button>
         </div>
 
         <div class="flex-1 overflow-y-auto px-3 py-4">
@@ -123,7 +117,7 @@ new class extends Component
     {{-- Mobile Drawer --}}
     <div x-show="sidebarOpen" x-cloak class="fixed inset-0 z-50 lg:hidden">
         <div class="fixed inset-0 bg-slate-900/50" @click="sidebarOpen = false"></div>
-        <aside class="fixed inset-y-0 left-0 flex w-[280px] flex-col bg-brand-950 shadow-2xl">
+        <aside x-data="{ collapsed: false }" class="fixed inset-y-0 left-0 flex w-[280px] flex-col bg-brand-950 shadow-2xl">
             <div class="flex h-16 shrink-0 items-center justify-between border-b border-white/5 px-4">
                 <a href="{{ route('dashboard') }}" wire:navigate class="flex items-center gap-2.5">
                     <x-application-logo class="h-7 w-auto fill-current text-emerald-300" />
@@ -163,19 +157,10 @@ new class extends Component
                     type="button"
                     @click="toggleCollapse()"
                     class="hidden rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700 lg:block"
-                    :title="collapsed ? 'Expand Sidebar' : 'Collapse Sidebar'"
-                    aria-label="Toggle Sidebar">
-                    <x-icon name="arrows-right-left" class="h-5 w-5" />
-                </button>
-
-                {{-- Back Button --}}
-                <button
-                    type="button"
-                    onclick="window.history.back()"
-                    class="rounded-lg p-2 text-slate-500 transition hover:bg-slate-100 hover:text-slate-700"
-                    title="Go Back"
-                    aria-label="Go Back">
-                    <x-icon name="arrow-left" class="h-5 w-5" />
+                    :title="collapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+                    :aria-label="collapsed ? 'Expand sidebar' : 'Collapse sidebar'">
+                    <x-icon name="chevron-right" class="h-5 w-5" x-show="collapsed" />
+                    <x-icon name="chevron-left" class="h-5 w-5" x-show="!collapsed" />
                 </button>
 
                 {{-- Breadcrumb --}}

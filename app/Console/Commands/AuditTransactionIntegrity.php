@@ -10,12 +10,13 @@ use App\Models\Receivable;
 use App\Models\Realisasi;
 use App\Models\Voucher;
 use App\Models\CashAccount;
+use App\Services\VoucherService;
 use Illuminate\Console\Command;
 use Illuminate\Support\Facades\DB;
 
 class AuditTransactionIntegrity extends Command
 {
-    protected $signature = 'audit:transactions {--fix=false}';
+    protected $signature = 'audit:transactions {--fix : Repair missing post timestamps and vouchers after confirmation}';
 
     protected $description = 'Audit transaction data integrity and identify issues';
 
@@ -261,26 +262,53 @@ class AuditTransactionIntegrity extends Command
     {
         $issues = [];
 
-        // Check payments where status doesn't match receivable status
-        $receivables = Payment::query()
-            ->where('receivable_id', '!=', null)
-            ->select('id', 'receivable_id', 'status')
-            ->get();
+        $activeStatuses = [\App\Enums\SettlementStatus::Active, \App\Enums\SettlementStatus::PendingCancel];
+        $receivableTotals = Payment::query()
+            ->whereIn('status', $activeStatuses)
+            ->whereNotNull('receivable_id')
+            ->selectRaw('receivable_id, SUM(nominal) as paid_total')
+            ->groupBy('receivable_id')
+            ->pluck('paid_total', 'receivable_id');
+        $receivableOpeningBalances = Receivable::query()
+            ->where('nominal_dibayar', '>', 0)
+            ->whereDoesntHave('payments', fn ($query) => $query->whereIn('status', $activeStatuses))
+            ->count();
+        $receivableMismatches = Receivable::query()
+            ->get(['id', 'nominal_dibayar'])
+            ->filter(fn (Receivable $receivable): bool => $receivableTotals->has($receivable->id) && abs(
+                (float) $receivable->nominal_dibayar - (float) ($receivableTotals[$receivable->id] ?? 0),
+            ) > 0.01)
+            ->count();
 
-        $mismatches = 0;
-        foreach ($receivables as $payment) {
-            $receivable = Receivable::find($payment->receivable_id);
-            if ($receivable && $payment->status !== 'active' && $receivable->status === 'settled') {
-                $mismatches++;
-            }
+        $payableTotals = Payment::query()
+            ->whereIn('status', $activeStatuses)
+            ->whereNotNull('payable_id')
+            ->selectRaw('payable_id, SUM(nominal) as paid_total')
+            ->groupBy('payable_id')
+            ->pluck('paid_total', 'payable_id');
+        $payableOpeningBalances = Payable::query()
+            ->where('nominal_dibayar', '>', 0)
+            ->whereDoesntHave('payments', fn ($query) => $query->whereIn('status', $activeStatuses))
+            ->count();
+        $payableMismatches = Payable::query()
+            ->get(['id', 'nominal_dibayar'])
+            ->filter(fn (Payable $payable): bool => $payableTotals->has($payable->id) && abs(
+                (float) $payable->nominal_dibayar - (float) ($payableTotals[$payable->id] ?? 0),
+            ) > 0.01)
+            ->count();
+
+        if ($receivableOpeningBalances + $payableOpeningBalances > 0) {
+            $this->line("  Excluding {$receivableOpeningBalances} receivable and {$payableOpeningBalances} payable opening/sample balances without active payment records from settlement mismatch checks.");
         }
+
+        $mismatches = $receivableMismatches + $payableMismatches;
 
         if ($mismatches > 0) {
             $issues[] = [
                 'type' => 'payment',
                 'severity' => 'medium',
-                'model' => 'Payment',
-                'description' => "Found $mismatches payment-receivable status mismatches",
+                'model' => 'Receivable/Payable',
+                'description' => "Found $receivableMismatches receivables and $payableMismatches payables whose paid total differs from active settlement records",
                 'count' => $mismatches,
             ];
         }
@@ -292,21 +320,19 @@ class AuditTransactionIntegrity extends Command
     {
         $issues = [];
 
-        // Note: CashAccount balances are calculated dynamically via the saldo getter
-        // which aggregates posted transactions on-the-fly. This is by design and
-        // ensures balances are always accurate without requiring periodic updates.
+        $accounts = CashAccount::query()->get();
+        $calculatedBalances = CashAccount::balances($accounts->modelKeys());
 
-        // We can verify the calculation logic is working by spot-checking a few accounts
-        foreach (CashAccount::limit(3)->get() as $account) {
-            try {
-                $balance = $account->saldo; // This will execute the getter logic
-                // If we get here without error, the calculation is working
-            } catch (\Exception $e) {
+        foreach ($accounts as $account) {
+            $getterBalance = (float) $account->saldo;
+            $groupedBalance = (float) ($calculatedBalances[$account->id] ?? 0);
+
+            if (abs($getterBalance - $groupedBalance) > 0.01) {
                 $issues[] = [
                     'type' => 'balance',
                     'severity' => 'high',
                     'model' => 'CashAccount',
-                    'description' => "Cash account {$account->kode} balance calculation error: {$e->getMessage()}",
+                    'description' => "Cash account {$account->kode} balance differs between account and grouped-ledger calculations",
                     'account_id' => $account->id,
                 ];
             }
@@ -332,6 +358,21 @@ class AuditTransactionIntegrity extends Command
                 'model' => 'Cashflow',
                 'description' => "Found $cashflowsWithoutVouchers posted cashflows without corresponding vouchers",
                 'count' => $cashflowsWithoutVouchers,
+            ];
+        }
+
+        $transfersWithoutVouchers = FundTransfer::query()
+            ->where('status', 'posted')
+            ->whereDoesntHave('voucher')
+            ->count();
+
+        if ($transfersWithoutVouchers > 0) {
+            $issues[] = [
+                'type' => 'voucher',
+                'severity' => 'high',
+                'model' => 'FundTransfer',
+                'description' => "Found $transfersWithoutVouchers posted fund transfers without corresponding vouchers",
+                'count' => $transfersWithoutVouchers,
             ];
         }
 
@@ -363,7 +404,7 @@ class AuditTransactionIntegrity extends Command
         $this->line('═══════════════════════════════════════════════════════');
 
         if (empty($issues)) {
-            $this->info("\n✅ No issues found! All transaction data is consistent and accurate.");
+            $this->info("\nNo integrity issues found in the checks performed.");
             return;
         }
 
@@ -398,46 +439,27 @@ class AuditTransactionIntegrity extends Command
 
     protected function attemptFixes(array $issues): void
     {
-        if (!$this->confirm("\n🔧 Attempt to auto-fix these issues?")) {
+        if (! $this->confirm("Attempt to repair missing post timestamps and vouchers?")) {
             return;
         }
 
-        $this->line("\n🔧 Attempting auto-fixes...");
-
-        foreach ($issues as $issue) {
-            if ($issue['type'] === 'balance' && $issue['model'] === 'Receivable') {
-                $this->fixReceivableBalance($issue);
-            } elseif ($issue['type'] === 'balance' && $issue['model'] === 'Payable') {
-                $this->fixPayableBalance($issue);
-            }
+        foreach (Cashflow::query()->where('status', 'posted')->whereNull('posted_at')->get() as $cashflow) {
+            $cashflow->posted_at = $cashflow->updated_at ?? now();
+            $cashflow->save();
+        }
+        foreach (FundTransfer::query()->where('status', 'posted')->whereNull('posted_at')->get() as $transfer) {
+            $transfer->posted_at = $transfer->updated_at ?? now();
+            $transfer->save();
         }
 
-        $this->info("\n✅ Auto-fixes completed.");
-    }
-
-    protected function fixReceivableBalance(array $issue): void
-    {
-        $records = Receivable::query()
-            ->whereRaw('nominal_dibayar > nominal')
-            ->get();
-
-        foreach ($records as $record) {
-            $record->nominal_dibayar = $record->nominal;
-            $record->save();
-            $this->line("✓ Fixed Receivable ID: {$record->id}");
+        $voucherService = app(VoucherService::class);
+        foreach (Cashflow::query()->where('status', 'posted')->whereDoesntHave('voucher')->get() as $cashflow) {
+            $voucherService->generateFor($cashflow);
         }
-    }
-
-    protected function fixPayableBalance(array $issue): void
-    {
-        $records = Payable::query()
-            ->whereRaw('nominal_dibayar > nominal')
-            ->get();
-
-        foreach ($records as $record) {
-            $record->nominal_dibayar = $record->nominal;
-            $record->save();
-            $this->line("✓ Fixed Payable ID: {$record->id}");
+        foreach (FundTransfer::query()->where('status', 'posted')->whereDoesntHave('voucher')->get() as $transfer) {
+            $voucherService->generateForFundTransfer($transfer);
         }
+
+        $this->info('Auto-fixes completed. AR/AP balance discrepancies require settlement reconciliation and were left unchanged.');
     }
 }

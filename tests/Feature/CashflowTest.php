@@ -172,6 +172,45 @@ class CashflowTest extends TestCase
         $this->assertSoftDeleted('cashflows', ['id' => $entry2->id]);
     }
 
+    public function test_staff_cannot_delete_another_users_manual_cashflow(): void
+    {
+        $owner = User::factory()->create();
+        $staff = User::factory()->create();
+        $entry = Cashflow::factory()->create([
+            'status' => 'posted',
+            'payment_id' => null,
+            'created_by' => $owner->id,
+        ]);
+
+        Livewire::actingAs($staff)
+            ->test(IndexCashflow::class)
+            ->call('delete', $entry->id)
+            ->assertSee('You can only delete cash records you created.');
+
+        $this->assertDatabaseHas('cashflows', ['id' => $entry->id, 'deleted_at' => null]);
+    }
+
+    public function test_staff_bulk_delete_skips_manual_cashflows_owned_by_other_users(): void
+    {
+        $owner = User::factory()->create();
+        $staff = User::factory()->create();
+        $ownEntry = Cashflow::factory()->create([
+            'status' => 'posted', 'payment_id' => null, 'created_by' => $staff->id,
+        ]);
+        $otherEntry = Cashflow::factory()->create([
+            'status' => 'posted', 'payment_id' => null, 'created_by' => $owner->id,
+        ]);
+
+        Livewire::actingAs($staff)
+            ->test(IndexCashflow::class)
+            ->set('selectedIds', [$ownEntry->id, $otherEntry->id])
+            ->call('deleteSelected')
+            ->assertSee('belong to another user');
+
+        $this->assertSoftDeleted('cashflows', ['id' => $ownEntry->id]);
+        $this->assertDatabaseHas('cashflows', ['id' => $otherEntry->id, 'deleted_at' => null]);
+    }
+
     public function test_settlement_cashflow_cannot_be_deleted_directly(): void
     {
         $user = User::factory()->create();

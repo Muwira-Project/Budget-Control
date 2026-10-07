@@ -65,6 +65,10 @@ class Project extends Model
                         'reason' => $project->revisi_reason,
                         'from_status' => $oldStatus->label(),
                     ]);
+
+                    if ($oldStatus === ProjectStatus::Done) {
+                        app(ReceivableService::class)->holdForProjectRevision($project);
+                    }
                 } elseif ($oldStatus === ProjectStatus::Revisi && $newStatus !== ProjectStatus::Revisi) {
                     // Moving FROM revisi
                     $project->recordActivity('exited_revisi', [
@@ -180,7 +184,11 @@ class Project extends Model
     public function syncReceivable(): void
     {
         if ($this->status->isDone()) {
-            app(ReceivableService::class)->createForProject($this);
+            $receivable = app(ReceivableService::class)->createForProject($this);
+
+            if ($receivable !== null) {
+                app(ReceivableService::class)->releaseProjectRevisionHold($receivable);
+            }
         }
     }
 
