@@ -125,6 +125,9 @@ class ReceivableExport implements FromQuery, ShouldAutoSize, WithHeadings, WithM
             $receivable->nominal,
             $receivable->nominal_dibayar,
             $receivable->nominal - $receivable->nominal_dibayar,
+            $receivable->jenis_pajak ?? '-',
+            $receivable->discount_percent,
+            $receivable->pajak_amount,
             $receivable->status->label(),
             $receivable->keterangan ?? '-',
         ];
@@ -149,6 +152,9 @@ class ReceivableExport implements FromQuery, ShouldAutoSize, WithHeadings, WithM
             'Amount',
             'Paid',
             'Outstanding',
+            'Tax Type',
+            'Discount %',
+            'Tax Amount',
             'Status',
             'Description',
         ];

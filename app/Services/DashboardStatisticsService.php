@@ -4,7 +4,6 @@ namespace App\Services;
 
 use App\Enums\AllocationStatus;
 use App\Enums\KasStatus;
-use App\Enums\ProjectJenis;
 use App\Enums\ProjectStatus;
 use App\Models\BudgetPlanItem;
 use App\Models\CashAccount;
@@ -128,8 +127,6 @@ class DashboardStatisticsService
 
         return [
             'total_projects' => $projects->count(),
-            'projects_barang' => $projects->where('jenis', ProjectJenis::Barang)->count(),
-            'projects_jasa' => $projects->where('jenis', ProjectJenis::Jasa)->count(),
             'total_budget' => $totalBudget,
             'total_allocation' => $totalAllocation,
             'total_realisasi' => $totalRealisasi,

@@ -34,6 +34,8 @@ class ReceivableImport extends BaseImport
                 'due_date',
                 'amount',
                 'paid',
+                'tax_type',
+                'discount_percent',
                 'description',
             ];
         }
@@ -46,6 +48,8 @@ class ReceivableImport extends BaseImport
             'due_date',
             'amount',
             'paid',
+            'tax_type',
+            'discount_percent',
             'description',
         ];
     }
@@ -66,6 +70,8 @@ class ReceivableImport extends BaseImport
         $amount = $this->normalizeNominal($row->get('amount', ''));
         $paid = $this->normalizeNominal($row->get('paid', '')) ?? 0;
         $description = trim((string) $row->get('description', ''));
+        $jenisPajak = trim((string) $row->get('tax_type', '')) ?: null;
+        $discountPercent = $this->normalizeNominal($row->get('discount_percent', '')) ?? 0;
 
         // Required fields
         if ($this->useProjectCode) {
@@ -160,6 +166,8 @@ class ReceivableImport extends BaseImport
                 'jatuh_tempo' => $parsedDueDate,
                 'nominal' => $amount,
                 'nominal_dibayar' => $paid,
+                'jenis_pajak' => $jenisPajak,
+                'discount_percent' => $discountPercent,
                 'keterangan' => $description ?: null,
             ],
             null,

@@ -103,6 +103,9 @@ class PayableExport implements FromQuery, ShouldAutoSize, WithHeadings, WithMapp
             $payable->nominal,
             $payable->nominal_dibayar,
             $payable->nominal - $payable->nominal_dibayar,
+            $payable->jenis_pajak ?? '-',
+            $payable->discount_percent,
+            $payable->pajak_amount,
             $payable->status->label(),
             $payable->keterangan ?? '-',
         ];
@@ -126,6 +129,9 @@ class PayableExport implements FromQuery, ShouldAutoSize, WithHeadings, WithMapp
             'Amount',
             'Paid',
             'Outstanding',
+            'Tax Type',
+            'Discount %',
+            'Tax Amount',
             'Status',
             'Description',
         ];

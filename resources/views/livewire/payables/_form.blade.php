@@ -107,6 +107,20 @@
         </div>
     </div>
 
+    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+        <div>
+            <x-input-label for="discount_percent" :value="__('Discount %')" />
+            <x-text-input id="discount_percent" class="mt-1 block w-full" type="number" step="0.01" wire:model="discountPercent" placeholder="0.00" />
+            <x-input-error :messages="$errors->get('discount_percent')" class="mt-2" />
+        </div>
+
+        <div>
+            <x-input-label for="pajak_amount" :value="__('Tax Amount (Rp) - auto')" />
+            <x-text-input id="pajak_amount" class="mt-1 block w-full bg-gray-100" type="text" wire:model="pajakAmount" disabled />
+            <p class="mt-1 text-xs text-gray-500">Calculated from amount + tax type.</p>
+        </div>
+    </div>
+
     <div>
         <label class="inline-flex items-center">
             <input type="checkbox" wire:model="pajakInclude" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />

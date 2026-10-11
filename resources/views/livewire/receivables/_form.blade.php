@@ -67,6 +67,30 @@
         </div>
     </div>
 
+    <div class="grid grid-cols-1 gap-6 sm:grid-cols-2">
+        <div>
+            <x-input-label for="jenis_pajak" :value="__('Tax Type (optional)')" />
+            <select id="jenis_pajak" wire:model="jenisPajak" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
+                <option value="">None</option>
+                <option value="ppn">PPN</option>
+                <option value="pph">PPh</option>
+            </select>
+            <x-input-error :messages="$errors->get('jenis_pajak')" class="mt-2" />
+        </div>
+
+        <div>
+            <x-input-label for="discount_percent" :value="__('Discount %')" />
+            <x-text-input id="discount_percent" class="mt-1 block w-full" type="number" step="0.01" wire:model="discountPercent" placeholder="0.00" />
+            <x-input-error :messages="$errors->get('discount_percent')" class="mt-2" />
+        </div>
+    </div>
+
+    <div>
+        <x-input-label for="pajak_amount" :value="__('Tax Amount (Rp) - auto')" />
+        <x-text-input id="pajak_amount" class="mt-1 block w-full bg-gray-100" type="text" wire:model="pajakAmount" disabled />
+        <p class="mt-1 text-xs text-gray-500">Calculated from amount + tax type.</p>
+    </div>
+
     <div>
         <x-input-label for="keterangan" :value="__('Description (optional)')" />
         <textarea id="keterangan" wire:model="keterangan" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"></textarea>

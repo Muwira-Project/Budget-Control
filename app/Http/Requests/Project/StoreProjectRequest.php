@@ -33,7 +33,6 @@ class StoreProjectRequest extends FormRequest
             'project_category_id' => ['nullable', 'integer', 'exists:master_items,id'],
             'sub_work' => ['nullable', 'string', 'max:500'],
             'periode' => ['nullable', 'string', 'max:100'],
-            'jenis' => ['required', Rule::in(['barang', 'jasa'])],
             'qty' => ['nullable', 'numeric', 'min:0'],
             'satuan' => ['nullable', 'string', 'max:50'],
             'harga_satuan' => ['nullable', 'numeric', 'min:0'],

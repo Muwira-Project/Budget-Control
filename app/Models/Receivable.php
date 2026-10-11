@@ -13,7 +13,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['project_id', 'pihak_type_id', 'pihak_item_id', 'tanggal', 'nomor_invoice', 'jatuh_tempo', 'nominal', 'nominal_dibayar', 'keterangan', 'hold_reason', 'held_by', 'held_at'])]
+#[Fillable(['project_id', 'pihak_type_id', 'pihak_item_id', 'tanggal', 'nomor_invoice', 'jatuh_tempo', 'nominal', 'nominal_dibayar', 'keterangan', 'hold_reason', 'held_by', 'held_at', 'jenis_pajak', 'discount_percent', 'pajak_amount'])]
 class Receivable extends Model
 {
     /**
@@ -62,6 +62,9 @@ class Receivable extends Model
             'nominal' => 'decimal:2',
             'nominal_dibayar' => 'decimal:2',
             'held_at' => 'datetime',
+            'jenis_pajak' => 'string',
+            'discount_percent' => 'decimal:2',
+            'pajak_amount' => 'decimal:2',
         ];
     }
 

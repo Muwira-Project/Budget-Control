@@ -14,7 +14,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['project_id', 'realisasi_id', 'akun_id', 'pihak_type_id', 'pihak_item_id', 'tanggal', 'nomor_invoice', 'jatuh_tempo', 'nominal', 'jenis_pajak', 'pajak_include', 'nominal_dibayar', 'keterangan'])]
+#[Fillable(['project_id', 'realisasi_id', 'akun_id', 'pihak_type_id', 'pihak_item_id', 'tanggal', 'nomor_invoice', 'jatuh_tempo', 'nominal', 'jenis_pajak', 'pajak_include', 'nominal_dibayar', 'keterangan', 'discount_percent', 'pajak_amount'])]
 class Payable extends Model
 {
     /** @use HasFactory<PayableFactory> */
@@ -63,6 +63,8 @@ class Payable extends Model
             'nominal_dibayar' => 'decimal:2',
             'jenis_pajak' => PajakJenis::class,
             'pajak_include' => 'boolean',
+            'discount_percent' => 'decimal:2',
+            'pajak_amount' => 'decimal:2',
         ];
     }
 

@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Enums\ProjectJenis;
 use App\Enums\ProjectStatus;
 use App\Models\Concerns\LogsActivity;
 use App\Services\DashboardService;
@@ -17,7 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Validation\ValidationException;
 
-#[Fillable(['kode', 'po_number', 'nama', 'lokasi', 'division_id', 'pic_id', 'project_category_id', 'sub_work', 'periode', 'jenis', 'qty', 'satuan', 'harga_satuan', 'pajak', 'tanggal_mulai', 'target_selesai', 'status', 'revisi_reason', 'revisi_at', 'revisi_by'])]
+#[Fillable(['kode', 'po_number', 'nama', 'lokasi', 'division_id', 'pic_id', 'project_category_id', 'sub_work', 'periode', 'qty', 'satuan', 'harga_satuan', 'pajak', 'tanggal_mulai', 'target_selesai', 'status', 'revisi_reason', 'revisi_at', 'revisi_by'])]
 class Project extends Model
 {
     /** @use HasFactory<ProjectFactory> */
@@ -46,6 +45,13 @@ class Project extends Model
                 if ($oldStatus && ! $oldStatus->canTransitionTo($newStatus)) {
                     throw ValidationException::withMessages([
                         'status' => "Tidak bisa mengubah status dari {$oldStatus->label()} ke {$newStatus->label()}.",
+                    ]);
+                }
+
+                // Require po_number when transitioning to Done
+                if ($newStatus === ProjectStatus::Done && blank($project->po_number)) {
+                    throw ValidationException::withMessages([
+                        'po_number' => 'PO Number wajib diisi saat status Done.',
                     ]);
                 }
 
@@ -88,7 +94,6 @@ class Project extends Model
     protected function casts(): array
     {
         return [
-            'jenis' => ProjectJenis::class,
             'status' => ProjectStatus::class,
             'qty' => 'decimal:2',
             'harga_satuan' => 'decimal:2',
