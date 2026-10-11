@@ -52,6 +52,10 @@
                                     <td class="px-6 py-3 text-gray-600">{{ \Carbon\Carbon::createFromTimestamp($backup['modified_at'])->format('d M Y H:i') }}</td>
                                     <td class="px-6 py-3 text-right">
                                         <div class="inline-flex items-center gap-2">
+                                            <button type="button" wire:click="restore('{{ $backup['path'] }}')" wire:confirm="Restore database dari backup ini? Data saat ini akan ditimpa."
+                                                    title="Restore" class="rounded-lg p-1.5 text-green-600 hover:bg-green-50">
+                                                <x-icon name="arrow-uturn-left" class="h-4 w-4" />
+                                            </button>
                                             <button type="button" wire:click="download('{{ $backup['path'] }}')" title="Unduh"
                                                     class="rounded-lg p-1.5 text-blue-600 hover:bg-blue-50">
                                                 <x-icon name="download" class="h-4 w-4" />

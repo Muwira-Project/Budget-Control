@@ -3,6 +3,7 @@
 namespace App\Livewire\Backups;
 
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Storage;
 use Livewire\Attributes\Computed;
@@ -10,6 +11,7 @@ use Livewire\Attributes\Layout;
 use Livewire\Component;
 use Spatie\Backup\Helpers\Format;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use ZipArchive;
 
 #[Layout('layouts.app')]
 class Index extends Component
@@ -93,6 +95,157 @@ class Index extends Component
         $this->message = 'Backup berhasil dihapus.';
         $this->error = null;
         unset($this->backups);
+    }
+
+    public function restore(string $path): void
+    {
+        abort_unless(Gate::allows('accessBackups', Backup::class), 403);
+        abort_unless($this->isValidBackupPath($path), 404);
+
+        try {
+            $backupPath = Storage::disk('local')->path($path);
+            $connection = config('database.default');
+            $dbConnection = config("database.connections.{$connection}");
+
+            // Validasi backup file exists
+            if (! file_exists($backupPath)) {
+                throw new \Exception('File backup tidak ditemukan.');
+            }
+
+            // Extract backup ZIP
+            $tempDir = storage_path('restore_temp_'.time());
+            @mkdir($tempDir);
+
+            $zip = new ZipArchive();
+            if ($zip->open($backupPath) !== true) {
+                throw new \Exception('Gagal membuka file backup.');
+            }
+
+            $zip->extractTo($tempDir);
+            $zip->close();
+
+            // Cari dump file di dalam ZIP
+            $dumpFile = $this->findDumpFile($tempDir);
+            if (! $dumpFile) {
+                throw new \Exception('File database dump tidak ditemukan dalam backup.');
+            }
+
+            // Restore sesuai jenis database
+            if ($connection === 'mysql') {
+                $this->restoreMysql($dumpFile, $dbConnection);
+            } elseif ($connection === 'sqlite') {
+                $this->restoreSqlite($dumpFile, $dbConnection);
+            } else {
+                throw new \Exception("Database connection '{$connection}' tidak didukung untuk restore.");
+            }
+
+            // Cleanup temp directory
+            $this->deleteDirectory($tempDir);
+
+            $this->message = 'Database berhasil di-restore dari backup.';
+            $this->error = null;
+        } catch (\Throwable $exception) {
+            $this->error = 'Restore gagal: '.$exception->getMessage();
+            $this->message = null;
+            
+            // Cleanup on error
+            if (isset($tempDir) && is_dir($tempDir)) {
+                $this->deleteDirectory($tempDir);
+            }
+        }
+    }
+
+    protected function restoreMysql(string $dumpFile, array $config): void
+    {
+        $host = $config['host'] ?? 'localhost';
+        $user = $config['username'] ?? '';
+        $password = $config['password'] ?? '';
+        $database = $config['database'] ?? '';
+        $port = $config['port'] ?? 3306;
+
+        // Build mysql command
+        $command = sprintf(
+            'mysql -h %s -P %d -u %s %s < %s',
+            escapeshellarg($host),
+            $port,
+            escapeshellarg($user),
+            $password ? '-p'.escapeshellarg($password) : '',
+            escapeshellarg($dumpFile)
+        );
+
+        $output = null;
+        $returnCode = null;
+        exec($command, $output, $returnCode);
+
+        if ($returnCode !== 0) {
+            throw new \Exception('MySQL restore failed: '.implode(' ', $output));
+        }
+    }
+
+    protected function restoreSqlite(string $dumpFile, array $config): void
+    {
+        $dbPath = $config['database'];
+
+        // SQLite restore via sqlite3 CLI
+        if (! file_exists($dbPath)) {
+            // Database file doesn't exist, create it
+            touch($dbPath);
+        }
+
+        $command = sprintf(
+            'sqlite3 %s < %s',
+            escapeshellarg($dbPath),
+            escapeshellarg($dumpFile)
+        );
+
+        $output = null;
+        $returnCode = null;
+        exec($command, $output, $returnCode);
+
+        if ($returnCode !== 0) {
+            throw new \Exception('SQLite restore failed: '.implode(' ', $output));
+        }
+
+        // Verify database integrity
+        exec(sprintf('sqlite3 %s "PRAGMA integrity_check;"', escapeshellarg($dbPath)), $output, $returnCode);
+        if ($returnCode !== 0 || (isset($output[0]) && $output[0] !== 'ok')) {
+            throw new \Exception('Database integrity check failed after restore.');
+        }
+    }
+
+    protected function findDumpFile(string $directory): ?string
+    {
+        $files = glob($directory.'/**/*', GLOB_RECURSIVE);
+
+        foreach ($files as $file) {
+            if (is_file($file) && (str_ends_with($file, '.sql') || str_ends_with($file, '.sql.gz'))) {
+                return $file;
+            }
+        }
+
+        return null;
+    }
+
+    protected function deleteDirectory(string $directory): bool
+    {
+        if (! is_dir($directory)) {
+            return false;
+        }
+
+        $files = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($directory, \RecursiveDirectoryIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::CHILD_FIRST
+        );
+
+        foreach ($files as $fileinfo) {
+            if ($fileinfo->isDir()) {
+                rmdir($fileinfo->getRealPath());
+            } else {
+                unlink($fileinfo->getRealPath());
+            }
+        }
+
+        return rmdir($directory);
     }
 
     protected function isValidBackupPath(string $path): bool
