@@ -264,37 +264,72 @@ class Index extends Component
         if (str_ends_with($dumpFile, '.sql.gz')) {
             $sqlFile = str_replace('.sql.gz', '.sql', $dumpFile);
             if (! file_exists($sqlFile)) {
-                exec(sprintf('gzip -d -c %s > %s', escapeshellarg($dumpFile), escapeshellarg($sqlFile)), $output, $returnCode);
-                if ($returnCode !== 0) {
-                    throw new \Exception('Failed to decompress SQL dump: '.implode(' ', $output));
+                if (! function_exists('gzopen')) {
+                    throw new \Exception('gzip extension not available for decompression.');
                 }
+                
+                $gzFile = gzopen($dumpFile, 'rb');
+                $sqlContent = gzread($gzFile, filesize($dumpFile) * 5);
+                gzclose($gzFile);
+                file_put_contents($sqlFile, $sqlContent);
             }
         }
 
-        // SQLite restore via sqlite3 CLI
-        if (! file_exists($dbPath)) {
-            touch($dbPath);
+        // Read SQL dump content
+        if (! file_exists($sqlFile)) {
+            throw new \Exception('SQL dump file not found: '.$sqlFile);
         }
 
-        $command = sprintf(
-            'sqlite3 %s < %s 2>&1',
-            escapeshellarg($dbPath),
-            escapeshellarg($sqlFile)
-        );
-
-        $output = [];
-        $returnCode = null;
-        exec($command, $output, $returnCode);
-
-        if ($returnCode !== 0) {
-            throw new \Exception('SQLite restore failed: '.($output ? implode(' ', $output) : 'Unknown error'));
+        $sql = file_get_contents($sqlFile);
+        if (! $sql) {
+            throw new \Exception('SQL dump file is empty.');
         }
 
-        // Verify database integrity
-        $output = [];
-        exec(sprintf('sqlite3 %s "PRAGMA integrity_check;" 2>&1', escapeshellarg($dbPath)), $output, $returnCode);
-        if ($returnCode !== 0 || (isset($output[0]) && $output[0] !== 'ok')) {
-            throw new \Exception('Database integrity check failed: '.($output ? implode(' ', $output) : 'integrity check failed'));
+        // Create/overwrite database file
+        if (file_exists($dbPath)) {
+            unlink($dbPath);
+        }
+
+        // Open SQLite connection via PDO
+        try {
+            $pdo = new \PDO('sqlite:'.$dbPath);
+            $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+
+            // Disable foreign keys during restore
+            $pdo->exec('PRAGMA foreign_keys = OFF;');
+
+            // Split SQL by semicolon and execute each statement
+            $statements = array_filter(
+                array_map('trim', explode(';', $sql)),
+                fn ($stmt) => ! empty($stmt)
+            );
+
+            foreach ($statements as $statement) {
+                if (! empty($statement)) {
+                    try {
+                        $pdo->exec($statement);
+                    } catch (\PDOException $e) {
+                        // Skip some non-critical errors (like duplicate pragmas)
+                        if (str_contains($e->getMessage(), 'PRAGMA') || str_contains($e->getMessage(), 'already exists')) {
+                            continue;
+                        }
+                        throw $e;
+                    }
+                }
+            }
+
+            // Re-enable foreign keys
+            $pdo->exec('PRAGMA foreign_keys = ON;');
+
+            // Verify database integrity
+            $result = $pdo->query('PRAGMA integrity_check;')->fetchColumn();
+            if ($result !== 'ok') {
+                throw new \Exception('Database integrity check failed: '.$result);
+            }
+
+            $pdo = null;
+        } catch (\PDOException $e) {
+            throw new \Exception('SQLite restore failed: '.$e->getMessage());
         }
 
         // Cleanup decompressed file
