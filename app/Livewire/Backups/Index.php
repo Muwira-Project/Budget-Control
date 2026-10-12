@@ -136,27 +136,13 @@ class Index extends Component
                 throw new \Exception('File database dump tidak ditemukan dalam backup.');
             }
 
-            // Detect dump format dari content, bukan dari current DB config
-            $content = file_get_contents($dumpFile);
-            
-            // MySQL dump indicators
-            $isMysqlDump = str_contains($content, '/*!') || 
-                          str_contains($content, 'LOCK TABLES') || 
-                          str_contains($content, 'SET @') ||
-                          str_contains($content, 'CREATE TABLE `');
-            
-            // SQLite dump indicators
-            $isSqliteDump = str_contains($content, 'sqlite_') || 
-                           str_contains($content, 'PRAGMA') ||
-                           str_contains($content, 'CREATE TABLE "');
-
-            // Restore sesuai format dump, bukan sesuai current DB config
-            if ($isMysqlDump) {
+            // Restore sesuai jenis database
+            if ($connection === 'mysql') {
                 $this->restoreMysql($dumpFile, $dbConnection);
-            } elseif ($isSqliteDump) {
+            } elseif ($connection === 'sqlite') {
                 $this->restoreSqlite($dumpFile, $dbConnection);
             } else {
-                throw new \Exception('Format database dump tidak dikenali (MySQL atau SQLite).');
+                throw new \Exception("Database connection '{$connection}' tidak didukung untuk restore.");
             }
 
             // Cleanup temp directory
@@ -212,27 +198,13 @@ class Index extends Component
                 throw new \Exception('File database dump tidak ditemukan dalam backup.');
             }
 
-            // Detect dump format dari content, bukan dari current DB config
-            $content = file_get_contents($dumpFile);
-            
-            // MySQL dump indicators
-            $isMysqlDump = str_contains($content, '/*!') || 
-                          str_contains($content, 'LOCK TABLES') || 
-                          str_contains($content, 'SET @') ||
-                          str_contains($content, 'CREATE TABLE `');
-            
-            // SQLite dump indicators
-            $isSqliteDump = str_contains($content, 'sqlite_') || 
-                           str_contains($content, 'PRAGMA') ||
-                           str_contains($content, 'CREATE TABLE "');
-
-            // Restore sesuai format dump, bukan sesuai current DB config
-            if ($isMysqlDump) {
+            // Restore sesuai jenis database
+            if ($connection === 'mysql') {
                 $this->restoreMysql($dumpFile, $dbConnection);
-            } elseif ($isSqliteDump) {
+            } elseif ($connection === 'sqlite') {
                 $this->restoreSqlite($dumpFile, $dbConnection);
             } else {
-                throw new \Exception('Format database dump tidak dikenali (MySQL atau SQLite).');
+                throw new \Exception("Database connection '{$connection}' tidak didukung untuk restore.");
             }
 
             // Cleanup temp files
