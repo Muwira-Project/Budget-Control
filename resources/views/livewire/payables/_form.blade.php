@@ -133,4 +133,29 @@
         <textarea id="keterangan" wire:model="keterangan" rows="3" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"></textarea>
         <x-input-error :messages="$errors->get('keterangan')" class="mt-2" />
     </div>
+
+    <div class="mt-6 p-4 bg-gray-50 rounded-lg border">
+        <h4 class="font-medium text-gray-800">Buat Cashflow Terkait (Opsional)</h4>
+        <p class="mt-1 text-sm text-gray-600">Centang untuk membuat entri Cash Out (Pengeluaran Lain) yang terhubung ke Payable ini.</p>
+
+        <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+                <label class="inline-flex items-center">
+                    <input type="checkbox" wire:model="createCashflow" class="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+                    <span class="ms-2 text-sm text-gray-700">Buat Cashflow (Keluar / Pengeluaran Lain)</span>
+                </label>
+            </div>
+
+            <div>
+                <x-input-label for="cash_account_id" :value="__('Rekening Kas/Bank')" />
+                <select id="cash_account_id" wire:model="cashAccountId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" {{ !$this->createCashflow ? 'disabled' : '' }}>
+                    <option value="">-- Pilih Rekening --</option>
+                    @foreach ($this->cashAccounts as $account)
+                        <option value="{{ $account->id }}">{{ $account->kode }} - {{ $account->nama }} ({{ $account->jenis?->label() ?? 'Kas/Bank' }})</option>
+                    @endforeach
+                </select>
+                <x-input-error :messages="$errors->get('cash_account_id')" class="mt-2" />
+            </div>
+        </div>
+    </div>
 </div>

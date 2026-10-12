@@ -18,7 +18,7 @@ use Illuminate\Database\Eloquent\Relations\HasManyThrough;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['tanggal', 'jenis', 'sumber', 'payment_id', 'cash_account_id', 'akun_id', 'project_id', 'pihak_type_id', 'pihak_item_id', 'nominal', 'keterangan', 'status', 'submitted_by', 'approved_by', 'approved_at', 'posted_by', 'posted_at', 'rejected_by', 'rejected_at', 'rejection_reason', 'created_by'])]
+#[Fillable(['tanggal', 'jenis', 'sumber', 'payment_id', 'receivable_id', 'payable_id', 'cash_account_id', 'akun_id', 'project_id', 'pihak_type_id', 'pihak_item_id', 'nominal', 'keterangan', 'status', 'submitted_by', 'approved_by', 'approved_at', 'posted_by', 'posted_at', 'rejected_by', 'rejected_at', 'rejection_reason', 'created_by'])]
 class Cashflow extends Model
 {
     /**
@@ -74,6 +74,22 @@ class Cashflow extends Model
     public function payment(): BelongsTo
     {
         return $this->belongsTo(Payment::class);
+    }
+
+    /**
+     * Get the receivable (AR) this cashflow entry settles (for import-linked entries).
+     */
+    public function receivable(): BelongsTo
+    {
+        return $this->belongsTo(Receivable::class)->withTrashed();
+    }
+
+    /**
+     * Get the payable (AP) this cashflow entry settles (for import-linked entries).
+     */
+    public function payable(): BelongsTo
+    {
+        return $this->belongsTo(Payable::class)->withTrashed();
     }
 
     /**

@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Enums\ProjectStatus;
 use App\Enums\SettlementStatus;
+use App\Models\CashAccount;
 use App\Models\Cashflow;
 use App\Models\NumberSequence;
 use App\Models\Payment;
@@ -329,6 +330,9 @@ class ReceivableService
             'pihak_item_id' => $project->customer_item_id ?? null,
         ]);
 
+        // Create linked Cashflow for the new Receivable (Cash In / Pendapatan)
+        $this->createLinkedCashflow($receivable);
+
         return $receivable;
     }
 
@@ -428,10 +432,41 @@ class ReceivableService
             $grandTotal['paid'] += $summary[$category]['paid'];
             $grandTotal['outstanding'] += $summary[$category]['outstanding'];
             $grandTotal['count'] += $summary[$category]['count'];
-        }
+                    }
 
-        $summary['grand_total'] = $grandTotal;
+                    $summary['grand_total'] = $grandTotal;
 
-        return $summary;
-    }
-}
+                    return $summary;
+                }
+
+                /**
+                 * Create a linked Cashflow entry for a Receivable (Cash In / Pendapatan).
+                 * Uses the first active Cash Account as default.
+                 */
+                private function createLinkedCashflow(Receivable $receivable): void
+                {
+                    $cashAccount = CashAccount::where('status', 'active')->first();
+
+                    if (! $cashAccount) {
+                        return;
+                    }
+
+                    Cashflow::create([
+                        'tanggal'         => $receivable->tanggal,
+                        'jenis'           => \App\Enums\CashflowJenis::Masuk,
+                        'sumber'          => 'pendapatan',
+                        'cash_account_id' => $cashAccount->id,
+                        'akun_id'         => $receivable->akun_id,
+                        'project_id'      => $receivable->project_id,
+                        'pihak_type_id'   => $receivable->pihak_type_id,
+                        'pihak_item_id'   => $receivable->pihak_item_id,
+                        'receivable_id'   => $receivable->id,
+                        'nominal'         => $receivable->nominal,
+                        'keterangan'      => 'AR Project: '.$receivable->nomor_invoice,
+                        'status'          => \App\Enums\KasStatus::Posted,
+                        'created_by'      => auth()->id() ?? 1,
+                        'posted_by'       => auth()->id() ?? 1,
+                        'posted_at'       => now(),
+                    ]);
+                }
+            }

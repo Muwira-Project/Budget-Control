@@ -127,7 +127,7 @@ class ImportCashflowTest extends TestCase
     {
         $response = $this->actingAs($this->user)->get(route('imports.cashflows.template'));
         $response->assertOk();
-        $this->assertCount(1, (new CashflowTemplateExport)->array());
+        $this->assertCount(3, (new CashflowTemplateExport)->array());
     }
 
     public function test_import_rejects_partial_party_information(): void

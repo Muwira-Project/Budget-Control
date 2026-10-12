@@ -425,6 +425,106 @@ class ReportService
     }
 
     /**
+     * AR Aging consolidated with Cashflow payments.
+     * Shows each outstanding Receivable with its linked Cashflow collections.
+     *
+     * @param  string|null  $asOf  Report date (default: today)
+     * @return array{as_of: string, rows: array<int, array<string, mixed>>, totals: array<string, float>}
+     */
+    public function arAgingWithCashflow(?string $asOf = null): array
+    {
+        $asOf = Carbon::parse($asOf ?? today());
+
+        $receivables = Receivable::query()
+            ->with(['project', 'pihakItem', 'cashflows' => fn ($q) => $q->where('status', 'posted')->orderBy('tanggal')])
+            ->get()
+            ->filter(fn (Receivable $r) => $r->sisa > 0);
+
+        $rows = $receivables->map(function (Receivable $receivable) use ($asOf) {
+            $cashflows = $receivable->cashflows;
+            $totalCollected = $cashflows->where('jenis', 'masuk')->sum('nominal');
+            $lastCollection = $cashflows->where('jenis', 'masuk')->last();
+
+            return [
+                'receivable_id' => $receivable->id,
+                'invoice_no' => $receivable->nomor_invoice,
+                'project' => $receivable->project?->kode.' - '.$receivable->project?->nama,
+                'pihak' => $receivable->pihakItem?->nama ?? '-',
+                'tanggal' => $receivable->tanggal->format('d M Y'),
+                'jatuh_tempo' => $receivable->jatuh_tempo?->format('d M Y'),
+                'nominal' => (float) $receivable->nominal,
+                'sisa' => (float) $receivable->sisa,
+                'bucket' => $this->bucket($receivable->jatuh_tempo, $asOf),
+                'collections_count' => $cashflows->where('jenis', 'masuk')->count(),
+                'total_collected' => (float) $totalCollected,
+                'last_collection_date' => $lastCollection?->tanggal->format('d M Y'),
+                'last_collection_amount' => $lastCollection ? (float) $lastCollection->nominal : 0.0,
+            ];
+        })->values();
+
+        $buckets = ['current', '1_30', '31_60', '61_90', 'over_90'];
+
+        return [
+            'as_of' => $asOf->format('d M Y'),
+            'rows' => $rows->all(),
+            'totals' => array_merge(
+                ['nominal' => $rows->sum('nominal'), 'sisa' => $rows->sum('sisa'), 'collected' => $rows->sum('total_collected')],
+                $this->bucketTotals($rows, $buckets)
+            ),
+        ];
+    }
+
+    /**
+     * AP Aging consolidated with Cashflow payments.
+     * Shows each outstanding Payable with its linked Cashflow payments.
+     *
+     * @param  string|null  $asOf  Report date (default: today)
+     * @return array{as_of: string, rows: array<int, array<string, mixed>>, totals: array<string, float>}
+     */
+    public function apAgingWithCashflow(?string $asOf = null): array
+    {
+        $asOf = Carbon::parse($asOf ?? today());
+
+        $payables = Payable::query()
+            ->with(['pihakType', 'pihakItem', 'cashflows' => fn ($q) => $q->where('status', 'posted')->orderBy('tanggal')])
+            ->get()
+            ->filter(fn (Payable $p) => $p->sisa > 0);
+
+        $rows = $payables->map(function (Payable $payable) use ($asOf) {
+            $cashflows = $payable->cashflows;
+            $totalPaid = $cashflows->where('jenis', 'keluar')->sum('nominal');
+            $lastPayment = $cashflows->where('jenis', 'keluar')->last();
+
+            return [
+                'payable_id' => $payable->id,
+                'invoice_no' => $payable->nomor_invoice,
+                'pihak' => $payable->pihakItem?->nama ?? '-',
+                'pihak_type' => $payable->pihakType?->kode ?? '-',
+                'tanggal' => $payable->tanggal->format('d M Y'),
+                'jatuh_tempo' => $payable->jatuh_tempo?->format('d M Y'),
+                'nominal' => (float) $payable->nominal,
+                'sisa' => (float) $payable->sisa,
+                'bucket' => $this->bucket($payable->jatuh_tempo, $asOf),
+                'payments_count' => $cashflows->where('jenis', 'keluar')->count(),
+                'total_paid' => (float) $totalPaid,
+                'last_payment_date' => $lastPayment?->tanggal->format('d M Y'),
+                'last_payment_amount' => $lastPayment ? (float) $lastPayment->nominal : 0.0,
+            ];
+        })->values();
+
+        $buckets = ['current', '1_30', '31_60', '61_90', 'over_90'];
+
+        return [
+            'as_of' => $asOf->format('d M Y'),
+            'rows' => $rows->all(),
+            'totals' => array_merge(
+                ['nominal' => $rows->sum('nominal'), 'sisa' => $rows->sum('sisa'), 'paid' => $rows->sum('total_paid')],
+                $this->bucketTotals($rows, $buckets)
+            ),
+        ];
+    }
+
+    /**
      * Posted transfer totals for an account, optionally limited before/within a period.
      *
      * @return array{in: float, out: float}

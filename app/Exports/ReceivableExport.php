@@ -26,7 +26,7 @@ class ReceivableExport implements FromQuery, ShouldAutoSize, WithHeadings, WithM
      */
     public function query(): Builder
     {
-        $query = Receivable::query()->with(['project', 'pihakType', 'pihakItem']);
+        $query = Receivable::query()->with(['project', 'pihakType', 'pihakItem', 'cashAccount']);
 
         // Project filter
         if (! empty($this->filters['project_id'])) {
@@ -130,6 +130,8 @@ class ReceivableExport implements FromQuery, ShouldAutoSize, WithHeadings, WithM
             $receivable->pajak_amount,
             $receivable->status->label(),
             $receivable->keterangan ?? '-',
+            $receivable->cashAccount?->kode ?? '-',
+            $receivable->cashflow_ref ?? '-',
         ];
     }
 
@@ -157,6 +159,8 @@ class ReceivableExport implements FromQuery, ShouldAutoSize, WithHeadings, WithM
             'Tax Amount',
             'Status',
             'Description',
+            'Cash Account Code',
+            'Cashflow Ref',
         ];
     }
 }

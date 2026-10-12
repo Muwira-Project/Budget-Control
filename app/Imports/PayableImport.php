@@ -3,10 +3,13 @@
 namespace App\Imports;
 
 use App\Models\Akun;
+use App\Models\CashAccount;
+use App\Models\Cashflow;
 use App\Models\MasterItem;
 use App\Models\MasterType;
 use App\Models\Payable;
 use App\Models\Project;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 /**
@@ -36,9 +39,9 @@ class PayableImport extends BaseImport
                 'due_date',
                 'amount',
                 'paid',
-                'tax_type',
-                'discount_percent',
                 'description',
+                'cash_account_code',
+                'cashflow_ref',
             ];
         }
 
@@ -51,9 +54,9 @@ class PayableImport extends BaseImport
             'due_date',
             'amount',
             'paid',
-            'tax_type',
-            'discount_percent',
             'description',
+            'cash_account_code',
+            'cashflow_ref',
         ];
     }
 
@@ -74,6 +77,8 @@ class PayableImport extends BaseImport
         $amount = $this->normalizeNominal($row->get('amount', ''));
         $paid = $this->normalizeNominal($row->get('paid', '')) ?? 0;
         $description = trim((string) $row->get('description', ''));
+        $cashAccountCode = trim((string) $row->get('cash_account_code', ''));
+        $cashflowRef = trim((string) $row->get('cashflow_ref', ''));
         $jenisPajak = trim((string) $row->get('tax_type', '')) ?: null;
         $discountPercent = $this->normalizeNominal($row->get('discount_percent', '')) ?? 0;
 
@@ -183,6 +188,8 @@ class PayableImport extends BaseImport
                 'jenis_pajak' => $jenisPajak,
                 'discount_percent' => $discountPercent,
                 'keterangan' => $description ?: null,
+                '_cash_account_code' => $cashAccountCode ?: null,
+                '_cashflow_ref' => $cashflowRef ?: null,
             ],
             null,
         ];
@@ -195,7 +202,58 @@ class PayableImport extends BaseImport
      */
     protected function persist(array $data): void
     {
-        Payable::create($data);
+        $cashAccountCode = $data['_cash_account_code'] ?? null;
+        $cashflowRef = $data['_cashflow_ref'] ?? null;
+
+        $cashAccount = null;
+        if ($cashAccountCode !== null && $cashAccountCode !== '') {
+            $cashAccount = CashAccount::where('kode', $cashAccountCode)->first();
+        }
+
+        if (! $cashAccount) {
+            $cashAccount = CashAccount::where('status', 'active')->first();
+        }
+
+        if ($cashAccount) {
+            $data['cash_account_id'] = $cashAccount->id;
+        }
+
+        if ($cashflowRef !== null && $cashflowRef !== '') {
+            $data['cashflow_ref'] = $cashflowRef;
+        }
+
+        unset($data['_cash_account_code'], $data['_cashflow_ref']);
+
+        $payable = Payable::create($data);
+
+        // For non-project imports, create a linked Cashflow (Cash Out / pengeluaran_lain)
+        if (! $this->useProjectCode && $cashAccount) {
+            $this->createLinkedCashflow($payable, $cashAccount);
+        }
+    }
+
+    /**
+     * Create a linked Cashflow entry for the payable (non-project only).
+     */
+    private function createLinkedCashflow(Payable $payable, CashAccount $cashAccount): void
+    {
+        Cashflow::create([
+            'tanggal'         => $payable->tanggal,
+            'jenis'           => \App\Enums\CashflowJenis::Keluar,
+            'sumber'          => 'pengeluaran_lain',
+            'cash_account_id' => $cashAccount->id,
+            'akun_id'         => $payable->akun_id,
+            'project_id'      => null,
+            'pihak_type_id'   => $payable->pihak_type_id,
+            'pihak_item_id'   => $payable->pihak_item_id,
+            'payable_id'      => $payable->id,
+            'nominal'         => $payable->nominal,
+            'keterangan'      => $payable->keterangan ?? 'Import AP: '.$payable->nomor_invoice,
+            'status'          => \App\Enums\KasStatus::Posted,
+            'created_by'      => auth()->id() ?? 1,
+            'posted_by'       => auth()->id() ?? 1,
+            'posted_at'       => now(),
+        ]);
     }
 
     /**

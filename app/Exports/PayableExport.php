@@ -26,7 +26,7 @@ class PayableExport implements FromQuery, ShouldAutoSize, WithHeadings, WithMapp
      */
     public function query(): Builder
     {
-        $query = Payable::query()->with(['project', 'pihakType', 'pihakItem']);
+        $query = Payable::query()->with(['project', 'pihakType', 'pihakItem', 'cashAccount']);
 
         // Project filter
         if (! empty($this->filters['project_id'])) {
@@ -108,6 +108,8 @@ class PayableExport implements FromQuery, ShouldAutoSize, WithHeadings, WithMapp
             $payable->pajak_amount,
             $payable->status->label(),
             $payable->keterangan ?? '-',
+            $payable->cashAccount?->kode ?? '-',
+            $payable->cashflow_ref ?? '-',
         ];
     }
 
@@ -134,6 +136,8 @@ class PayableExport implements FromQuery, ShouldAutoSize, WithHeadings, WithMapp
             'Tax Amount',
             'Status',
             'Description',
+            'Cash Account Code',
+            'Cashflow Ref',
         ];
     }
 }

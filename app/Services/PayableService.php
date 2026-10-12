@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Enums\SettlementStatus;
+use App\Models\CashAccount;
 use App\Models\Cashflow;
 use App\Models\Payable;
 use App\Models\Payment;
@@ -219,19 +220,50 @@ class PayableService
             }
 
             return $payable->refresh();
-        });
-    }
+                    });
+                }
 
-    /**
-     * Apply the computed status filter to the query.
-     */
-    protected function applyStatusFilter($query, string $status)
-    {
-        return match ($status) {
-            'belum_bayar' => $query->where('nominal_dibayar', 0),
-            'lunas' => $query->whereColumn('nominal_dibayar', '>=', 'nominal'),
-            'sebagian' => $query->where('nominal_dibayar', '>', 0)->whereColumn('nominal_dibayar', '<', 'nominal'),
-            default => $query,
-        };
-    }
-}
+                /**
+                 * Apply the computed status filter to the query.
+                 */
+                protected function applyStatusFilter($query, string $status)
+                {
+                    return match ($status) {
+                        'belum_bayar' => $query->where('nominal_dibayar', 0),
+                        'lunas' => $query->whereColumn('nominal_dibayar', '>=', 'nominal'),
+                        'sebagian' => $query->where('nominal_dibayar', '>', 0)->whereColumn('nominal_dibayar', '<', 'nominal'),
+                        default => $query,
+                    };
+                }
+
+                /**
+                 * Create a linked Cashflow entry for a Payable (Cash Out / Pengeluaran Lain).
+                 * Uses the first active Cash Account as default.
+                 */
+                private function createLinkedCashflow(Payable $payable): void
+                {
+                    $cashAccount = CashAccount::where('status', 'active')->first();
+
+                    if (! $cashAccount) {
+                        return;
+                    }
+
+                    Cashflow::create([
+                        'tanggal'         => $payable->tanggal,
+                        'jenis'           => \App\Enums\CashflowJenis::Keluar,
+                        'sumber'          => 'pengeluaran_lain',
+                        'cash_account_id' => $cashAccount->id,
+                        'akun_id'         => $payable->akun_id,
+                        'project_id'      => $payable->project_id,
+                        'pihak_type_id'   => $payable->pihak_type_id,
+                        'pihak_item_id'   => $payable->pihak_item_id,
+                        'payable_id'      => $payable->id,
+                        'nominal'         => $payable->nominal,
+                        'keterangan'      => 'AP Project: '.$payable->nomor_invoice,
+                        'status'          => \App\Enums\KasStatus::Posted,
+                        'created_by'      => auth()->id() ?? 1,
+                        'posted_by'       => auth()->id() ?? 1,
+                        'posted_at'       => now(),
+                    ]);
+                }
+            }

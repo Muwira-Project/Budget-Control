@@ -29,16 +29,13 @@ class CashflowExport implements FromQuery, WithHeadings, WithMapping
     public function query(): Builder
     {
         return Cashflow::query()
-            ->with(['cashAccount', 'akun', 'project', 'pihakType', 'pihakItem', 'createdBy'])
+            ->with(['cashAccount', 'akun', 'project', 'pihakType', 'pihakItem', 'createdBy', 'receivable', 'payable'])
             ->when($this->filters['jenis'] ?? null, fn ($query, $jenis) => $query->where('jenis', $jenis))
             ->when(
                 isset($this->filters['start_date']),
                 fn ($query) => $query->whereDate('tanggal', '>=', $this->filters['start_date']),
             )
-            ->when(
-                isset($this->filters['end_date']),
-                fn ($query) => $query->whereDate('tanggal', '<=', $this->filters['end_date']),
-            )
+            ->when($this->filters['end_date'] ?? null, fn ($query) => $query->whereDate('tanggal', '<=', $this->filters['end_date']))
             ->when($this->filters['sumber'] ?? null, fn ($query, $sumber) => $query->where('sumber', $sumber))
             ->when($this->filters['cash_account_id'] ?? null, fn ($query, $id) => $query->where('cash_account_id', $id))
             ->orderBy('tanggal')
@@ -65,6 +62,9 @@ class CashflowExport implements FromQuery, WithHeadings, WithMapping
             'Description',
             'Status',
             'Created By',
+            'Source Invoice No.',
+            'Source Type',
+            'Source ID',
         ];
     }
 
@@ -89,6 +89,14 @@ class CashflowExport implements FromQuery, WithHeadings, WithMapping
             default => $cashflow->sumber?->value,
         };
 
+        $sourceType = $cashflow->sumber === CashflowSumber::PelunasanAr ? 'Receivable' : ($cashflow->sumber === CashflowSumber::PelunasanAp ? 'Payable' : '');
+        $sourceInvoiceNo = '';
+        if ($cashflow->sumber === CashflowSumber::PelunasanAr && $cashflow->receivable) {
+            $sourceInvoiceNo = $cashflow->receivable->nomor_invoice;
+        } elseif ($cashflow->sumber === CashflowSumber::PelunasanAp && $cashflow->payable) {
+            $sourceInvoiceNo = $cashflow->payable->nomor_invoice;
+        }
+
         return [
             $cashflow->tanggal->format('Y-m-d'),
             $this->spreadsheetValue($jenisLabel),
@@ -102,6 +110,9 @@ class CashflowExport implements FromQuery, WithHeadings, WithMapping
             $this->spreadsheetValue($cashflow->keterangan),
             $this->spreadsheetValue($cashflow->status?->label() ?? ''),
             $this->spreadsheetValue($cashflow->createdBy?->name),
+            $this->spreadsheetValue($sourceInvoiceNo),
+            $this->spreadsheetValue($sourceType),
+            $this->spreadsheetValue($cashflow->source_id ?? ''),
         ];
     }
 }

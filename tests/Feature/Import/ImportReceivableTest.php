@@ -5,6 +5,7 @@ namespace Tests\Feature\Import;
 use App\Exports\ReceivableTemplateExport;
 use App\Imports\ReceivableImport;
 use App\Livewire\Imports\ImportReceivables;
+use App\Models\Akun;
 use App\Models\MasterItem;
 use App\Models\MasterType;
 use App\Models\Project;
@@ -43,14 +44,19 @@ class ImportReceivableTest extends TestCase
         $this->project = Project::factory()->create(['kode' => 'PRJ-001', 'nama' => 'Project Test']);
 
         $this->user = User::factory()->create();
+
+        $this->akun = Akun::factory()->create(['kode_akun' => 'AR-001']);
+
+        // Create cash account for linked cashflow tests
+        $this->cashAccount = \App\Models\CashAccount::factory()->create(['kode' => 'CASH-001', 'status' => 'active']);
     }
 
     /** @test */
     public function test_import_with_project_code(): void
     {
         $path = $this->storeXlsx('receivable-with-project.xlsx', [
-            ['Project Code', 'Party Type Code', 'Party Name', 'Date', 'Invoice No.', 'Due Date', 'Amount', 'Paid', 'Description'],
-            ['PRJ-001', 'VENDOR', 'PT Vendor Utama', '2026-08-15', 'INV-2026-001', '2026-09-14', 50000000, 0, 'Tagihan pertama'],
+            ['Project Code', 'Akun Code', 'Party Type Code', 'Party Name', 'Date', 'Invoice No.', 'Due Date', 'Amount', 'Paid', 'Description', 'Cash Account Code', 'Cashflow Ref'],
+            ['PRJ-001', 'AR-001', 'VENDOR', 'PT Vendor Utama', '2026-08-15', 'INV-2026-001', '2026-09-14', 50000000, 0, 'Tagihan pertama', 'CASH-001', ''],
         ]);
 
         $import = new ReceivableImport(true);
@@ -71,8 +77,8 @@ class ImportReceivableTest extends TestCase
     public function test_import_without_project_code(): void
     {
         $path = $this->storeXlsx('receivable-without-project.xlsx', [
-            ['Party Type Code', 'Party Name', 'Date', 'Invoice No.', 'Due Date', 'Amount', 'Paid', 'Description'],
-            ['VENDOR', 'PT Vendor Utama', '2026-08-15', 'INV-2026-002', '2026-09-14', 50000000, 0, 'Tagihan pertama'],
+            ['Akun Code', 'Party Type Code', 'Party Name', 'Date', 'Invoice No.', 'Due Date', 'Amount', 'Paid', 'Description', 'Cash Account Code', 'Cashflow Ref'],
+            ['AR-001', 'VENDOR', 'PT Vendor Utama', '2026-08-15', 'INV-2026-002', '2026-09-14', 50000000, 0, 'Tagihan pertama', 'CASH-001', ''],
         ]);
 
         $import = new ReceivableImport(false);
@@ -98,13 +104,14 @@ class ImportReceivableTest extends TestCase
             'project_id' => null,
             'pihak_type_id' => $this->vendorType->id,
             'pihak_item_id' => $this->vendor->id,
+            'akun_id' => $this->akun->id,
             'tanggal' => '2026-08-01',
             'nominal' => 10000000,
         ]);
 
         $path = $this->storeXlsx('receivable-duplicate.xlsx', [
-            ['Party Type Code', 'Party Name', 'Date', 'Invoice No.', 'Due Date', 'Amount', 'Paid', 'Description'],
-            ['VENDOR', 'PT Vendor Utama', '2026-08-15', 'INV-EXISTING', '2026-09-14', 50000000, 0, 'Duplicate'],
+            ['Akun Code', 'Party Type Code', 'Party Name', 'Date', 'Invoice No.', 'Due Date', 'Amount', 'Paid', 'Description', 'Cash Account Code', 'Cashflow Ref'],
+            ['AR-001', 'VENDOR', 'PT Vendor Utama', '2026-08-15', 'INV-EXISTING', '2026-09-14', 50000000, 0, 'Duplicate', 'CASH-001', ''],
         ]);
 
         $import = new ReceivableImport(false);
@@ -120,13 +127,14 @@ class ImportReceivableTest extends TestCase
         $otherProject = Project::factory()->create(['kode' => 'PRJ-002']);
         Receivable::factory()->create([
             'project_id' => $this->project->id,
+            'akun_id' => $this->akun->id,
             'nomor_invoice' => 'INV-GLOBAL',
             'pihak_type_id' => $this->vendorType->id,
             'pihak_item_id' => $this->vendor->id,
         ]);
         $path = $this->storeXlsx('receivable-global-duplicate.xlsx', [
-            ['Project Code', 'Party Type Code', 'Party Name', 'Date', 'Invoice No.', 'Due Date', 'Amount', 'Paid', 'Description'],
-            ['PRJ-002', 'VENDOR', 'PT Vendor Utama', '2026-08-15', 'INV-GLOBAL', '2026-09-14', 50000000, 0, 'Duplicate across projects'],
+            ['Project Code', 'Akun Code', 'Party Type Code', 'Party Name', 'Date', 'Invoice No.', 'Due Date', 'Amount', 'Paid', 'Description', 'Cash Account Code', 'Cashflow Ref'],
+            ['PRJ-002', 'AR-001', 'VENDOR', 'PT Vendor Utama', '2026-08-15', 'INV-GLOBAL', '2026-09-14', 50000000, 0, 'Duplicate across projects', 'CASH-001', ''],
         ]);
 
         $import = new ReceivableImport(true);
@@ -142,8 +150,8 @@ class ImportReceivableTest extends TestCase
     public function test_import_with_project_code_missing_project_fails(): void
     {
         $path = $this->storeXlsx('receivable-missing-project.xlsx', [
-            ['Project Code', 'Party Type Code', 'Party Name', 'Date', 'Invoice No.', 'Due Date', 'Amount', 'Paid', 'Description'],
-            ['PRJ-999', 'VENDOR', 'PT Vendor Utama', '2026-08-15', 'INV-2026-003', '2026-09-14', 50000000, 0, 'Project not found'],
+            ['Project Code', 'Akun Code', 'Party Type Code', 'Party Name', 'Date', 'Invoice No.', 'Due Date', 'Amount', 'Paid', 'Description', 'Cash Account Code', 'Cashflow Ref'],
+            ['PRJ-999', 'AR-001', 'VENDOR', 'PT Vendor Utama', '2026-08-15', 'INV-2026-003', '2026-09-14', 50000000, 0, 'Project not found', 'CASH-001', ''],
         ]);
 
         $import = new ReceivableImport(true);
@@ -158,8 +166,8 @@ class ImportReceivableTest extends TestCase
     public function test_import_without_project_code_empty_project_code_allowed(): void
     {
         $path = $this->storeXlsx('receivable-empty-project.xlsx', [
-            ['Party Type Code', 'Party Name', 'Date', 'Invoice No.', 'Due Date', 'Amount', 'Paid', 'Description'],
-            ['VENDOR', 'PT Vendor Utama', '2026-08-15', 'INV-2026-004', '2026-09-14', 50000000, 0, 'Empty project code'],
+            ['Akun Code', 'Party Type Code', 'Party Name', 'Date', 'Invoice No.', 'Due Date', 'Amount', 'Paid', 'Description', 'Cash Account Code', 'Cashflow Ref'],
+            ['AR-001', 'VENDOR', 'PT Vendor Utama', '2026-08-15', 'INV-2026-004', '2026-09-14', 50000000, 0, 'Empty project code', 'CASH-001', ''],
         ]);
 
         $import = new ReceivableImport(false);
@@ -203,11 +211,11 @@ class ImportReceivableTest extends TestCase
         $withoutProject = $withoutProjectTemplate[0];
 
         $this->assertSame(
-            ['Project Code', 'Party Type Code', 'Party Name', 'Date', 'Invoice No.', 'Due Date', 'Amount', 'Paid', 'Description'],
+            ['Project Code', 'Akun Code', 'Party Type Code', 'Party Name', 'Date', 'Invoice No.', 'Due Date', 'Amount', 'Paid', 'Description', 'Cash Account Code', 'Cashflow Ref'],
             $withProject,
         );
         $this->assertSame(
-            ['Party Type Code', 'Party Name', 'Date', 'Invoice No.', 'Due Date', 'Amount', 'Paid', 'Description'],
+            ['Akun Code', 'Party Type Code', 'Party Name', 'Date', 'Invoice No.', 'Due Date', 'Amount', 'Paid', 'Description', 'Cash Account Code', 'Cashflow Ref'],
             $withoutProject,
         );
         $this->assertCount(1, $withProjectTemplate, 'Template should not include sample transactions or notes.');
@@ -220,6 +228,7 @@ class ImportReceivableTest extends TestCase
             $headers = (new ReceivableTemplateExport($useProjectCode))->array()[0];
             $values = [
                 'Project Code' => 'PRJ-001',
+                'Akun Code' => 'AR-001',
                 'Party Type Code' => 'VENDOR',
                 'Party Name' => 'PT Vendor Utama',
                 'Date' => '2026-08-15',
@@ -228,6 +237,8 @@ class ImportReceivableTest extends TestCase
                 'Amount' => 50000000,
                 'Paid' => 0,
                 'Description' => 'Template round trip',
+                'Cash Account Code' => 'CASH-001',
+                'Cashflow Ref' => '',
             ];
             $path = $this->storeXlsx(
                 $useProjectCode ? 'receivable-template-with-project.xlsx' : 'receivable-template-without-project.xlsx',
@@ -270,5 +281,43 @@ class ImportReceivableTest extends TestCase
         }, $filename);
 
         return storage_path('app/private/'.$filename);
+    }
+
+    /** @test */
+    public function test_export_includes_cash_account_and_cashflow_ref_columns(): void
+    {
+        $path = $this->storeXlsx('receivable-export-test.xlsx', [
+            ['Project Code', 'Akun Code', 'Party Type Code', 'Party Name', 'Date', 'Invoice No.', 'Due Date', 'Amount', 'Paid', 'Description', 'Cash Account Code', 'Cashflow Ref'],
+            ['PRJ-001', 'AR-001', 'VENDOR', 'PT Vendor Utama', '2026-08-15', 'INV-EXPORT-001', '2026-09-14', 50000000, 0, 'Export test', 'CASH-001', 'CF-REF-001'],
+        ]);
+
+        $import = new ReceivableImport(true);
+        Excel::import($import, $path);
+
+        $this->assertSame(1, $import->successCount);
+
+        $receivable = \App\Models\Receivable::where('nomor_invoice', 'INV-EXPORT-001')->first();
+        $this->assertNotNull($receivable);
+        
+        // Debug: check what's in the database
+        \Illuminate\Support\Facades\Log::info('Test debug', [
+            'receivable_id' => $receivable->id,
+            'cash_account_id' => $receivable->cash_account_id,
+            'cashflow_ref' => $receivable->cashflow_ref,
+            'cash_account_relation' => $receivable->cashAccount,
+            'cash_account_kode' => $receivable->cashAccount?->kode,
+        ]);
+
+        $this->assertEquals('CASH-001', $receivable->cashAccount?->kode);
+        $this->assertEquals('CF-REF-001', $receivable->cashflow_ref);
+
+        $export = new \App\Exports\ReceivableExport([]);
+        $rows = $export->query()->get()->map(fn ($r) => $export->map($r))->toArray();
+
+        $exported = collect($rows)->firstWhere(3, 'INV-EXPORT-001');
+
+        $this->assertNotNull($exported);
+        $this->assertEquals('CASH-001', $exported[16], 'Cash Account Code column'); // 0-indexed: 16 = Cash Account Code
+        $this->assertEquals('CF-REF-001', $exported[17], 'Cashflow Ref column'); // 17 = Cashflow Ref
     }
 }

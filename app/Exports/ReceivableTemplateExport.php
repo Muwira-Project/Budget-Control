@@ -16,9 +16,9 @@ class ReceivableTemplateExport implements FromArray
     public function array(): array
     {
         if ($this->useProjectCode) {
-            return [['Project Code', 'Party Type Code', 'Party Name', 'Date', 'Invoice No.', 'Due Date', 'Amount', 'Paid', 'Description']];
+            return [['Project Code', 'Akun Code', 'Party Type Code', 'Party Name', 'Date', 'Invoice No.', 'Due Date', 'Amount', 'Paid', 'Description', 'Cash Account Code', 'Cashflow Ref']];
         }
 
-        return [['Party Type Code', 'Party Name', 'Date', 'Invoice No.', 'Due Date', 'Amount', 'Paid', 'Description']];
+        return [['Akun Code', 'Party Type Code', 'Party Name', 'Date', 'Invoice No.', 'Due Date', 'Amount', 'Paid', 'Description', 'Cash Account Code', 'Cashflow Ref']];
     }
 }

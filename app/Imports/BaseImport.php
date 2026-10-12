@@ -52,9 +52,12 @@ abstract class BaseImport implements ToCollection, WithHeadingRow
         $normalizedExpected = array_map('strtolower', $this->expectedHeaders);
         $normalizedActual = array_map('strtolower', $actualHeaders);
 
-        if ($normalizedExpected !== $normalizedActual) {
+        // Allow extra columns in actual headers (backward compat: old templates work)
+        // But all expected headers must be present
+        $missing = array_diff($normalizedExpected, $normalizedActual);
+        if (! empty($missing)) {
             $this->fatalError = 'The header does not match the template. '
-                .'Expected: '.implode(', ', $this->expectedHeaders)
+                .'Missing required headers: '.implode(', ', $missing)
                 .'. Found: '.implode(', ', $actualHeaders).'.';
 
             return;

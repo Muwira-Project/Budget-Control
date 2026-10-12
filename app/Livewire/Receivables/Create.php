@@ -32,6 +32,9 @@ class Create extends Component
 
     public ?string $keterangan = null;
 
+    public bool $createCashflow = false;
+    public ?int $cashAccountId = null;
+
     /**
      * Set the default receivable date.
      */
@@ -72,9 +75,19 @@ class Create extends Component
                 'jatuh_tempo' => $this->jatuhTempo !== '' ? $this->jatuhTempo : null,
                 'nominal' => $this->nominal,
                 'keterangan' => $this->keterangan,
+                'create_cashflow' => $this->createCashflow,
+                'cash_account_id' => $this->cashAccountId,
             ],
             (new StoreReceivableRequest)->rules(),
         );
+
+        if ($this->createCashflow) {
+            $validator->after(function ($validator): void {
+                if (! $this->cashAccountId) {
+                    $validator->errors()->add('cash_account_id', 'Pilih rekening kas/bank untuk membuat Cashflow.');
+                }
+            });
+        }
 
         $validator->after(function ($validator): void {
             // Only check duplicate per project when a project is selected
@@ -90,11 +103,41 @@ class Create extends Component
 
         $validated = $validator->validate();
 
-        $service->create($validated);
+        $receivable = $service->create($validated);
 
-        session()->flash('status', 'Receivable created successfully.');
+        if ($this->createCashflow) {
+            $this->createLinkedCashflow($receivable);
+        }
+
+        session()->flash('status', 'Receivable created successfully.'.($this->createCashflow ? ' Linked Cashflow created.' : ''));
 
         $this->redirectRoute('receivables.index', navigate: true);
+    }
+
+    /**
+     * Create a linked Cashflow entry for the receivable.
+     */
+    private function createLinkedCashflow(\App\Models\Receivable $receivable): void
+    {
+        $cashAccount = \App\Models\CashAccount::findOrFail($this->cashAccountId);
+
+        \App\Models\Cashflow::create([
+            'tanggal'         => $receivable->tanggal,
+            'jenis'           => \App\Enums\CashflowJenis::Masuk,
+            'sumber'          => 'pendapatan',
+            'cash_account_id' => $cashAccount->id,
+            'akun_id'         => $receivable->akun_id,
+            'project_id'      => $receivable->project_id,
+            'pihak_type_id'   => $receivable->pihak_type_id,
+            'pihak_item_id'   => $receivable->pihak_item_id,
+            'receivable_id'   => $receivable->id,
+            'nominal'         => $receivable->nominal,
+            'keterangan'      => $receivable->keterangan ?? 'AR Manual: '.$receivable->nomor_invoice,
+            'status'          => \App\Enums\KasStatus::Posted,
+            'created_by'      => auth()->id() ?? 1,
+            'posted_by'       => auth()->id() ?? 1,
+            'posted_at'       => now(),
+        ]);
     }
 
     /**
@@ -144,5 +187,12 @@ class Create extends Component
     public function render()
     {
         return view('livewire.receivables.create');
+    }
+
+    /** Active cash accounts for Cashflow creation. */
+    #[Computed]
+    public function cashAccounts()
+    {
+        return \App\Models\CashAccount::where('status', 'active')->orderBy('kode')->get();
     }
 }
