@@ -92,11 +92,7 @@
                                             
                                         <td class="px-6 py-4 font-medium text-blue-600 hover:text-blue-800">{{ $project->kode }}</td>
                                         <td class="px-6 py-4 text-gray-700">{{ $project->nama }}</td>
-                                        <td class="px-6 py-4">
-                                            <span class="inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium {{ $project->jenis === \App\Enums\ProjectJenis::Jasa ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-700' }}">
-                                                {{ $project->jenis->label() }}
-                                            </span>
-                                        </td>
+
                                         <td class="px-6 py-4 text-gray-500">{{ $project->lokasi }}</td>
                                         <td class="px-6 py-4 text-gray-700">{{ $project->division?->nama ?? '-' }}</td>
                                         <td class="px-6 py-4 text-gray-700">{{ $project->picMaster?->nama ?? '-' }}</td>
