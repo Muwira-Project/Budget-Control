@@ -343,6 +343,15 @@ class Index extends Component
         if (str_ends_with($dumpFile, '.sql.gz') && file_exists($sqlFile) && $sqlFile !== $dumpFile) {
             unlink($sqlFile);
         }
+
+        // Run migrations to recreate infrastructure tables (sessions, jobs, cache, etc.)
+        // This won't re-migrate already-migrated records
+        try {
+            \Illuminate\Support\Facades\Artisan::call('migrate', ['--force' => true]);
+        } catch (\Exception $e) {
+            // Log but don't fail - migrations might fail for various reasons
+            \Log::warning('Migrations after restore: '.$e->getMessage());
+        }
     }
 
     protected function findDumpFile(string $directory): ?string
