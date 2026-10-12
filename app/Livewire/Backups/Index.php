@@ -259,30 +259,47 @@ class Index extends Component
     {
         $dbPath = $config['database'];
 
+        // Handle gzipped SQL dump
+        $sqlFile = $dumpFile;
+        if (str_ends_with($dumpFile, '.sql.gz')) {
+            $sqlFile = str_replace('.sql.gz', '.sql', $dumpFile);
+            if (! file_exists($sqlFile)) {
+                exec(sprintf('gzip -d -c %s > %s', escapeshellarg($dumpFile), escapeshellarg($sqlFile)), $output, $returnCode);
+                if ($returnCode !== 0) {
+                    throw new \Exception('Failed to decompress SQL dump: '.implode(' ', $output));
+                }
+            }
+        }
+
         // SQLite restore via sqlite3 CLI
         if (! file_exists($dbPath)) {
-            // Database file doesn't exist, create it
             touch($dbPath);
         }
 
         $command = sprintf(
-            'sqlite3 %s < %s',
+            'sqlite3 %s < %s 2>&1',
             escapeshellarg($dbPath),
-            escapeshellarg($dumpFile)
+            escapeshellarg($sqlFile)
         );
 
-        $output = null;
+        $output = [];
         $returnCode = null;
         exec($command, $output, $returnCode);
 
         if ($returnCode !== 0) {
-            throw new \Exception('SQLite restore failed: '.implode(' ', $output));
+            throw new \Exception('SQLite restore failed: '.($output ? implode(' ', $output) : 'Unknown error'));
         }
 
         // Verify database integrity
-        exec(sprintf('sqlite3 %s "PRAGMA integrity_check;"', escapeshellarg($dbPath)), $output, $returnCode);
+        $output = [];
+        exec(sprintf('sqlite3 %s "PRAGMA integrity_check;" 2>&1', escapeshellarg($dbPath)), $output, $returnCode);
         if ($returnCode !== 0 || (isset($output[0]) && $output[0] !== 'ok')) {
-            throw new \Exception('Database integrity check failed after restore.');
+            throw new \Exception('Database integrity check failed: '.($output ? implode(' ', $output) : 'integrity check failed'));
+        }
+
+        // Cleanup decompressed file
+        if (str_ends_with($dumpFile, '.sql.gz') && file_exists($sqlFile) && $sqlFile !== $dumpFile) {
+            unlink($sqlFile);
         }
     }
 
