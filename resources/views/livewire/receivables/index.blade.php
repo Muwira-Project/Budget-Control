@@ -55,14 +55,7 @@
                                 @endforeach
                             </select>
                         </div>
-                        <div>
-                            <x-input-label for="ar_category_filter" :value="__('Filter AR Category')" />
-                            <select id="ar_category_filter" wire:model.live="arCategoryFilter" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500">
-                                @foreach ($this->arCategories as $value => $label)
-                                    <option value="{{ $value }}">{{ $label }}</option>
-                                @endforeach
-                            </select>
-                        </div>
+
                     </div>
 
                     <div class="mt-4 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
@@ -98,6 +91,22 @@
                             <span class="ml-2 text-sm text-gray-700">Show Summary at Bottom</span>
                         </label>
                     </div>
+                </div>
+
+                {{-- AR Category Tabs --}}
+                <div class="flex flex-wrap items-center gap-2 border-b border-gray-200 bg-white px-6 py-3">
+                    <button type="button" wire:click="$set('arCategoryFilter', '')" class="inline-flex items-center border-b-2 px-4 py-2 text-sm font-medium transition {{ $arCategoryFilter === '' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-600 hover:text-gray-900' }}">
+                        All
+                    </button>
+                    <button type="button" wire:click="$set('arCategoryFilter', 'billed')" class="inline-flex items-center border-b-2 px-4 py-2 text-sm font-medium transition {{ $arCategoryFilter === 'billed' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-600 hover:text-gray-900' }}">
+                        Billed (Done + PO)
+                    </button>
+                    <button type="button" wire:click="$set('arCategoryFilter', 'unbilled')" class="inline-flex items-center border-b-2 px-4 py-2 text-sm font-medium transition {{ $arCategoryFilter === 'unbilled' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-600 hover:text-gray-900' }}">
+                        Unbilled (Done, No PO)
+                    </button>
+                    <button type="button" wire:click="$set('arCategoryFilter', 'inprogress')" class="inline-flex items-center border-b-2 px-4 py-2 text-sm font-medium transition {{ $arCategoryFilter === 'inprogress' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-600 hover:text-gray-900' }}">
+                        In Progress
+                    </button>
                 </div>
 
                 @if ($this->receivables->isEmpty())
