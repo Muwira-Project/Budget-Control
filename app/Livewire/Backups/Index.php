@@ -12,6 +12,7 @@ use Livewire\Component;
 use Spatie\Backup\Helpers\Format;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use ZipArchive;
+use Livewire\Attributes\Validate;
 
 #[Layout('layouts.app')]
 class Index extends Component
@@ -19,6 +20,9 @@ class Index extends Component
     public ?string $message = null;
 
     public ?string $error = null;
+
+    #[Validate('nullable|file|mimes:zip|max:5120000')]
+    public $uploadedBackupFile = null;
 
     public function mount(): void
     {
@@ -151,6 +155,73 @@ class Index extends Component
             // Cleanup on error
             if (isset($tempDir) && is_dir($tempDir)) {
                 $this->deleteDirectory($tempDir);
+            }
+        }
+    }
+
+    public function uploadAndRestore(): void
+    {
+        abort_unless(Gate::allows('accessBackups', Backup::class), 403);
+
+        $this->validate();
+
+        if (! $this->uploadedBackupFile) {
+            $this->error = 'Pilih file backup terlebih dahulu.';
+            return;
+        }
+
+        try {
+            $connection = config('database.default');
+            $dbConnection = config("database.connections.{$connection}");
+
+            // Simpan file upload ke temp
+            $tempFile = $this->uploadedBackupFile->store('backup_uploads', 'local');
+            $backupPath = Storage::disk('local')->path($tempFile);
+
+            // Extract backup ZIP
+            $tempDir = storage_path('restore_temp_'.time());
+            @mkdir($tempDir);
+
+            $zip = new ZipArchive();
+            if ($zip->open($backupPath) !== true) {
+                throw new \Exception('Gagal membuka file backup.');
+            }
+
+            $zip->extractTo($tempDir);
+            $zip->close();
+
+            // Cari dump file di dalam ZIP
+            $dumpFile = $this->findDumpFile($tempDir);
+            if (! $dumpFile) {
+                throw new \Exception('File database dump tidak ditemukan dalam backup.');
+            }
+
+            // Restore sesuai jenis database
+            if ($connection === 'mysql') {
+                $this->restoreMysql($dumpFile, $dbConnection);
+            } elseif ($connection === 'sqlite') {
+                $this->restoreSqlite($dumpFile, $dbConnection);
+            } else {
+                throw new \Exception("Database connection '{$connection}' tidak didukung untuk restore.");
+            }
+
+            // Cleanup temp files
+            $this->deleteDirectory($tempDir);
+            Storage::disk('local')->delete($tempFile);
+
+            $this->uploadedBackupFile = null;
+            $this->message = 'Database berhasil di-restore dari file backup.';
+            $this->error = null;
+        } catch (\Throwable $exception) {
+            $this->error = 'Restore gagal: '.$exception->getMessage();
+            $this->message = null;
+            
+            // Cleanup on error
+            if (isset($tempDir) && is_dir($tempDir)) {
+                $this->deleteDirectory($tempDir);
+            }
+            if (isset($tempFile)) {
+                Storage::disk('local')->delete($tempFile);
             }
         }
     }

@@ -31,6 +31,26 @@
         @endif
 
         <div class="mt-6 overflow-hidden rounded-2xl bg-white shadow-sm ring-1 ring-gray-200">
+            <div class="border-b border-gray-100 p-6">
+                <h3 class="text-sm font-semibold text-gray-900 mb-4">Restore dari File Backup</h3>
+                <div class="flex items-end gap-3">
+                    <div class="flex-1">
+                        <x-input-label for="backup_upload" :value="__('Pilih File Backup (.zip)')" />
+                        <input id="backup_upload" type="file" wire:model="uploadedBackupFile" accept=".zip" class="mt-1 block w-full rounded-lg border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" />
+                        @error('uploadedBackupFile')
+                            <p class="mt-1 text-xs text-red-600">{{ $message }}</p>
+                        @enderror
+                    </div>
+                    <button type="button" wire:click="uploadAndRestore" wire:loading.attr="disabled"
+                            class="inline-flex h-10 items-center justify-center gap-2 rounded-lg bg-blue-600 px-4 text-sm font-semibold text-white transition hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed">
+                        <x-icon name="arrow-path" class="h-4 w-4" wire:loading.remove wire:target="uploadAndRestore" />
+                        <x-icon name="arrow-path" class="h-4 w-4 animate-spin" wire:loading wire:target="uploadAndRestore" />
+                        <span wire:loading.remove wire:target="uploadAndRestore">Restore</span>
+                        <span wire:loading wire:target="uploadAndRestore">Memulihkan...</span>
+                    </button>
+                </div>
+            </div>
+        </div>
             @if (empty($this->backups))
                 <p class="p-6 text-sm text-gray-500">Belum ada backup. Klik "Buat Backup" untuk membuat backup database pertama.</p>
             @else
@@ -53,17 +73,20 @@
                                     <td class="px-6 py-3 text-right">
                                         <div class="inline-flex items-center gap-2">
                                             <button type="button" wire:click="restore('{{ $backup['path'] }}')" wire:confirm="Restore database dari backup ini? Data saat ini akan ditimpa." wire:loading.attr="disabled"
-                                                    title="Restore" class="rounded-lg p-1.5 text-green-600 hover:bg-green-50 disabled:opacity-50 disabled:cursor-not-allowed">
+                                                    title="Restore" class="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-green-300 bg-green-50 px-3 text-xs font-medium text-green-700 transition hover:border-green-400 hover:bg-green-100 hover:text-green-800 disabled:opacity-50 disabled:cursor-not-allowed">
                                                 <x-icon name="arrow-uturn-left" class="h-4 w-4" wire:loading.remove wire:target="restore" />
                                                 <x-icon name="arrow-path" class="h-4 w-4 animate-spin" wire:loading wire:target="restore" />
+                                                <span wire:loading.remove wire:target="restore">Restore</span>
                                             </button>
                                             <button type="button" wire:click="download('{{ $backup['path'] }}')" title="Unduh"
-                                                    class="rounded-lg p-1.5 text-blue-600 hover:bg-blue-50">
+                                                    class="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-blue-300 bg-blue-50 px-3 text-xs font-medium text-blue-700 transition hover:border-blue-400 hover:bg-blue-100 hover:text-blue-800">
                                                 <x-icon name="download" class="h-4 w-4" />
+                                                <span>Unduh</span>
                                             </button>
                                             <button type="button" wire:click="delete('{{ $backup['path'] }}')" wire:confirm="Yakin ingin menghapus backup ini?" title="Hapus"
-                                                    class="rounded-lg p-1.5 text-red-600 hover:bg-red-50">
+                                                    class="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-red-300 bg-red-50 px-3 text-xs font-medium text-red-700 transition hover:border-red-400 hover:bg-red-100 hover:text-red-800">
                                                 <x-icon name="trash" class="h-4 w-4" />
+                                                <span>Hapus</span>
                                             </button>
                                         </div>
                                     </td>
