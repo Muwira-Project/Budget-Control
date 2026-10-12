@@ -203,19 +203,22 @@
                                                     @if ($paymentStatus === 'active')
                                                         @if (auth()->user()->isAdmin())
                                                             {{-- Admin can directly approve void --}}
-                                                            <button type="button" wire:click="approveVoid({{ $payment->id }})" title="Void Settlement (Admin)" class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-red-600 transition hover:border-red-300 hover:bg-red-50 hover:text-red-700">
+                                                            <button type="button" wire:click="approveVoid({{ $payment->id }})" title="Void Settlement (Admin)" class="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-red-300 bg-red-50 px-3 text-xs font-medium text-red-700 transition hover:border-red-400 hover:bg-red-100 hover:text-red-800">
                                                                 <x-icon name="x-circle" class="h-4 w-4" />
+                                                                <span>Void</span>
                                                             </button>
                                                         @else
                                                             {{-- Staff requests void --}}
-                                                            <button type="button" wire:click="requestVoid({{ $entry->id }})" title="Request Void Settlement" class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-amber-600 transition hover:border-amber-300 hover:bg-amber-50 hover:text-amber-700">
+                                                            <button type="button" wire:click="requestVoid({{ $entry->id }})" title="Request Void Settlement" class="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-amber-300 bg-amber-50 px-3 text-xs font-medium text-amber-700 transition hover:border-amber-400 hover:bg-amber-100 hover:text-amber-800">
                                                                 <x-icon name="x-mark" class="h-4 w-4" />
+                                                                <span>Request Void</span>
                                                             </button>
                                                         @endif
                                                     @elseif ($paymentStatus === 'pending_cancel' && auth()->user()->isAdmin())
                                                         {{-- Admin can approve pending void --}}
-                                                        <button type="button" wire:click="approveVoid({{ $payment->id }})" title="Approve Void Settlement" class="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-gray-200 bg-white text-green-600 transition hover:border-green-300 hover:bg-green-50 hover:text-green-700">
+                                                        <button type="button" wire:click="approveVoid({{ $payment->id }})" title="Approve Void Settlement" class="inline-flex h-10 items-center justify-center gap-2 rounded-lg border border-green-300 bg-green-50 px-3 text-xs font-medium text-green-700 transition hover:border-green-400 hover:bg-green-100 hover:text-green-800">
                                                             <x-icon name="check" class="h-4 w-4" />
+                                                            <span>Approve Void</span>
                                                         </button>
                                                     @endif
                                                 @else
