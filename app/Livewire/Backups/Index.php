@@ -288,7 +288,7 @@ class Index extends Component
 
     protected function findDumpFile(string $directory): ?string
     {
-        $files = glob($directory.'/**/*', GLOB_RECURSIVE);
+        $files = glob($directory.'/**/*', \GLOB_RECURSIVE);
 
         foreach ($files as $file) {
             if (is_file($file) && (str_ends_with($file, '.sql') || str_ends_with($file, '.sql.gz'))) {
