@@ -13,10 +13,12 @@ use Spatie\Backup\Helpers\Format;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use ZipArchive;
 use Livewire\Attributes\Validate;
+use Livewire\WithFileUploads;
 
 #[Layout('layouts.app')]
 class Index extends Component
 {
+    use WithFileUploads;
     public ?string $message = null;
 
     public ?string $error = null;
