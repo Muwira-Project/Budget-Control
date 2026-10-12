@@ -285,18 +285,25 @@ class Index extends Component
             throw new \Exception('SQL dump file is empty.');
         }
 
-        // Create/overwrite database file
-        if (file_exists($dbPath)) {
-            unlink($dbPath);
-        }
-
-        // Open SQLite connection via PDO
+        // Create backup of current database (don't delete, just clear)
         try {
             $pdo = new \PDO('sqlite:'.$dbPath);
             $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
 
             // Disable foreign keys during restore
             $pdo->exec('PRAGMA foreign_keys = OFF;');
+
+            // Get all table names
+            $tables = $pdo->query("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%';")->fetchAll(\PDO::FETCH_COLUMN);
+
+            // Drop all tables
+            foreach ($tables as $table) {
+                try {
+                    $pdo->exec('DROP TABLE IF EXISTS `'.$table.'`;');
+                } catch (\PDOException $e) {
+                    // Skip errors on dropping tables
+                }
+            }
 
             // Split SQL by semicolon and execute each statement
             $statements = array_filter(
