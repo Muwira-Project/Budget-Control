@@ -3,7 +3,7 @@
 namespace Database\Seeders;
 
 use App\Enums\CashflowSumber;
-use App\Enums\ProjectJenis;
+use App\Enums\KasStatus;
 use App\Enums\ProjectStatus;
 use App\Enums\UserRole;
 use App\Models\Akun;
@@ -11,6 +11,7 @@ use App\Models\BudgetPlan;
 use App\Models\BudgetPlanItem;
 use App\Models\CashAccount;
 use App\Models\Cashflow;
+use App\Models\FundTransfer;
 use App\Models\Investor;
 use App\Models\Kategori;
 use App\Models\Mandor;
@@ -31,6 +32,7 @@ use App\Services\CashflowService;
 use App\Services\PayableService;
 use App\Services\PaymentService;
 use App\Services\ReceivableService;
+use App\Services\VoucherService;
 use Carbon\Carbon;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
@@ -46,12 +48,13 @@ class DummyDataSeeder extends Seeder
     protected int $akunCounter = 0;
 
     /**
-     * Seed a small, focused demo dataset: 2 projects plus supporting master data.
+     * Seed a repeatable demo dataset for the main finance workflows.
      *
      * Run with: php artisan db:seed --class=DummyDataSeeder
      */
     public function run(): void
     {
+        $this->seedCashAccounts();
         $this->seedKategoris();
         $this->seedMasterAkuns();
         $this->seedPartyMasterTypes();
@@ -69,8 +72,49 @@ class DummyDataSeeder extends Seeder
 
         $this->syncSequenceFromMax('monitoring_period', (string) MonitoringPeriod::max('nomor'));
         $this->seedCashflows();
+        $this->seedFundTransfers();
         $this->seedArAp();
         $this->seedNewFeatureSamples();
+    }
+
+    /** Seed representative active cash and bank accounts. */
+    protected function seedCashAccounts(): void
+    {
+        CashAccount::updateOrCreate(['kode' => 'DEMO-KAS'], [
+            'nama' => 'Demo Petty Cash', 'jenis' => 'kas', 'saldo_awal' => 25000000,
+            'is_default' => true, 'status' => 'active', 'keterangan' => 'Dummy data for testing',
+        ]);
+        CashAccount::updateOrCreate(['kode' => 'DEMO-BANK'], [
+            'nama' => 'Demo Bank Account', 'jenis' => 'bank', 'saldo_awal' => 500000000,
+            'is_default' => false, 'status' => 'active', 'keterangan' => 'Dummy data for testing',
+        ]);
+        CashAccount::updateOrCreate(['kode' => 'DEMO-INACTIVE'], [
+            'nama' => 'Demo Inactive Account', 'jenis' => 'bank', 'saldo_awal' => 0,
+            'is_default' => false, 'status' => 'inactive', 'keterangan' => 'For inactive account filters',
+        ]);
+    }
+
+    /** Seed posted and draft transfers without duplicating them on reruns. */
+    protected function seedFundTransfers(): void
+    {
+        $cash = CashAccount::where('kode', 'DEMO-KAS')->first();
+        $bank = CashAccount::where('kode', 'DEMO-BANK')->first();
+        $admin = User::where('email', 'admin@muwira.test')->first();
+        $staff = User::where('email', 'staff@muwira.test')->first();
+        if (! $cash || ! $bank) {
+            return;
+        }
+
+        $posted = FundTransfer::firstOrCreate(
+            ['tanggal' => '2026-10-02', 'dari_cash_account_id' => $bank->id, 'ke_cash_account_id' => $cash->id, 'nominal' => 10000000, 'keterangan' => 'Demo posted transfer'],
+            ['created_by' => $admin?->id, 'status' => KasStatus::Posted, 'posted_by' => $admin?->id, 'posted_at' => now()],
+        );
+        if ($posted->wasRecentlyCreated) app(VoucherService::class)->generateForFundTransfer($posted);
+
+        FundTransfer::firstOrCreate(
+            ['tanggal' => '2026-10-03', 'dari_cash_account_id' => $cash->id, 'ke_cash_account_id' => $bank->id, 'nominal' => 2000000, 'keterangan' => 'Demo draft transfer'],
+            ['created_by' => $staff?->id, 'status' => KasStatus::Draft],
+        );
     }
 
     /**
@@ -86,6 +130,14 @@ class DummyDataSeeder extends Seeder
         $akunOperasional = Akun::where('kode_akun', '5-101')->first();
         $akunListrik = Akun::where('kode_akun', '5-102')->first();
         $akunATK = Akun::where('kode_akun', '5-103')->first();
+        $staff = User::where('email', 'staff@muwira.test')->first();
+
+        if ($akunATK && $staff) {
+            Cashflow::firstOrCreate(
+                ['tanggal' => '2026-10-04', 'jenis' => 'keluar', 'sumber' => CashflowSumber::PengeluaranLain->value, 'nominal' => 1250000, 'keterangan' => 'Demo draft cash expense'],
+                ['cash_account_id' => CashAccount::defaultId(), 'akun_id' => $akunATK->id, 'status' => KasStatus::Draft, 'created_by' => $staff->id],
+            );
+        }
 
         // Master Party items
         $vendorType = MasterType::where('kode', 'VENDOR')->first();
@@ -508,10 +560,10 @@ class DummyDataSeeder extends Seeder
     {
         // Get PIC master items
         $picArian = MasterItem::whereHas('masterType', fn ($q) => $q->where('kode', 'PIC'))
-            ->where('nama', 'Arian')
+            ->where('nama', 'Ahmad Wijaya')
             ->first()?->id;
         $picBudi = MasterItem::whereHas('masterType', fn ($q) => $q->where('kode', 'PIC'))
-            ->where('nama', 'Budi')
+            ->where('nama', 'Siti Rahayu')
             ->first()?->id;
 
         $projects = [
@@ -524,7 +576,6 @@ class DummyDataSeeder extends Seeder
                 'division_id' => MasterItem::whereHas('masterType', fn ($q) => $q->where('kode', 'DIVISION'))
                     ->where('kode', 'CONSTRUCTION')
                     ->first()?->id,
-                'jenis' => ProjectJenis::Jasa->value,
                 'qty' => 1,
                 'satuan' => 'unit',
                 'harga_satuan' => 1000000000,
@@ -552,7 +603,6 @@ class DummyDataSeeder extends Seeder
                 'division_id' => MasterItem::whereHas('masterType', fn ($q) => $q->where('kode', 'DIVISION'))
                     ->where('kode', 'INTERIOR')
                     ->first()?->id,
-                'jenis' => ProjectJenis::Jasa->value,
                 'qty' => 1,
                 'satuan' => 'unit',
                 'harga_satuan' => 200000000,
@@ -701,16 +751,12 @@ class DummyDataSeeder extends Seeder
                 $plan->update(['nomor' => 'BP/'.$projectCode.'/'.$periode.'/'.$sequence]);
             }
 
-            // Rebuild the plan items from the approved allocations and keep
-            // estimasi_biaya & target_laba in sync with the item totals.
-            $plan->items()->delete();
-
+            // Add missing plan items without deleting data on repeat runs.
             foreach ($approved as $allocation) {
-                BudgetPlanItem::create([
-                    'budget_plan_id' => $plan->id,
-                    'akun_id' => $allocation->akun_id,
-                    'nominal' => $allocation->budget,
-                ]);
+                BudgetPlanItem::firstOrCreate(
+                    ['budget_plan_id' => $plan->id, 'akun_id' => $allocation->akun_id],
+                    ['nominal' => $allocation->budget],
+                );
             }
 
             $estimasiBiaya = $plan->items()->sum('nominal');

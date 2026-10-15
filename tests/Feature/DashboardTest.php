@@ -123,8 +123,6 @@ class DashboardTest extends TestCase
     {
         $expected = [
             'total_projects',
-            'projects_barang',
-            'projects_jasa',
             'total_budget',
             'total_allocation',
             'total_realisasi',
@@ -156,17 +154,6 @@ class DashboardTest extends TestCase
         ];
 
         $this->assertSame($expected, array_keys(app(DashboardService::class)->statistics()));
-    }
-
-    public function test_dashboard_service_categorizes_projects(): void
-    {
-        Project::factory()->create(['jenis' => 'barang']);
-        Project::factory()->create(['jenis' => 'jasa']);
-
-        $stats = app(DashboardService::class)->statistics();
-
-        $this->assertSame(1, $stats['projects_barang']);
-        $this->assertSame(1, $stats['projects_jasa']);
     }
 
     public function test_dashboard_service_respects_filters(): void

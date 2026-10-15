@@ -81,6 +81,27 @@ Gate terakhir: **331 test lulus** + **Pint lulus**.
 
 ## Changelog
 
+### 2026-10-11 — Critique Fixes: Void Button, Tax/Discount, ProjectJenis Drop, AR/AP UI
+
+**Branch:** `feature/cash-non-project-ap-ar` | **6 commits** | **2 migrations** | **Planning doc:** `docs/IMPLEMENTATION-PLAN-2026-10-11-CRITIQUE-FIXES.md`
+
+**Fixes:**
+1. **Void button visibility (Cashflows/Payments)** — Icon-only h-8 button → labeled h-10 button with red/amber color
+2. **Tax & Discount fields** — Receivables: add `jenis_pajak`, `discount_percent`, `pajak_amount` (readonly); Payables: add `discount_percent`, `pajak_amount`
+3. **Drop ProjectJenis enum** — Remove `jenis` column from projects, enum, and auto-tax defaults; pajak now manual input
+4. **AR/AP UI redesign** — Receivables index: tab-based layout (Billed | Unbilled | In Progress) with per-tab summary cards
+5. **Import without PO** — Allow null `po_number` during ProjectImport; require only on status→Done transition
+
+**Migrations:**
+- `add_tax_discount_to_receivables_payables` — 5 new columns (jenis_pajak, discount_percent, pajak_amount x2)
+- `drop_jenis_from_projects` — Drop jenis column (backward compat: existing data kept in audit log)
+
+**Tests:** 8 new + 4 updated feature tests (ProjectImport, ProjectExport, ReceivableImport, ProjectStatusTransition, Dashboard stats)
+
+**Rollback:** `git revert <sha-commit-6>..<sha-commit-1> && php artisan migrate:rollback --step=2`
+
+---
+
 ### 2026-08-26 — Dashboard UX Refactoring
 
 **Dashboard UX Refactoring:**

@@ -142,8 +142,6 @@ class Index extends Component
         $params = [
             'format' => $format,
             'project_id' => $this->projectId,
-            'start_date' => $this->startDate,
-            'end_date' => $this->endDate,
             'status' => $this->status,
             'ar_category' => $this->arCategory,
             'po_number' => $this->poNumber,
@@ -155,7 +153,11 @@ class Index extends Component
             'cash_account_id' => $this->cashAccountId,
         ];
 
-        return route('exports.'.$this->type, $params);
+        $dateParams = in_array($this->type, ['receivables', 'payables'], true)
+            ? ['date_from' => $this->startDate, 'date_to' => $this->endDate]
+            : ['start_date' => $this->startDate, 'end_date' => $this->endDate];
+
+        return route('exports.'.$this->type, [...$params, ...$dateParams]);
     }
 
     /** Render the export page. */

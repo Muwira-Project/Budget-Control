@@ -10,14 +10,18 @@ class EnsureDraftStaffAccess
 {
     /**
      * Staff may access the dashboard, profile, monitoring, budgeting (allocation
-     * only), cash activity (create/submit drafts), and AR & AP input flows
-     * (create + pay; edit/delete stays admin-only).
+     * only), cash activity (own manual entries), and transaction imports for
+     * cash activity, transfers, receivables, and payables. Master-data imports
+     * and administrative export routes remain admin-only.
      */
     public function handle(Request $request, Closure $next): Response
     {
         $user = $request->user();
 
-        if ($user?->isAdmin() || $request->routeIs(
+        $staffExportPageAllowed = $request->routeIs('exports.page')
+            && in_array($request->route('type'), ['receivables', 'payables'], true);
+
+        if ($user?->isAdmin() || $staffExportPageAllowed || $request->routeIs(
             'dashboard',
             'profile',
             'monitoring.*',
@@ -35,7 +39,13 @@ class EnsureDraftStaffAccess
             'payments.index',
             'realisasi.index',
             'realisasi.summary',
-            'imports.*',
+            'imports.cashflows*',
+            'imports.receivables*',
+            'imports.payables*',
+            'imports.fund-transfers*',
+            'exports.cashflows',
+            'exports.receivables',
+            'exports.payables',
         )) {
             return $next($request);
         }

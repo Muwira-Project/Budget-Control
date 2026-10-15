@@ -67,7 +67,10 @@ class VoucherService
     public function paginate(?string $startDate = null, ?string $endDate = null, ?string $jenis = null, int $perPage = 10): LengthAwarePaginator
     {
         return Voucher::query()
-            ->with('cashflow')
+            ->with(['cashflow', 'fundTransfer'])
+            ->where(function ($query): void {
+                $query->whereHas('cashflow')->orWhereHas('fundTransfer');
+            })
             ->when($startDate, fn ($query) => $query->whereDate('tanggal', '>=', $startDate))
             ->when($endDate, fn ($query) => $query->whereDate('tanggal', '<=', $endDate))
             ->when($jenis, fn ($query) => $query->where('jenis', $jenis))

@@ -3,6 +3,7 @@
 namespace Tests\Feature\Import;
 
 use App\Imports\CashflowImport;
+use App\Exports\CashflowTemplateExport;
 use App\Models\Akun;
 use App\Models\CashAccount;
 use App\Models\Cashflow;
@@ -126,5 +127,57 @@ class ImportCashflowTest extends TestCase
     {
         $response = $this->actingAs($this->user)->get(route('imports.cashflows.template'));
         $response->assertOk();
+        $this->assertCount(3, (new CashflowTemplateExport)->array());
+    }
+
+    public function test_import_rejects_partial_party_information(): void
+    {
+        $this->actingAs($this->user);
+        $path = $this->storeXlsx('cashflow-partial-party.xlsx', [
+            ['Date', 'Type', 'Source', 'Cash Account', 'Account (COA)', 'Project', 'Party Type', 'Party', 'Amount', 'Description'],
+            ['2026-08-15', 'keluar', 'pengeluaran_lain', 'BANK-001', '5-101', '', 'SUPPLIER', '', 1000000, 'Party missing'],
+        ]);
+
+        $import = new CashflowImport;
+        Excel::import($import, $path);
+
+        $this->assertSame(0, $import->successCount);
+        $this->assertStringContainsString('must both be provided', $import->failures[0]['reason']);
+    }
+
+    public function test_import_rejects_standalone_ar_ap_settlements(): void
+    {
+        $this->actingAs($this->user);
+        $path = $this->storeXlsx('cashflow-unlinked-settlements.xlsx', [
+            ['Date', 'Type', 'Source', 'Cash Account', 'Account (COA)', 'Project', 'Party Type', 'Party', 'Amount', 'Description'],
+            ['2026-08-20', 'masuk', 'pelunasan_ar', 'BANK-001', '4-101', '', '', '', 1000000, 'Unlinked AR settlement'],
+            ['2026-08-21', 'keluar', 'pelunasan_ap', 'BANK-001', '5-101', '', '', '', 500000, 'Unlinked AP settlement'],
+        ]);
+
+        $import = new CashflowImport;
+        Excel::import($import, $path);
+
+        $this->assertSame(0, $import->successCount);
+        $this->assertCount(2, $import->failures);
+        $this->assertStringContainsString('payment workflow', $import->failures[0]['reason']);
+        $this->assertDatabaseCount('cashflows', 0);
+    }
+
+    public function test_import_rejects_source_and_type_mismatches(): void
+    {
+        $this->actingAs($this->user);
+        $path = $this->storeXlsx('cashflow-source-type-mismatch.xlsx', [
+            ['Date', 'Type', 'Source', 'Cash Account', 'Account (COA)', 'Project', 'Party Type', 'Party', 'Amount', 'Description'],
+            ['2026-08-22', 'keluar', 'pendapatan', 'BANK-001', '4-101', '', '', '', 1000000, 'Income as outflow'],
+            ['2026-08-23', 'masuk', 'pengeluaran_lain', 'BANK-001', '5-101', '', '', '', 500000, 'Expense as inflow'],
+        ]);
+
+        $import = new CashflowImport;
+        Excel::import($import, $path);
+
+        $this->assertSame(0, $import->successCount);
+        $this->assertCount(2, $import->failures);
+        $this->assertStringContainsString('must match the transaction type', $import->failures[0]['reason']);
+        $this->assertDatabaseCount('cashflows', 0);
     }
 }

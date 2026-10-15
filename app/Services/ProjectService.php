@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Project;
+use Illuminate\Support\Facades\DB;
 
 class ProjectService
 {
@@ -13,7 +14,7 @@ class ProjectService
      */
     public function create(array $data): Project
     {
-        return Project::create($data);
+        return DB::transaction(fn () => Project::create($data));
     }
 
     /**
@@ -23,9 +24,11 @@ class ProjectService
      */
     public function update(Project $project, array $data): Project
     {
-        $project->update($data);
+        return DB::transaction(function () use ($project, $data): Project {
+            $project->update($data);
 
-        return $project->refresh();
+            return $project->refresh();
+        });
     }
 
     /**

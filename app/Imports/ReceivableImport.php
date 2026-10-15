@@ -2,10 +2,14 @@
 
 namespace App\Imports;
 
+use App\Models\Akun;
+use App\Models\CashAccount;
+use App\Models\Cashflow;
 use App\Models\MasterItem;
 use App\Models\MasterType;
 use App\Models\Project;
 use App\Models\Receivable;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
 /**
@@ -27,6 +31,7 @@ class ReceivableImport extends BaseImport
         if ($this->useProjectCode) {
             return [
                 'project_code',
+                'akun_code',
                 'party_type_code',
                 'party_name',
                 'date',
@@ -35,10 +40,13 @@ class ReceivableImport extends BaseImport
                 'amount',
                 'paid',
                 'description',
+                'cash_account_code',
+                'cashflow_ref',
             ];
         }
 
         return [
+            'akun_code',
             'party_type_code',
             'party_name',
             'date',
@@ -47,6 +55,8 @@ class ReceivableImport extends BaseImport
             'amount',
             'paid',
             'description',
+            'cash_account_code',
+            'cashflow_ref',
         ];
     }
 
@@ -58,6 +68,7 @@ class ReceivableImport extends BaseImport
     protected function validateRow(Collection $row, array &$seenKeys): array
     {
         $projectCode = trim((string) $row->get('project_code', ''));
+        $akunCode = trim((string) $row->get('akun_code', ''));
         $partyTypeCode = trim(strtolower((string) $row->get('party_type_code', '')));
         $partyName = trim((string) $row->get('party_name', ''));
         $date = $row->get('date', '');
@@ -66,12 +77,19 @@ class ReceivableImport extends BaseImport
         $amount = $this->normalizeNominal($row->get('amount', ''));
         $paid = $this->normalizeNominal($row->get('paid', '')) ?? 0;
         $description = trim((string) $row->get('description', ''));
+        $cashAccountCode = trim((string) $row->get('cash_account_code', ''));
+        $cashflowRef = trim((string) $row->get('cashflow_ref', ''));
+        $jenisPajak = trim((string) $row->get('tax_type', '')) ?: null;
+        $discountPercent = $this->normalizeNominal($row->get('discount_percent', '')) ?? 0;
 
         // Required fields
         if ($this->useProjectCode) {
             if ($projectCode === '') {
                 return [false, null, 'Project code is required.'];
             }
+        }
+        if ($akunCode === '') {
+            return [false, null, 'Akun code is required.'];
         }
         if ($partyTypeCode === '') {
             return [false, null, 'Party type code is required (vendor/supplier/mandor/investor).'];
@@ -98,6 +116,12 @@ class ReceivableImport extends BaseImport
             }
         }
 
+        // Find akun by code
+        $akun = Akun::where('kode_akun', $akunCode)->first();
+        if (! $akun) {
+            return [false, null, "Akun with code '{$akunCode}' not found."];
+        }
+
         // Find master type by kode (case-insensitive, e.g., vendor/supplier/mandor/investor)
         $masterType = MasterType::whereRaw('LOWER(kode) = ?', [$partyTypeCode])->first();
         if (! $masterType) {
@@ -118,27 +142,14 @@ class ReceivableImport extends BaseImport
         }
 
         // Check duplicate invoice within this import
-        $importKey = $this->useProjectCode ? "{$project->id}|{$invoiceNo}" : $invoiceNo;
+        $importKey = $invoiceNo;
         if (isset($seenKeys[$importKey])) {
-            $msg = $this->useProjectCode
-                ? "Duplicate invoice '{$invoiceNo}' for project '{$projectCode}' in this import."
-                : "Duplicate invoice '{$invoiceNo}' in this import (global).";
-            return [false, null, $msg];
+            return [false, null, "Duplicate invoice '{$invoiceNo}' in this import (global)."];
         }
 
-        // Check duplicate invoice in database
-        if ($this->useProjectCode) {
-            $existing = Receivable::where('project_id', $project->id)
-                ->where('nomor_invoice', $invoiceNo)
-                ->exists();
-            if ($existing) {
-                return [false, null, "Invoice '{$invoiceNo}' already exists for project '{$projectCode}' - skipped."];
-            }
-        } else {
-            $existing = Receivable::where('nomor_invoice', $invoiceNo)->exists();
-            if ($existing) {
-                return [false, null, "Invoice '{$invoiceNo}' already exists (global unique) - skipped."];
-            }
+        // The database enforces invoice numbers as globally unique in both modes.
+        if (Receivable::where('nomor_invoice', $invoiceNo)->exists()) {
+            return [false, null, "Invoice '{$invoiceNo}' already exists (global unique) - skipped."];
         }
 
         // Validate dates
@@ -166,6 +177,7 @@ class ReceivableImport extends BaseImport
             true,
             [
                 'project_id' => $this->useProjectCode ? $project->id : null,
+                'akun_id' => $akun->id,
                 'pihak_type_id' => $masterType->id,
                 'pihak_item_id' => $masterItem->id,
                 'tanggal' => $parsedDate,
@@ -173,7 +185,11 @@ class ReceivableImport extends BaseImport
                 'jatuh_tempo' => $parsedDueDate,
                 'nominal' => $amount,
                 'nominal_dibayar' => $paid,
+                'jenis_pajak' => $jenisPajak,
+                'discount_percent' => $discountPercent,
                 'keterangan' => $description ?: null,
+                '_cash_account_code' => $cashAccountCode ?: null,
+                '_cashflow_ref' => $cashflowRef ?: null,
             ],
             null,
         ];
@@ -186,7 +202,69 @@ class ReceivableImport extends BaseImport
      */
     protected function persist(array $data): void
     {
-        Receivable::create($data);
+        $cashAccountCode = $data['_cash_account_code'] ?? null;
+        $cashflowRef = $data['_cashflow_ref'] ?? null;
+
+        \Illuminate\Support\Facades\Log::info('ReceivableImport persist', [
+            'cashAccountCode' => $cashAccountCode,
+            'cashflowRef' => $cashflowRef,
+            'data_keys' => array_keys($data),
+        ]);
+
+        $cashAccount = null;
+        if ($cashAccountCode !== null && $cashAccountCode !== '') {
+            $cashAccount = CashAccount::where('kode', $cashAccountCode)->first();
+        }
+
+        if (! $cashAccount) {
+            $cashAccount = CashAccount::where('status', 'active')->first();
+        }
+
+        if ($cashAccount) {
+            $data['cash_account_id'] = $cashAccount->id;
+        }
+
+        if ($cashflowRef !== null && $cashflowRef !== '') {
+            $data['cashflow_ref'] = $cashflowRef;
+        }
+
+        unset($data['_cash_account_code'], $data['_cashflow_ref']);
+
+        \Illuminate\Support\Facades\Log::info('ReceivableImport persist after processing', [
+            'cash_account_id' => $data['cash_account_id'] ?? null,
+            'cashflow_ref' => $data['cashflow_ref'] ?? null,
+        ]);
+
+        $receivable = Receivable::create($data);
+
+        // For non-project imports, create a linked Cashflow (Cash In / pendapatan)
+        if (! $this->useProjectCode && $cashAccount) {
+            $this->createLinkedCashflow($receivable, $cashAccount);
+        }
+    }
+
+    /**
+     * Create a linked Cashflow entry for the receivable (non-project only).
+     */
+    private function createLinkedCashflow(Receivable $receivable, CashAccount $cashAccount): void
+    {
+        Cashflow::create([
+            'tanggal'         => $receivable->tanggal,
+            'jenis'           => \App\Enums\CashflowJenis::Masuk,
+            'sumber'          => 'pendapatan',
+            'cash_account_id' => $cashAccount->id,
+            'akun_id'         => $receivable->akun_id,
+            'project_id'      => null,
+            'pihak_type_id'   => $receivable->pihak_type_id,
+            'pihak_item_id'   => $receivable->pihak_item_id,
+            'receivable_id'   => $receivable->id,
+            'nominal'         => $receivable->nominal,
+            'keterangan'      => $receivable->keterangan ?? 'Import AR: '.$receivable->nomor_invoice,
+            'status'          => \App\Enums\KasStatus::Posted,
+            'created_by'      => auth()->id() ?? 1,
+            'posted_by'       => auth()->id() ?? 1,
+            'posted_at'       => now(),
+        ]);
     }
 
     /**

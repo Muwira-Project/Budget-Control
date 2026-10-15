@@ -6,6 +6,7 @@ use App\Enums\KasStatus;
 use App\Models\CashAccount;
 use App\Models\FundTransfer;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
 class FundTransferService
@@ -21,21 +22,23 @@ class FundTransferService
             throw ValidationException::withMessages(['ke_cash_account_id' => 'Source and destination accounts must be different.']);
         }
 
-        $transfer = FundTransfer::create([
-            'tanggal'               => $data['tanggal'],
-            'dari_cash_account_id'  => $data['dari_cash_account_id'],
-            'ke_cash_account_id'    => $data['ke_cash_account_id'],
-            'nominal'               => $data['nominal'],
-            'keterangan'            => $data['keterangan'] ?? null,
-            'created_by'            => auth()->id(),
-            'status'                => KasStatus::Posted,
-            'posted_by'             => auth()->id(),
-            'posted_at'             => now(),
-        ]);
+        return DB::transaction(function () use ($data): FundTransfer {
+            $transfer = FundTransfer::create([
+                'tanggal'               => $data['tanggal'],
+                'dari_cash_account_id'  => $data['dari_cash_account_id'],
+                'ke_cash_account_id'    => $data['ke_cash_account_id'],
+                'nominal'               => $data['nominal'],
+                'keterangan'            => $data['keterangan'] ?? null,
+                'created_by'            => auth()->id(),
+                'status'                => KasStatus::Posted,
+                'posted_by'             => auth()->id(),
+                'posted_at'             => now(),
+            ]);
 
-        app(VoucherService::class)->generateForFundTransfer($transfer);
+            app(VoucherService::class)->generateForFundTransfer($transfer);
 
-        return $transfer;
+            return $transfer;
+        });
     }
 
     /**
@@ -52,24 +55,27 @@ class FundTransferService
             throw ValidationException::withMessages(['ke_cash_account_id' => 'Source and destination accounts must be different.']);
         }
 
-        $transfer->update([
-            'tanggal'              => $data['tanggal'] ?? $transfer->tanggal,
-            'dari_cash_account_id' => $dariId,
-            'ke_cash_account_id'   => $keId,
-            'nominal'              => $data['nominal'] ?? $transfer->nominal,
-            'keterangan'           => array_key_exists('keterangan', $data) ? $data['keterangan'] : $transfer->keterangan,
-        ]);
-
-        if ($transfer->voucher) {
-            $transfer->voucher->update([
-                'tanggal'    => $transfer->tanggal,
-                'keterangan' => $transfer->keterangan,
+        return DB::transaction(function () use ($transfer, $data, $dariId, $keId): FundTransfer {
+            $transfer = FundTransfer::query()->lockForUpdate()->findOrFail($transfer->id);
+            $transfer->update([
+                'tanggal'              => $data['tanggal'] ?? $transfer->tanggal,
+                'dari_cash_account_id' => $dariId,
+                'ke_cash_account_id'   => $keId,
+                'nominal'              => $data['nominal'] ?? $transfer->nominal,
+                'keterangan'           => array_key_exists('keterangan', $data) ? $data['keterangan'] : $transfer->keterangan,
             ]);
-        }
 
-        \App\Services\DashboardService::clearCache();
+            if ($transfer->voucher) {
+                $transfer->voucher->update([
+                    'tanggal'    => $transfer->tanggal,
+                    'keterangan' => $transfer->keterangan,
+                ]);
+            }
 
-        return $transfer->refresh();
+            DashboardService::clearCache();
+
+            return $transfer->refresh();
+        });
     }
 
     /**
@@ -77,29 +83,31 @@ class FundTransferService
      */
     public function post(FundTransfer $transfer): FundTransfer
     {
-        if ($transfer->isPosted()) {
-            return $transfer;
-        }
+        return DB::transaction(function () use ($transfer): FundTransfer {
+            $transfer = FundTransfer::query()->lockForUpdate()->findOrFail($transfer->id);
+            if ($transfer->isPosted()) {
+                return $transfer;
+            }
 
-        $transfer->update([
-            'status'    => KasStatus::Posted,
-            'posted_by' => auth()->id(),
-            'posted_at' => now(),
-        ]);
+            $transfer->update([
+                'status'    => KasStatus::Posted,
+                'posted_by' => auth()->id(),
+                'posted_at' => now(),
+            ]);
 
-        app(VoucherService::class)->generateForFundTransfer($transfer);
+            app(VoucherService::class)->generateForFundTransfer($transfer);
 
-        \App\Services\DashboardService::clearCache();
+            DashboardService::clearCache();
 
-        return $transfer->refresh();
+            return $transfer->refresh();
+        });
     }
 
     /**
-     * Delete a fund transfer (and its voucher if any).
+     * Move a fund transfer to Trash while retaining its voucher for restoration.
      */
     public function delete(FundTransfer $transfer): void
     {
-        $transfer->voucher?->delete();
         $transfer->delete();
     }
 

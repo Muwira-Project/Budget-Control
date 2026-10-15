@@ -37,17 +37,17 @@
         </div>
         <div class="space-y-4 p-5">
             <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <div class="rounded-lg bg-emerald-50 p-3 ring-1 ring-emerald-100">
-                    <p class="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-emerald-700"><x-icon name="arrow-up-right" class="h-3.5 w-3.5" /> Income</p>
-                    <p class="mt-1 text-lg font-bold text-emerald-800">{{ format_idr($stats['cash_in']) }}</p>
+                <div class="rounded-lg bg-emerald-50 p-5 ring-1 ring-emerald-100">
+                    <p class="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-emerald-700"><x-icon name="arrow-up-right" class="h-3.5 w-3.5" /> Income</p>
+                    <p class="mt-2 text-2xl font-bold text-emerald-800 leading-tight">{{ format_idr($stats['cash_in']) }}</p>
                 </div>
-                <div class="rounded-lg bg-red-50 p-3 ring-1 ring-red-100">
-                    <p class="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-red-700"><x-icon name="arrow-down-right" class="h-3.5 w-3.5" /> Outcome</p>
-                    <p class="mt-1 text-lg font-bold text-red-800">{{ format_idr($stats['cash_out']) }}</p>
+                <div class="rounded-lg bg-red-50 p-5 ring-1 ring-red-100">
+                    <p class="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-red-700"><x-icon name="arrow-down-right" class="h-3.5 w-3.5" /> Outcome</p>
+                    <p class="mt-2 text-2xl font-bold text-red-800 leading-tight">{{ format_idr($stats['cash_out']) }}</p>
                 </div>
-                <div class="rounded-lg bg-brand-50 p-3 ring-1 ring-brand-100">
-                    <p class="text-[11px] font-semibold uppercase tracking-wider text-brand-700">Net Cashflow</p>
-                    <p class="mt-1 text-lg font-bold text-brand-800">{{ format_idr($stats['saldo_kas']) }}</p>
+                <div class="rounded-lg bg-brand-50 p-5 ring-1 ring-brand-100">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-brand-700">Net Cashflow</p>
+                    <p class="mt-2 text-2xl font-bold text-brand-800 leading-tight">{{ format_idr($stats['saldo_kas']) }}</p>
                 </div>
             </div>
             <div class="flex h-2 w-full overflow-hidden rounded-full bg-slate-100">
@@ -69,14 +69,14 @@
         </div>
         <a href="{{ route('cashflows.index') }}" wire:navigate class="text-xs font-semibold text-brand-600 hover:text-brand-700">View all &rarr;</a>
     </div>
-    <div class="grid grid-cols-2 gap-3 p-5">
-        <a href="{{ route('cashflows.index') }}" wire:navigate class="rounded-lg bg-emerald-50 p-3 text-center ring-1 ring-emerald-100 transition hover:bg-emerald-100/70">
-            <p class="text-2xl font-bold text-emerald-700">{{ format_idr($stats['cash_in'] ?? 0) }}</p>
-            <p class="text-[11px] font-semibold uppercase tracking-wider text-emerald-600">Cash In</p>
+    <div class="grid grid-cols-2 gap-4 p-5">
+        <a href="{{ route('cashflows.index') }}" wire:navigate class="rounded-lg bg-emerald-50 p-5 text-center ring-1 ring-emerald-100 transition hover:bg-emerald-100/70">
+            <p class="text-xl font-bold text-emerald-700 leading-tight">{{ format_idr($stats['cash_in'] ?? 0) }}</p>
+            <p class="mt-2 text-xs font-semibold uppercase tracking-wider text-emerald-600">Cash In</p>
         </a>
-        <a href="{{ route('cashflows.index') }}" wire:navigate class="rounded-lg bg-red-50 p-3 text-center ring-1 ring-red-100 transition hover:bg-red-100/70">
-            <p class="text-2xl font-bold text-red-700">{{ format_idr($stats['cash_out'] ?? 0) }}</p>
-            <p class="text-[11px] font-semibold uppercase tracking-wider text-red-600">Cash Out</p>
+        <a href="{{ route('cashflows.index') }}" wire:navigate class="rounded-lg bg-red-50 p-5 text-center ring-1 ring-red-100 transition hover:bg-red-100/70">
+            <p class="text-xl font-bold text-red-700 leading-tight">{{ format_idr($stats['cash_out'] ?? 0) }}</p>
+            <p class="mt-2 text-xs font-semibold uppercase tracking-wider text-red-600">Cash Out</p>
         </a>
     </div>
 </div>

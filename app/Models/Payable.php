@@ -4,7 +4,15 @@ namespace App\Models;
 
 use App\Enums\PajakJenis;
 use App\Enums\PayableStatus;
+use App\Models\CashAccount;
 use App\Models\Concerns\LogsActivity;
+use App\Models\Akun;
+use App\Models\Cashflow;
+use App\Models\MasterItem;
+use App\Models\MasterType;
+use App\Models\Payment;
+use App\Models\Project;
+use App\Models\Realisasi;
 use App\Services\DashboardService;
 use Database\Factories\PayableFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -14,7 +22,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['project_id', 'realisasi_id', 'akun_id', 'pihak_type_id', 'pihak_item_id', 'tanggal', 'nomor_invoice', 'jatuh_tempo', 'nominal', 'jenis_pajak', 'pajak_include', 'nominal_dibayar', 'keterangan'])]
+#[Fillable(['project_id', 'realisasi_id', 'akun_id', 'pihak_type_id', 'pihak_item_id', 'tanggal', 'nomor_invoice', 'jatuh_tempo', 'nominal', 'jenis_pajak', 'pajak_include', 'nominal_dibayar', 'keterangan', 'discount_percent', 'pajak_amount', 'cash_account_id', 'cashflow_ref'])]
 class Payable extends Model
 {
     /** @use HasFactory<PayableFactory> */
@@ -63,6 +71,8 @@ class Payable extends Model
             'nominal_dibayar' => 'decimal:2',
             'jenis_pajak' => PajakJenis::class,
             'pajak_include' => 'boolean',
+            'discount_percent' => 'decimal:2',
+            'pajak_amount' => 'decimal:2',
         ];
     }
 
@@ -112,6 +122,22 @@ class Payable extends Model
     public function payments(): HasMany
     {
         return $this->hasMany(Payment::class);
+    }
+
+    /**
+     * Get the cashflow entries directly linked to this payable (import-linked entries).
+     */
+    public function cashflows(): HasMany
+    {
+        return $this->hasMany(Cashflow::class, 'payable_id');
+    }
+
+    /**
+     * Get the cash account used when creating linked cashflow entry.
+     */
+    public function cashAccount(): BelongsTo
+    {
+        return $this->belongsTo(CashAccount::class);
     }
 
     /**

@@ -39,6 +39,9 @@ class Create extends Component
 
     public ?string $keterangan = null;
 
+    public bool $createCashflow = false;
+    public ?int $cashAccountId = null;
+
     /**
      * Set the default payable date.
      */
@@ -65,9 +68,19 @@ class Create extends Component
                 'jenis_pajak' => $this->jenisPajak !== '' ? $this->jenisPajak : null,
                 'pajak_include' => $this->pajakInclude,
                 'keterangan' => $this->keterangan,
+                'create_cashflow' => $this->createCashflow,
+                'cash_account_id' => $this->cashAccountId,
             ],
             (new StorePayableRequest)->rules(),
         );
+
+        if ($this->createCashflow) {
+            $validator->after(function ($validator): void {
+                if (! $this->cashAccountId) {
+                    $validator->errors()->add('cash_account_id', 'Pilih rekening kas/bank untuk membuat Cashflow.');
+                }
+            });
+        }
 
         $validator->after(function ($validator): void {
             if ($this->pihakTypeId === null || $this->pihakItemId === null) {
@@ -87,11 +100,41 @@ class Create extends Component
 
         $validated = $validator->validate();
 
-        $service->create($validated);
+        $payable = $service->create($validated);
 
-        session()->flash('status', 'Payable created successfully.');
+        if ($this->createCashflow) {
+            $this->createLinkedCashflow($payable);
+        }
+
+        session()->flash('status', 'Payable created successfully.'.($this->createCashflow ? ' Linked Cashflow created.' : ''));
 
         $this->redirectRoute('payables.index', navigate: true);
+    }
+
+    /**
+     * Create a linked Cashflow entry for the payable.
+     */
+    private function createLinkedCashflow(\App\Models\Payable $payable): void
+    {
+        $cashAccount = \App\Models\CashAccount::findOrFail($this->cashAccountId);
+
+        \App\Models\Cashflow::create([
+            'tanggal'         => $payable->tanggal,
+            'jenis'           => \App\Enums\CashflowJenis::Keluar,
+            'sumber'          => 'pengeluaran_lain',
+            'cash_account_id' => $cashAccount->id,
+            'akun_id'         => $payable->akun_id,
+            'project_id'      => $payable->project_id,
+            'pihak_type_id'   => $payable->pihak_type_id,
+            'pihak_item_id'   => $payable->pihak_item_id,
+            'payable_id'      => $payable->id,
+            'nominal'         => $payable->nominal,
+            'keterangan'      => $payable->keterangan ?? 'AP Manual: '.$payable->nomor_invoice,
+            'status'          => \App\Enums\KasStatus::Posted,
+            'created_by'      => auth()->id() ?? 1,
+            'posted_by'       => auth()->id() ?? 1,
+            'posted_at'       => now(),
+        ]);
     }
 
     /**
@@ -201,5 +244,12 @@ class Create extends Component
     public function render()
     {
         return view('livewire.payables.create');
+    }
+
+    /** Active cash accounts for Cashflow creation. */
+    #[Computed]
+    public function cashAccounts()
+    {
+        return \App\Models\CashAccount::where('status', 'active')->orderBy('kode')->get();
     }
 }

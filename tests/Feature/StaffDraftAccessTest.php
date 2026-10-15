@@ -44,6 +44,34 @@ class StaffDraftAccessTest extends TestCase
         $this->actingAs($staff)->get(route('monitoring.index'))->assertOk();
     }
 
+    public function test_staff_import_access_is_limited_to_transaction_drafts(): void
+    {
+        $staff = User::factory()->create();
+
+        $this->actingAs($staff)->get(route('imports.cashflows'))->assertOk();
+        $this->actingAs($staff)->get(route('imports.receivables'))->assertOk();
+        $this->actingAs($staff)->get(route('imports.payables'))->assertOk();
+        $this->actingAs($staff)->get(route('imports.fund-transfers'))->assertOk();
+
+        $this->actingAs($staff)->get(route('imports.projects'))->assertForbidden();
+        $this->actingAs($staff)->get(route('imports.projects.template'))->assertForbidden();
+        $this->actingAs($staff)->get(route('imports.akuns'))->assertForbidden();
+        $this->actingAs($staff)->get(route('imports.budgeting'))->assertForbidden();
+        $this->actingAs($staff)->get(route('imports.cash-accounts'))->assertForbidden();
+    }
+
+    public function test_staff_can_open_transaction_export_pages_and_downloads_only(): void
+    {
+        $staff = User::factory()->create();
+
+        $this->actingAs($staff)->get(route('exports.page', 'receivables'))->assertOk();
+        $this->actingAs($staff)->get(route('exports.page', 'payables'))->assertOk();
+        $this->actingAs($staff)->get(route('exports.cashflows'))->assertOk();
+
+        $this->actingAs($staff)->get(route('exports.page', 'akuns'))->assertForbidden();
+        $this->actingAs($staff)->get(route('exports.akuns'))->assertForbidden();
+    }
+
     public function test_staff_cannot_submit_another_users_draft(): void
     {
         $owner = User::factory()->create();

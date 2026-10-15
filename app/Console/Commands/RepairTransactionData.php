@@ -164,37 +164,17 @@ class RepairTransactionData extends Command
 
     protected function fixBalanceInconsistencies(): int
     {
-        $count = 0;
+        $receivables = Receivable::query()->whereRaw('nominal_dibayar > nominal')->count();
+        $payables = Payable::query()->whereRaw('nominal_dibayar > nominal')->count();
 
-        // Fix receivables where paid > total
-        $receivables = Receivable::query()
-            ->whereRaw('nominal_dibayar > nominal')
-            ->get();
-
-        foreach ($receivables as $receivable) {
-            if (!$this->dryRun) {
-                $receivable->nominal_dibayar = $receivable->nominal;
-                $receivable->save();
-            }
-            $this->line("  ✓ Fixed Receivable ID {$receivable->id}: nominal_dibayar capped to {$receivable->nominal}");
-            $count++;
+        if ($receivables + $payables > 0) {
+            $this->warn("  Found {$receivables} receivables and {$payables} payables with paid totals above nominal.");
+            $this->warn('  No amounts were changed; reconcile settlement records before adjusting balances.');
+        } else {
+            $this->info('  No AR/AP overpayment inconsistencies found.');
         }
 
-        // Fix payables where paid > total
-        $payables = Payable::query()
-            ->whereRaw('nominal_dibayar > nominal')
-            ->get();
-
-        foreach ($payables as $payable) {
-            if (!$this->dryRun) {
-                $payable->nominal_dibayar = $payable->nominal;
-                $payable->save();
-            }
-            $this->line("  ✓ Fixed Payable ID {$payable->id}: nominal_dibayar capped to {$payable->nominal}");
-            $count++;
-        }
-
-        return $count;
+        return 0;
     }
 
     protected function analyzeDuplicates(): void

@@ -5,7 +5,9 @@ namespace Tests\Feature;
 use App\Exports\AkunExport;
 use App\Exports\AkunVsRealisasiExport;
 use App\Exports\MonitoringPeriodVarianceExport;
+use App\Exports\PayableExport;
 use App\Exports\RealisasiExport;
+use App\Livewire\Exports\Index as ExportIndex;
 use App\Models\Akun;
 use App\Models\BudgetPlan;
 use App\Models\BudgetPlanItem;
@@ -13,6 +15,7 @@ use App\Models\Kategori;
 use App\Models\MasterItem;
 use App\Models\MasterType;
 use App\Models\MonitoringPeriod;
+use App\Models\Payable;
 use App\Models\Project;
 use App\Models\ProjectAkun;
 use App\Models\Realisasi;
@@ -51,6 +54,21 @@ class ExportTest extends TestCase
         $response->assertOk();
         $this->assertStringContainsString('Account_'.now()->format('Ymd').'.xlsx', $response->headers->get('content-disposition'));
         $this->assertStringContainsString('spreadsheetml', $response->headers->get('content-type'));
+    }
+
+    public function test_cash_activity_and_cash_account_exports_download(): void
+    {
+        $user = User::factory()->admin()->create();
+
+        $cashflow = $this->actingAs($user)->get(route('exports.cashflows', [
+            'jenis' => 'keluar', 'start_date' => '2026-01-01', 'end_date' => '2026-12-31',
+            'sumber' => 'pengeluaran_lain', 'cash_account_id' => 1,
+        ]));
+        $cashflow->assertOk();
+        $this->assertStringContainsString('Cashflow_', $cashflow->headers->get('content-disposition'));
+
+        $this->get(route('exports.fund-transfers'))->assertOk();
+        $this->get(route('exports.cash-accounts'))->assertOk();
     }
 
     public function test_monitoring_summary_excel_download(): void
@@ -333,6 +351,50 @@ class ExportTest extends TestCase
             ['PRJ-001 - Gedung Kantor', 'AKN-001 - Biaya Material', null, '2026-07-01', 'PT Toko Barang', 30000000.0, 'Pembayaran'],
             $export->map($row),
         );
+    }
+
+    public function test_payable_export_status_filters_use_paid_amounts(): void
+    {
+        $unpaid = Payable::factory()->create(['nominal' => 100, 'nominal_dibayar' => 0]);
+        $partial = Payable::factory()->create(['nominal' => 100, 'nominal_dibayar' => 25]);
+        $paid = Payable::factory()->create(['nominal' => 100, 'nominal_dibayar' => 100]);
+
+        $this->assertSame([$unpaid->id], (new PayableExport(['status' => 'belum_bayar']))->query()->pluck('id')->all());
+        $this->assertSame([$partial->id], (new PayableExport(['status' => 'sebagian']))->query()->pluck('id')->all());
+        $this->assertSame([$paid->id], (new PayableExport(['status' => 'lunas']))->query()->pluck('id')->all());
+    }
+
+    public function test_ar_ap_export_urls_use_the_date_filter_names_the_controller_reads(): void
+    {
+        foreach (['receivables', 'payables'] as $type) {
+            $exportPage = new ExportIndex;
+            $exportPage->type = $type;
+            $exportPage->startDate = '2026-04-01';
+            $exportPage->endDate = '2026-04-30';
+
+            parse_str(parse_url($exportPage->downloadUrl('xlsx'), PHP_URL_QUERY), $query);
+
+            $this->assertSame('2026-04-01', $query['date_from'] ?? null);
+            $this->assertSame('2026-04-30', $query['date_to'] ?? null);
+            $this->assertArrayNotHasKey('start_date', $query);
+            $this->assertArrayNotHasKey('end_date', $query);
+        }
+    }
+
+    public function test_ar_ap_csv_exports_use_csv_writer_and_extension(): void
+    {
+        $user = User::factory()->admin()->create();
+
+        foreach (['receivables' => 'AR_', 'payables' => 'AP_'] as $type => $prefix) {
+            $response = $this->actingAs($user)->get(route('exports.'.$type, ['format' => 'csv']));
+
+            $response->assertOk();
+            $this->assertStringContainsString($prefix.now()->format('Ymd').'.csv', $response->headers->get('content-disposition'));
+            $this->assertStringNotContainsString('spreadsheetml', $response->headers->get('content-type'));
+            $csvContents = file_get_contents($response->baseResponse->getFile()->getPathname());
+            $this->assertStringContainsString(',', $csvContents);
+            $this->assertStringContainsString('Project Code', $csvContents);
+        }
     }
 
     public function test_cash_flow_report_excel_download(): void

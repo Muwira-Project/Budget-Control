@@ -2,7 +2,6 @@
 
 namespace App\Models;
 
-use App\Enums\ProjectJenis;
 use App\Enums\ProjectStatus;
 use App\Models\Concerns\LogsActivity;
 use App\Services\DashboardService;
@@ -17,7 +16,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Validation\ValidationException;
 
-#[Fillable(['kode', 'po_number', 'nama', 'lokasi', 'division_id', 'pic_id', 'project_category_id', 'sub_work', 'periode', 'jenis', 'qty', 'satuan', 'harga_satuan', 'pajak', 'tanggal_mulai', 'target_selesai', 'status', 'revisi_reason', 'revisi_at', 'revisi_by'])]
+#[Fillable(['kode', 'po_number', 'nama', 'lokasi', 'division_id', 'pic_id', 'project_category_id', 'sub_work', 'periode', 'qty', 'satuan', 'harga_satuan', 'pajak', 'tanggal_mulai', 'target_selesai', 'status', 'revisi_reason', 'revisi_at', 'revisi_by'])]
 class Project extends Model
 {
     /** @use HasFactory<ProjectFactory> */
@@ -49,6 +48,13 @@ class Project extends Model
                     ]);
                 }
 
+                // Require po_number when transitioning to Done
+                if ($newStatus === ProjectStatus::Done && blank($project->po_number)) {
+                    throw ValidationException::withMessages([
+                        'po_number' => 'PO Number wajib diisi saat status Done.',
+                    ]);
+                }
+
                 // Handle revisi fields and audit log
                 if ($newStatus === ProjectStatus::Revisi) {
                     // Moving TO revisi - require reason
@@ -65,6 +71,10 @@ class Project extends Model
                         'reason' => $project->revisi_reason,
                         'from_status' => $oldStatus->label(),
                     ]);
+
+                    if ($oldStatus === ProjectStatus::Done) {
+                        app(ReceivableService::class)->holdForProjectRevision($project);
+                    }
                 } elseif ($oldStatus === ProjectStatus::Revisi && $newStatus !== ProjectStatus::Revisi) {
                     // Moving FROM revisi
                     $project->recordActivity('exited_revisi', [
@@ -84,7 +94,6 @@ class Project extends Model
     protected function casts(): array
     {
         return [
-            'jenis' => ProjectJenis::class,
             'status' => ProjectStatus::class,
             'qty' => 'decimal:2',
             'harga_satuan' => 'decimal:2',
@@ -180,7 +189,11 @@ class Project extends Model
     public function syncReceivable(): void
     {
         if ($this->status->isDone()) {
-            app(ReceivableService::class)->createForProject($this);
+            $receivable = app(ReceivableService::class)->createForProject($this);
+
+            if ($receivable !== null) {
+                app(ReceivableService::class)->releaseProjectRevisionHold($receivable);
+            }
         }
     }
 

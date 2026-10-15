@@ -47,7 +47,6 @@ class ProjectExport implements FromCollection, WithHeadings, WithMapping
             $project->projectCategory?->nama,
             $project->sub_work,
             $project->periode,
-            $project->jenis->value,
             $project->qty,
             $project->satuan,
             $project->harga_satuan,

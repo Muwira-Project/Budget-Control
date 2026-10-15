@@ -44,20 +44,6 @@ class AkunImport extends BaseImport
             return [false, null, 'Type must be income or outcome'];
         }
 
-        $kategoriId = null;
-
-        if ($kategoriName !== '') {
-            $kategori = Kategori::where('nama', $kategoriName)
-                ->orWhereRaw('LOWER(TRIM(nama)) = ?', [strtolower($kategoriName)])
-                ->first();
-
-            if (! $kategori) {
-                $kategori = Kategori::create(['nama' => $kategoriName]);
-            }
-
-            $kategoriId = $kategori->id;
-        }
-
         if (isset($seenKeys[$kodeAkun])) {
             return [false, null, 'Account Code '.$kodeAkun.' is duplicated in the file'];
         }
@@ -74,7 +60,7 @@ class AkunImport extends BaseImport
                 'kode_akun' => $kodeAkun,
                 'nama_akun' => $namaAkun,
                 'jenis_akun' => $jenis,
-                'kategori_id' => $kategoriId,
+                '_kategori_name' => $kategoriName,
             ],
             null,
         ];
@@ -87,6 +73,37 @@ class AkunImport extends BaseImport
      */
     protected function persist(array $data): void
     {
+        $kategoriName = trim((string) ($data['_kategori_name'] ?? ''));
+        unset($data['_kategori_name']);
+
+        if ($kategoriName !== '') {
+            $kategori = Kategori::where('nama', $kategoriName)
+                ->orWhereRaw('LOWER(TRIM(nama)) = ?', [strtolower($kategoriName)])
+                ->first();
+
+            if (! $kategori) {
+                $kategori = Kategori::create([
+                    'kode' => $this->nextKategoriCode(),
+                    'nama' => $kategoriName,
+                ]);
+            }
+
+            $data['kategori_id'] = $kategori->id;
+        }
+
         Akun::create($data);
+    }
+
+    /** Generate the next available category code for an imported category. */
+    private function nextKategoriCode(): string
+    {
+        $sequence = 1;
+
+        do {
+            $code = 'KAT-'.str_pad((string) $sequence, 3, '0', STR_PAD_LEFT);
+            $sequence++;
+        } while (Kategori::where('kode', $code)->exists());
+
+        return $code;
     }
 }

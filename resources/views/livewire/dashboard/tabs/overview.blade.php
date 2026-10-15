@@ -99,15 +99,15 @@
         <div class="space-y-4 p-5">
             <x-progress-bar :value="$usagePercent" tone="brand" />
             <div class="grid grid-cols-2 gap-4">
-                <div class="rounded-lg bg-slate-50 p-3">
-                    <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Budget Used</p>
-                    <p class="mt-1 text-lg font-bold text-slate-900">{{ format_idr($totalRealisasi) }}</p>
-                    <p class="text-xs text-slate-500">{{ $usagePercent }}% of budget</p>
+                <div class="rounded-lg bg-slate-50 p-5">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Budget Used</p>
+                    <p class="mt-2 text-2xl font-bold text-slate-900 leading-tight">{{ format_idr($totalRealisasi) }}</p>
+                    <p class="mt-1 text-sm text-slate-500">{{ $usagePercent }}% of budget</p>
                 </div>
-                <div class="rounded-lg bg-slate-50 p-3">
-                    <p class="text-[11px] font-semibold uppercase tracking-wider text-slate-500">Remaining Budget</p>
-                    <p class="mt-1 text-lg font-bold text-slate-900">{{ format_idr($totalSisa) }}</p>
-                    <p class="text-xs text-slate-500">{{ round(100 - $usagePercent, 1) }}% remaining</p>
+                <div class="rounded-lg bg-slate-50 p-5">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-slate-500">Remaining Budget</p>
+                    <p class="mt-2 text-2xl font-bold text-slate-900 leading-tight">{{ format_idr($totalSisa) }}</p>
+                    <p class="mt-1 text-sm text-slate-500">{{ round(100 - $usagePercent, 1) }}% remaining</p>
                 </div>
             </div>
         </div>
@@ -124,17 +124,17 @@
         </div>
         <div class="space-y-4 p-5">
             <div class="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                <div class="rounded-lg bg-emerald-50 p-3 ring-1 ring-emerald-100">
-                    <p class="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-emerald-700"><x-icon name="arrow-up-right" class="h-3.5 w-3.5" /> Income</p>
-                    <p class="mt-1 text-lg font-bold text-emerald-800">{{ format_idr($stats['cash_in']) }}</p>
+                <div class="rounded-lg bg-emerald-50 p-5 ring-1 ring-emerald-100">
+                    <p class="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-emerald-700"><x-icon name="arrow-up-right" class="h-3.5 w-3.5" /> Income</p>
+                    <p class="mt-2 text-2xl font-bold text-emerald-800 leading-tight">{{ format_idr($stats['cash_in']) }}</p>
                 </div>
-                <div class="rounded-lg bg-red-50 p-3 ring-1 ring-red-100">
-                    <p class="flex items-center gap-1 text-[11px] font-semibold uppercase tracking-wider text-red-700"><x-icon name="arrow-down-right" class="h-3.5 w-3.5" /> Outcome</p>
-                    <p class="mt-1 text-lg font-bold text-red-800">{{ format_idr($stats['cash_out']) }}</p>
+                <div class="rounded-lg bg-red-50 p-5 ring-1 ring-red-100">
+                    <p class="flex items-center gap-1 text-xs font-semibold uppercase tracking-wider text-red-700"><x-icon name="arrow-down-right" class="h-3.5 w-3.5" /> Outcome</p>
+                    <p class="mt-2 text-2xl font-bold text-red-800 leading-tight">{{ format_idr($stats['cash_out']) }}</p>
                 </div>
-                <div class="rounded-lg bg-brand-50 p-3 ring-1 ring-brand-100">
-                    <p class="text-[11px] font-semibold uppercase tracking-wider text-brand-700">Net Cashflow</p>
-                    <p class="mt-1 text-lg font-bold text-brand-800">{{ format_idr($stats['saldo_kas']) }}</p>
+                <div class="rounded-lg bg-brand-50 p-5 ring-1 ring-brand-100">
+                    <p class="text-xs font-semibold uppercase tracking-wider text-brand-700">Net Cashflow</p>
+                    <p class="mt-2 text-2xl font-bold text-brand-800 leading-tight">{{ format_idr($stats['saldo_kas']) }}</p>
                 </div>
             </div>
             <div class="flex h-2 w-full overflow-hidden rounded-full bg-slate-100">
@@ -173,27 +173,27 @@
                 <tbody>
                     @forelse (collect($stats['profit_projects'] ?? [])->take(6) as $project)
                         @php
-                            $pBudget = $project['nilai'];
+                            $pBudget = (float) ($project['budget'] ?? 0);
                             $pActual = (float) $project['realisasi'];
                             $pVariance = $pBudget - $pActual;
                             $pPct = $pBudget > 0 ? min(100, round($pActual / $pBudget * 100, 1)) : 0;
                             $status = \App\Models\Project::find($project['project_id'])?->status?->label() ?? 'Active';
                         @endphp
                         <tr class="cursor-pointer" wire:click="showProjectDetail({{ $project['project_id'] }})">
-                            <td>
+                            <td class="py-4">
                                 <p class="font-medium text-slate-900">{{ $project['kode'] }}</p>
-                                <p class="truncate text-xs text-slate-500">{{ $project['nama'] }}</p>
+                                <p class="truncate text-sm text-slate-500">{{ $project['nama'] }}</p>
                             </td>
-                            <td class="text-right tabular-nums text-slate-700">{{ format_idr($pBudget) }}</td>
-                            <td class="text-right tabular-nums text-slate-700">{{ format_idr($pActual) }}</td>
-                            <td class="text-right tabular-nums font-medium {{ $pVariance >= 0 ? 'text-emerald-700' : 'text-red-700' }}">{{ format_idr($pVariance) }}</td>
-                            <td>
+                            <td class="text-right tabular-nums text-slate-700 py-4 text-base font-medium">{{ format_idr($pBudget) }}</td>
+                            <td class="text-right tabular-nums text-slate-700 py-4 text-base font-medium">{{ format_idr($pActual) }}</td>
+                            <td class="text-right tabular-nums font-semibold {{ $pVariance >= 0 ? 'text-emerald-700' : 'text-red-700' }} py-4 text-base">{{ format_idr($pVariance) }}</td>
+                            <td class="py-4">
                                 <div class="flex items-center gap-2">
                                     <div class="flex-1"><x-progress-bar :value="$pPct" :tone="$pVariance >= 0 ? 'emerald' : 'red'" /></div>
-                                    <span class="text-xs font-semibold tabular-nums text-slate-600">{{ number_format($pPct, 1) }}%</span>
+                                    <span class="text-sm font-semibold tabular-nums text-slate-600 whitespace-nowrap">{{ number_format($pPct, 1) }}%</span>
                                 </div>
                             </td>
-                            <td><x-status-badge :text="$status" tone="blue" /></td>
+                            <td class="py-4"><x-status-badge :text="$status" tone="blue" /></td>
                         </tr>
                     @empty
                         <tr><td colspan="6"><x-empty-state icon="briefcase" title="No projects yet" description="Add a project to start monitoring budget and actuals." /></td></tr>
@@ -254,11 +254,11 @@
             <tbody>
                 @foreach ($stats['kategori_breakdown'] as $nama => $total)
                     @php $percent = $kategoriTotal > 0 ? ($total / $kategoriTotal) * 100 : 0; $hue = $categoryHues[$loop->index % count($categoryHues)]; @endphp
-                    <tr class="cursor-pointer" wire:click="showCategoryDetail('{{ addslashes($nama) }}')">
-                        <td class="font-medium text-slate-900">{{ $nama }}</td>
-                        <td class="text-right tabular-nums text-slate-700">{{ format_idr($total) }}</td>
-                        <td class="text-right tabular-nums font-medium text-slate-600">{{ number_format($percent, 1) }}%</td>
-                        <td><div class="h-2 w-full overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-{{ $hue }}-500 transition-all duration-700" style="width: {{ $percent }}%"></div></div></td>
+                    <tr @class(['cursor-pointer' => $nama !== 'Uncategorized']) @if ($nama !== 'Uncategorized') wire:click="showCategoryDetail('{{ addslashes($nama) }}')" @endif>
+                        <td class="py-4 font-medium text-slate-900">{{ $nama }}</td>
+                        <td class="text-right tabular-nums text-slate-700 py-4 text-base font-medium">{{ format_idr($total) }}</td>
+                        <td class="text-right tabular-nums font-semibold text-slate-600 py-4 text-base">{{ number_format($percent, 1) }}%</td>
+                        <td class="py-4"><div class="h-3 w-full overflow-hidden rounded-full bg-slate-100"><div class="h-full rounded-full bg-{{ $hue }}-500 transition-all duration-700" style="width: {{ $percent }}%"></div></div></td>
                     </tr>
                 @endforeach
             </tbody>

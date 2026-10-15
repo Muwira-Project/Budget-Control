@@ -36,7 +36,7 @@ class Create extends Component
     /** 'project' | 'non_project' */
     public string $scope = 'non_project';
 
-    /** 'ar_ap' | 'direct'  — only relevant when scope = non_project */
+    /** 'ar_ap' | 'direct' | 'create_new' — only relevant when scope = non_project */
     public string $linkMode = 'direct';
 
     // ── Project & party (direct mode) ─────────────────────────────
@@ -50,6 +50,19 @@ class Create extends Component
     public ?int $receivableId = null;
 
     public ?int $payableId = null;
+
+    // ── Create new AR/AP fields (create_new mode) ─────────────────
+    public ?int $newPihakTypeId = null;
+
+    public ?int $newPihakItemId = null;
+
+    public string $newInvoiceNo = '';
+
+    public string $newDueDate = '';
+
+    public ?string $newJenisPajak = null;
+
+    public ?string $newKeterangan = null;
 
     // ─────────────────────────────────────────────────────────────
 
@@ -75,23 +88,35 @@ class Create extends Component
     /** When scope changes, reset everything below. */
     public function updatedScope(): void
     {
-        $this->linkMode     = '';
-        $this->projectId    = null;
-        $this->receivableId = null;
-        $this->payableId    = null;
-        $this->pihakTypeId  = null;
-        $this->pihakItemId  = null;
-        $this->nominal      = '';
+        $this->linkMode       = '';
+        $this->projectId      = null;
+        $this->receivableId   = null;
+        $this->payableId      = null;
+        $this->pihakTypeId    = null;
+        $this->pihakItemId    = null;
+        $this->newPihakTypeId = null;
+        $this->newPihakItemId = null;
+        $this->newInvoiceNo   = '';
+        $this->newDueDate     = '';
+        $this->newJenisPajak  = null;
+        $this->newKeterangan  = null;
+        $this->nominal        = '';
     }
 
     /** When link mode changes, reset invoice & party fields. */
     public function updatedLinkMode(): void
     {
-        $this->receivableId = null;
-        $this->payableId    = null;
-        $this->pihakTypeId  = null;
-        $this->pihakItemId  = null;
-        $this->nominal      = '';
+        $this->receivableId     = null;
+        $this->payableId        = null;
+        $this->pihakTypeId      = null;
+        $this->pihakItemId      = null;
+        $this->newPihakTypeId   = null;
+        $this->newPihakItemId   = null;
+        $this->newInvoiceNo     = '';
+        $this->newDueDate       = '';
+        $this->newJenisPajak    = null;
+        $this->newKeterangan    = null;
+        $this->nominal          = '';
     }
 
     /** When project changes, reset invoice & nominal. */
@@ -106,6 +131,12 @@ class Create extends Component
     public function updatedPihakTypeId(): void
     {
         $this->pihakItemId = null;
+    }
+
+    /** When new party type changes, reset new party item. */
+    public function updatedNewPihakTypeId(): void
+    {
+        $this->newPihakItemId = null;
     }
 
     /** Auto-fill nominal from AR outstanding balance. */
@@ -140,6 +171,15 @@ class Create extends Component
     {
         return $this->scope === 'project'
             || ($this->scope === 'non_project' && $this->linkMode === 'ar_ap');
+    }
+
+    /**
+     * True when this entry should create a new AR/AP invoice
+     * (non-project + create_new mode).
+     */
+    public function isCreateNewArAp(): bool
+    {
+        return $this->scope === 'non_project' && $this->linkMode === 'create_new';
     }
 
     // ── Data providers ────────────────────────────────────────────
@@ -178,6 +218,32 @@ class Create extends Component
 
         return MasterItem::query()
             ->where('master_type_id', $this->pihakTypeId)
+            ->where('aktif', true)
+            ->orderBy('nama')
+            ->get();
+    }
+
+    /** Party types for creating NEW AR/AP (create_new mode). */
+    public function newPartyTypes()
+    {
+        return MasterType::query()
+            ->where('aktif', true)
+            ->when($this->jenis === 'masuk', fn ($q) => $q->where('flag_ar', true))
+            ->when($this->jenis === 'keluar', fn ($q) => $q->where('flag_ap', true))
+            ->orderBy('sort')
+            ->orderBy('nama')
+            ->get();
+    }
+
+    /** Party items for creating NEW AR/AP (create_new mode). */
+    public function newPartyItems()
+    {
+        if (! $this->newPihakTypeId) {
+            return collect();
+        }
+
+        return MasterItem::query()
+            ->where('master_type_id', $this->newPihakTypeId)
             ->where('aktif', true)
             ->orderBy('nama')
             ->get();
@@ -243,6 +309,8 @@ class Create extends Component
 
         if ($this->isLinkedArAp()) {
             $this->saveAsArApSettlement($paymentService);
+        } elseif ($this->isCreateNewArAp()) {
+            $this->saveAsCreateNewArAp($cashflowService);
         } else {
             $this->saveAsDirect($cashflowService);
         }
@@ -319,6 +387,126 @@ class Create extends Component
         $cashflowService->create($validated);
 
         session()->flash('status', ucfirst(str_replace('_', ' ', $sumber)).' saved successfully.');
+    }
+
+    /**
+     * Path C — create new AR/AP invoice + linked Cashflow (non-project only).
+     * Creates Receivable (masuk) or Payable (keluar) and links Cashflow via FK.
+     */
+    private function saveAsCreateNewArAp(CashflowService $cashflowService): void
+    {
+        $this->validate([
+            'newPihakTypeId' => 'required|exists:master_types,id',
+            'newPihakItemId' => 'required|exists:master_items,id',
+            'newInvoiceNo'   => 'required|string|max:255',
+            'newDueDate'     => 'nullable|date',
+        ]);
+
+        if ($this->jenis === 'masuk') {
+            // Validate AR party
+            $partyItem = \App\Models\MasterItem::findOrFail($this->newPihakItemId);
+            if (! $partyItem->flag_ar) {
+                $this->addError('newPihakTypeId', 'Pihak ini tidak diperbolehkan untuk transaksi AR.');
+                return;
+            }
+
+            // Check duplicate invoice
+            if (\App\Models\Receivable::where('nomor_invoice', $this->newInvoiceNo)->exists()) {
+                $this->addError('newInvoiceNo', "Invoice '{$this->newInvoiceNo}' sudah digunakan.");
+                return;
+            }
+
+            // Create Receivable
+            $receivable = \App\Models\Receivable::create([
+                'project_id'       => null,
+                'pihak_type_id'    => $this->newPihakTypeId,
+                'pihak_item_id'    => $this->newPihakItemId,
+                'tanggal'          => $this->tanggal,
+                'nomor_invoice'    => $this->newInvoiceNo,
+                'jatuh_tempo'      => $this->newDueDate ?: null,
+                'nominal'          => $this->nominal,
+                'nominal_dibayar'  => $this->nominal, // fully paid since cash received
+                'keterangan'       => $this->newKeterangan,
+            ]);
+
+            // Create linked Cashflow
+            $sumber = 'pendapatan';
+            $validated = Validator::make(
+                [
+                    'tanggal'         => $this->tanggal,
+                    'jenis'           => 'masuk',
+                    'sumber'          => $sumber,
+                    'nominal'         => $this->nominal,
+                    'keterangan'      => $this->keterangan ?? $this->newKeterangan,
+                    'cash_account_id' => $this->cashAccountId,
+                    'akun_id'         => null,
+                    'project_id'      => null,
+                    'pihak_type_id'   => $this->newPihakTypeId,
+                    'pihak_item_id'   => $this->newPihakItemId,
+                    'receivable_id'   => $receivable->id,
+                    'status'          => 'posted',
+                ],
+                (new \App\Http\Requests\Cashflow\StoreCashflowRequest)->rules(),
+            )->validate();
+
+            $cashflowService->create($validated);
+
+            session()->flash('status', 'Piutang baru + Cash In berhasil dicatat.');
+
+        } else {
+            // Validate AP party
+            $partyItem = \App\Models\MasterItem::findOrFail($this->newPihakItemId);
+            if (! $partyItem->flag_ap) {
+                $this->addError('newPihakTypeId', 'Pihak ini tidak diperbolehkan untuk transaksi AP.');
+                return;
+            }
+
+            // Check duplicate invoice
+            if (\App\Models\Payable::where('nomor_invoice', $this->newInvoiceNo)->exists()) {
+                $this->addError('newInvoiceNo', "Invoice '{$this->newInvoiceNo}' sudah digunakan.");
+                return;
+            }
+
+            // Create Payable
+            $payable = \App\Models\Payable::create([
+                'project_id'      => null,
+                'akun_id'         => $this->akunId,
+                'pihak_type_id'   => $this->newPihakTypeId,
+                'pihak_item_id'   => $this->newPihakItemId,
+                'tanggal'         => $this->tanggal,
+                'nomor_invoice'   => $this->newInvoiceNo,
+                'jatuh_tempo'     => $this->newDueDate ?: null,
+                'nominal'         => $this->nominal,
+                'jenis_pajak'     => $this->newJenisPajak,
+                'pajak_include'   => true,
+                'nominal_dibayar' => $this->nominal, // fully paid since cash paid out
+                'keterangan'      => $this->newKeterangan,
+            ]);
+
+            // Create linked Cashflow
+            $sumber = 'pengeluaran_lain';
+            $validated = Validator::make(
+                [
+                    'tanggal'         => $this->tanggal,
+                    'jenis'           => 'keluar',
+                    'sumber'          => $sumber,
+                    'nominal'         => $this->nominal,
+                    'keterangan'      => $this->keterangan ?? $this->newKeterangan,
+                    'cash_account_id' => $this->cashAccountId,
+                    'akun_id'         => $this->akunId,
+                    'project_id'      => null,
+                    'pihak_type_id'   => $this->newPihakTypeId,
+                    'pihak_item_id'   => $this->newPihakItemId,
+                    'payable_id'      => $payable->id,
+                    'status'          => 'posted',
+                ],
+                (new \App\Http\Requests\Cashflow\StoreCashflowRequest)->rules(),
+            )->validate();
+
+            $cashflowService->create($validated);
+
+            session()->flash('status', 'Hutang baru + Cash Out berhasil dicatat.');
+        }
     }
 
     public function render()

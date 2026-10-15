@@ -193,6 +193,21 @@ return new class extends Migration
      */
     private function indexExists(string $table, string $indexName): bool
     {
-        return collect(DB::select("PRAGMA index_list({$table})"))->pluck('name')->contains($indexName);
+        $driver = DB::connection()->getDriverName();
+        
+        if ($driver === 'sqlite') {
+            return collect(DB::select("PRAGMA index_list({$table})"))->pluck('name')->contains($indexName);
+        }
+        
+        // MySQL: check information_schema
+        $result = DB::select(
+            "SELECT COUNT(*) as cnt FROM information_schema.STATISTICS 
+             WHERE TABLE_SCHEMA = DATABASE() 
+             AND TABLE_NAME = ? 
+             AND INDEX_NAME = ?",
+            [$table, $indexName]
+        );
+        
+        return isset($result[0]) && $result[0]->cnt > 0;
     }
 };

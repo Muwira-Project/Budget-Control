@@ -8,7 +8,7 @@
                     <option value="{{ $project->id }}">{{ $project->kode }} - {{ $project->nama }}</option>
                 @endforeach
             </select>
-            <p class="mt-1 text-xs text-gray-500">Pilih proyek untuk alokasi per proyek, atau biarkan kosong untuk budget non-proyek (operasional).</p>
+            <p class="mt-1 text-xs text-gray-500">Select a project for project allocations, or leave blank for a non-project (operational) budget.</p>
             <x-input-error :messages="$errors->get('project_id')" class="mt-2" />
         </div>
 
@@ -19,7 +19,7 @@
                     <option value="{{ $value }}">{{ $label }}</option>
                 @endforeach
             </select>
-            <p class="mt-1 text-xs text-gray-500">Pilih tipe alokasi non-proyek.</p>
+            <p class="mt-1 text-xs text-gray-500">Select a non-project allocation type.</p>
             <x-input-error :messages="$errors->get('type')" class="mt-2" />
         </div>
     </div>
@@ -29,9 +29,9 @@
         @if (in_array($this->type, ['ap', 'ar']))
         <div>
             @if ($this->type === 'ap')
-                <x-input-label for="payable_id" :value="__('Pilih Payable (Hutang)')" />
+                <x-input-label for="payable_id" :value="__('Select Payable')" />
                 <select id="payable_id" wire:model="payableId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required {{ $this->availablePayables->isEmpty() ? 'disabled' : '' }}>
-                    <option value="">-- Pilih Invoice Hutang --</option>
+                    <option value="">-- Select Payable Invoice --</option>
                     @foreach ($this->availablePayables as $p)
                         <option value="{{ $p->id }}"
                             data-party="{{ $p->pihakItem->nama ?? '-' }}"
@@ -42,13 +42,13 @@
                     @endforeach
                 </select>
                 @if ($this->availablePayables->isEmpty())
-                    <p class="mt-1 text-xs text-gray-500">Tidak ada hutang (AP) yang belum lunas.</p>
+                    <p class="mt-1 text-xs text-gray-500">No outstanding payables are available.</p>
                 @endif
                 <x-input-error :messages="$errors->get('payable_id')" class="mt-2" />
             @else
-                <x-input-label for="receivable_id" :value="__('Pilih Receivable (Piutang)')" />
+                <x-input-label for="receivable_id" :value="__('Select Receivable')" />
                 <select id="receivable_id" wire:model="receivableId" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500" required {{ $this->availableReceivables->isEmpty() ? 'disabled' : '' }}>
-                    <option value="">-- Pilih Invoice Piutang --</option>
+                    <option value="">-- Select Receivable Invoice --</option>
                     @foreach ($this->availableReceivables as $r)
                         <option value="{{ $r->id }}"
                             data-party="{{ $r->pihakItem->nama ?? '-' }}"
@@ -59,7 +59,7 @@
                     @endforeach
                 </select>
                 @if ($this->availableReceivables->isEmpty())
-                    <p class="mt-1 text-xs text-gray-500">Tidak ada piutang (AR) yang belum lunas.</p>
+                    <p class="mt-1 text-xs text-gray-500">No outstanding receivables are available.</p>
                 @endif
                 <x-input-error :messages="$errors->get('receivable_id')" class="mt-2" />
             @endif
@@ -71,8 +71,8 @@
     <div wire:key="type-{{ $this->type }}">
         @if (in_array($this->type, ['other_income', 'other_outcome']))
         <div>
-            <x-input-label for="custom_name" :value="__('Nama')" />
-            <x-text-input id="custom_name" class="mt-1 block w-full" type="text" wire:model="customName" placeholder="Masukkan nama (mis. Bunga Bank, Sewa Gudang, dll)" required />
+            <x-input-label for="custom_name" :value="__('Name')" />
+            <x-text-input id="custom_name" class="mt-1 block w-full" type="text" wire:model="customName" placeholder="Enter a name (e.g. Bank Interest, Warehouse Rent)" required />
             <x-input-error :messages="$errors->get('custom_name')" class="mt-2" />
         </div>
         @endif
@@ -103,7 +103,7 @@
             <x-input-label for="allocation" :value="__('Allocation (Rp)')" />
             <x-text-input id="allocation" class="mt-1 block w-full" type="text" wire:model="allocationNominal" placeholder="e.g. 200000000" required />
             @if (($this->payableId || $this->receivableId) && in_array($this->type, ['ap', 'ar']))
-                <p class="mt-1 text-xs text-gray-500">Sisa invoice terpilih otomatis diisi (editable)</p>
+                <p class="mt-1 text-xs text-gray-500">The selected invoice balance is prefilled (editable)</p>
             @elseif ($this->outstandingBalance > 0 && in_array($this->type, ['ap', 'ar']))
                 <p class="mt-1 text-xs text-gray-500">Outstanding balance: {{ number_format($this->outstandingBalance, 0, ',', '.') }} (prefilled, editable)</p>
             @else

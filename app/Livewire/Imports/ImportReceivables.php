@@ -52,13 +52,6 @@ class ImportReceivables extends Component
         }
     }
 
-    /** Download the import template. */
-    public function downloadTemplate(): RedirectResponse
-    {
-        $useProjectCode = $this->importMode === 'with_project';
-        return redirect()->route('imports.receivables.template', ['use_project_code' => $useProjectCode]);
-    }
-
     /** Render the import page. */
     public function render()
     {

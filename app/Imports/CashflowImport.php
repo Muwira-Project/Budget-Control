@@ -9,7 +9,9 @@ use App\Models\CashAccount;
 use App\Models\Cashflow;
 use App\Models\MasterItem;
 use App\Models\MasterType;
+use App\Models\Payable;
 use App\Models\Project;
+use App\Models\Receivable;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Collection;
 
@@ -20,6 +22,7 @@ class CashflowImport extends BaseImport
 {
     /**
      * Expected column headers (slugified) for the cashflow import file.
+     * Note: receivable_invoice_no and payable_invoice_no are optional and handled if present.
      *
      * @var array<int, string>
      */
@@ -60,8 +63,16 @@ class CashflowImport extends BaseImport
             return [false, null, 'Source is required'];
         }
 
-        if (! in_array($source, ['pendapatan', 'pelunasan_ar', 'pelunasan_ap', 'pengeluaran_lain'], true)) {
-            return [false, null, 'Source must be "pendapatan", "pelunasan_ar", "pelunasan_ap", or "pengeluaran_lain"'];
+        if (in_array($source, ['pelunasan_ar', 'pelunasan_ap'], true)) {
+            return [false, null, 'AR/AP settlements must be recorded through the payment workflow, not imported as standalone cash activity'];
+        }
+
+        if (! in_array($source, ['pendapatan', 'pengeluaran_lain'], true)) {
+            return [false, null, 'Source must be "pendapatan" or "pengeluaran_lain"'];
+        }
+
+        if (($source === 'pendapatan' && $type !== 'masuk') || ($source === 'pengeluaran_lain' && $type !== 'keluar')) {
+            return [false, null, 'Source must match the transaction type: income is Cash In and other expense is Cash Out'];
         }
 
         if ($akunCode === '') {
@@ -120,6 +131,10 @@ class CashflowImport extends BaseImport
         // Validate Party Type (optional)
         $pihakTypeId = null;
         $pihakItemId = null;
+        if (($partyTypeCode === '') !== ($partyCode === '')) {
+            return [false, null, 'Party Type and Party must both be provided, or both be left blank'];
+        }
+
         if ($partyTypeCode !== '' && $partyCode !== '') {
             $partyType = MasterType::where('kode', $partyTypeCode)->first();
             if (! $partyType) {
@@ -134,8 +149,36 @@ class CashflowImport extends BaseImport
             $pihakItemId = $partyItem->id;
         }
 
-        // Check duplicate in file (by date + type + source + cash_account + akun + project + nominal + description)
-        $key = $date.'-'.$type.'-'.$source.'-'.$cashAccountCode.'-'.$akunCode.'-'.($projectId ?? 'non_project').'-'.(string) $nominal.'-'.$keterangan;
+        // Validate Receivable Invoice No (optional) - for Cash In linked to AR
+        $receivableId = null;
+        $receivableInvoiceNo = trim((string) $row->get('receivable_invoice_no'));
+        if ($receivableInvoiceNo !== '') {
+            if ($type !== 'masuk') {
+                return [false, null, 'Receivable invoice can only be linked for Cash In (masuk) entries'];
+            }
+            $receivable = Receivable::where('nomor_invoice', $receivableInvoiceNo)->first();
+            if (! $receivable) {
+                return [false, null, 'Receivable with invoice "'.$receivableInvoiceNo.'" not found'];
+            }
+            $receivableId = $receivable->id;
+        }
+
+        // Validate Payable Invoice No (optional) - for Cash Out linked to AP
+        $payableId = null;
+        $payableInvoiceNo = trim((string) $row->get('payable_invoice_no'));
+        if ($payableInvoiceNo !== '') {
+            if ($type !== 'keluar') {
+                return [false, null, 'Payable invoice can only be linked for Cash Out (keluar) entries'];
+            }
+            $payable = Payable::where('nomor_invoice', $payableInvoiceNo)->first();
+            if (! $payable) {
+                return [false, null, 'Payable with invoice "'.$payableInvoiceNo.'" not found'];
+            }
+            $payableId = $payable->id;
+        }
+
+        // Check duplicate in file (by date + type + source + cash_account + akun + project + nominal + description + receivable + payable)
+        $key = $date.'-'.$type.'-'.$source.'-'.$cashAccountCode.'-'.$akunCode.'-'.($projectId ?? 'non_project').'-'.(string) $nominal.'-'.$keterangan.'-'.($receivableId ?? '').'-'.($payableId ?? '');
         if (isset($seenKeys[$key])) {
             return [false, null, 'Duplicate entry: same date/type/source/account/amount already in the file'];
         }
@@ -152,6 +195,8 @@ class CashflowImport extends BaseImport
                 'project_id' => $projectId,
                 'pihak_type_id' => $pihakTypeId,
                 'pihak_item_id' => $pihakItemId,
+                'receivable_id' => $receivableId,
+                'payable_id' => $payableId,
                 'nominal' => $nominal,
                 'keterangan' => $keterangan !== '' ? $keterangan : null,
                 'status' => KasStatus::Draft,

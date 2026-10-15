@@ -41,7 +41,7 @@ class ActualService
             return $payable->realisasi;
         }
 
-        return Realisasi::firstOrCreate(
+        $realisasi = Realisasi::withTrashed()->firstOrNew(
             ['sumber' => Realisasi::SUMBER_AP_PAYMENT, 'sumber_id' => $payment->id],
             [
                 'project_id' => $payable->project_id,
@@ -53,6 +53,18 @@ class ActualService
                 'keterangan' => 'AP settlement #'.$payment->id,
             ],
         );
+
+        if ($realisasi->exists) {
+            if ($realisasi->trashed()) {
+                $realisasi->restore();
+            }
+
+            return $realisasi;
+        }
+
+        $realisasi->save();
+
+        return $realisasi;
     }
 
     /**

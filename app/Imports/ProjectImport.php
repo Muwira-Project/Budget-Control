@@ -16,7 +16,7 @@ class ProjectImport extends BaseImport
      *
      * @var array<int, string>
      */
-    protected array $expectedHeaders = ['code', 'name', 'location', 'division', 'pic', 'project_category', 'sub_work', 'period', 'type', 'qty', 'unit', 'unit_price', 'tax', 'start_date', 'target_finish', 'status'];
+    protected array $expectedHeaders = ['code', 'name', 'location', 'division', 'pic', 'project_category', 'sub_work', 'period', 'qty', 'unit', 'unit_price', 'tax', 'start_date', 'target_finish', 'status'];
 
     /**
      * Validate a single project row.
@@ -33,13 +33,6 @@ class ProjectImport extends BaseImport
         $projectCategory = trim((string) $row->get('project_category'));
         $subWork = trim((string) $row->get('sub_work'));
         $periode = trim((string) $row->get('period'));
-        $jenisRaw = trim((string) $row->get('type'));
-        $jenis = $this->normalizeJenis($jenisRaw);
-
-        // Optional: default to 'barang' if not provided
-        if ($jenis === '') {
-            $jenis = 'barang';
-        }
 
         $qty = $this->normalizeNominal($row->get('qty'));
         $satuan = trim((string) $row->get('unit'));
@@ -58,17 +51,7 @@ class ProjectImport extends BaseImport
             return [false, null, 'Name is required'];
         }
 
-        // Validate jenis
-        if (! in_array($jenis, ['barang', 'jasa'], true)) {
-            return [false, null, 'Type must be "barang" or "jasa"'];
-        }
-
-        // Apply default tax based on jenis if not provided
-        if ($pajak === null) {
-            $pajak = $jenis === 'jasa' ? 2.0 : 11.0;
-        }
-
-        // Validate status
+        $qty = $this->normalizeNominal($row->get('qty'));
         $validStatuses = ['draft', 'progress', 'done', 'cancelled'];
         if ($status === '') {
             $status = 'draft';
@@ -147,7 +130,6 @@ class ProjectImport extends BaseImport
                 'project_category_id' => $projectCategoryId,
                 'sub_work' => $subWork ?: null,
                 'periode' => $periode ?: null,
-                'jenis' => $jenis,
                 'qty' => $qty,
                 'satuan' => $satuan ?: null,
                 'harga_satuan' => $hargaSatuan,
@@ -175,7 +157,7 @@ class ProjectImport extends BaseImport
         unset($data['_is_update'], $data['_existing_id']);
 
         if ($isUpdate && $existingId) {
-            Project::where('id', $existingId)->update($data);
+            Project::query()->findOrFail($existingId)->update($data);
         } else {
             Project::create($data);
         }

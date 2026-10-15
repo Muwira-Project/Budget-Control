@@ -75,6 +75,27 @@ class ImportAkunTest extends TestCase
         $this->assertDatabaseHas('akuns', ['kode_akun' => '5-100', 'kategori_id' => $kategori->id]);
     }
 
+    public function test_new_kategori_is_created_and_linked_for_a_valid_akun(): void
+    {
+        $path = $this->storeXlsx('akun-new-kategori.xlsx', [
+            ['Account Code', 'Account Name', 'Type', 'Category'],
+            ['5-101', 'Office Supplies', 'outcome', 'Office Costs'],
+        ]);
+
+        $import = new AkunImport;
+        Excel::import($import, $path);
+
+        $this->assertSame(1, $import->successCount);
+        $this->assertNull($import->fatalError);
+        $this->assertDatabaseHas('akuns', ['kode_akun' => '5-101']);
+        $this->assertSame(['Office Costs'], Kategori::pluck('nama')->all());
+        $kategori = Kategori::where('nama', 'Office Costs')->firstOrFail();
+        $this->assertDatabaseHas('akuns', [
+            'kode_akun' => '5-101',
+            'kategori_id' => $kategori->id,
+        ]);
+    }
+
     public function test_duplicate_akun_is_rejected(): void
     {
         $user = User::factory()->create();
@@ -82,7 +103,7 @@ class ImportAkunTest extends TestCase
 
         $path = $this->storeXlsx('akun-duplicate.xlsx', [
             ['Account Code', 'Account Name', 'Type', 'Category'],
-            ['5-100', 'Bahan Baku dan Gudang', 'pengeluaran', ''],
+            ['5-100', 'Bahan Baku dan Gudang', 'pengeluaran', 'Unused Category'],
         ]);
 
         $import = new AkunImport;
@@ -91,6 +112,7 @@ class ImportAkunTest extends TestCase
         $this->assertSame(0, $import->successCount);
         $this->assertStringContainsString('already registered', $import->failures[0]['reason']);
         $this->assertDatabaseCount('akuns', 1);
+        $this->assertDatabaseMissing('kategoris', ['nama' => 'Unused Category']);
     }
 
     public function test_duplicate_akun_within_file_is_rejected(): void

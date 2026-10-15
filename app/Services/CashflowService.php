@@ -8,8 +8,12 @@ use App\Models\CashAccount;
 use App\Models\Cashflow;
 use App\Models\FundTransfer;
 use App\Models\Kategori;
+use App\Models\Payable;
+use App\Models\Payment;
 use App\Models\Realisasi;
 use Illuminate\Pagination\LengthAwarePaginator;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class CashflowService
 {
@@ -20,35 +24,36 @@ class CashflowService
      */
     public function create(array $data): Cashflow
     {
-        $status = $data['status'] ?? KasStatus::Posted;
-        if (is_string($status)) {
-            $status = KasStatus::from($status);
-        }
+        return DB::transaction(function () use ($data): Cashflow {
+            $status = $data['status'] ?? KasStatus::Posted;
+            if (is_string($status)) {
+                $status = KasStatus::from($status);
+            }
 
-        $cashflow = Cashflow::create([
-            'tanggal' => $data['tanggal'],
-            'jenis' => $data['jenis'],
-            'sumber' => $data['sumber'],
-            'payment_id' => $data['payment_id'] ?? null,
-            'cash_account_id' => $data['cash_account_id'] ?? CashAccount::defaultId(),
-            'akun_id' => $data['akun_id'] ?? null,
-            'project_id' => $data['project_id'] ?? null,
-            'pihak_type_id' => $data['pihak_type_id'] ?? null,
-            'pihak_item_id' => $data['pihak_item_id'] ?? null,
-            'nominal' => $data['nominal'],
-            'keterangan' => $data['keterangan'] ?? null,
-            'status' => $status,
-            'created_by' => $data['created_by'] ?? auth()->id(),
-            'posted_by' => $data['posted_by'] ?? ($status === KasStatus::Posted ? auth()->id() : null),
-            'posted_at' => $data['posted_at'] ?? ($status === KasStatus::Posted ? now() : null),
-        ]);
+            $cashflow = Cashflow::create([
+                'tanggal' => $data['tanggal'],
+                'jenis' => $data['jenis'],
+                'sumber' => $data['sumber'],
+                'payment_id' => $data['payment_id'] ?? null,
+                'cash_account_id' => $data['cash_account_id'] ?? CashAccount::defaultId(),
+                'akun_id' => $data['akun_id'] ?? null,
+                'project_id' => $data['project_id'] ?? null,
+                'pihak_type_id' => $data['pihak_type_id'] ?? null,
+                'pihak_item_id' => $data['pihak_item_id'] ?? null,
+                'nominal' => $data['nominal'],
+                'keterangan' => $data['keterangan'] ?? null,
+                'status' => $status,
+                'created_by' => $data['created_by'] ?? auth()->id(),
+                'posted_by' => $data['posted_by'] ?? ($status === KasStatus::Posted ? auth()->id() : null),
+                'posted_at' => $data['posted_at'] ?? ($status === KasStatus::Posted ? now() : null),
+            ]);
 
-        // For manual entries (no payment_id), create/sync Realisasi if tagged with project/party
-        if ($cashflow->isPosted() && $cashflow->isManual() && ($cashflow->project_id || $cashflow->pihak_item_id)) {
-            $this->syncRealisasiFromCashflow($cashflow);
-        }
+            if ($cashflow->isPosted() && $cashflow->isManual() && $cashflow->jenis === CashflowJenis::Keluar && ($cashflow->project_id || $cashflow->pihak_item_id)) {
+                $this->syncRealisasiFromCashflow($cashflow);
+            }
 
-        return $cashflow;
+            return $cashflow;
+        });
     }
 
     /**
@@ -58,33 +63,38 @@ class CashflowService
      */
     public function update(Cashflow $cashflow, array $data): Cashflow
     {
-        $cashflow->update([
-            'tanggal' => $data['tanggal'] ?? $cashflow->tanggal,
-            'nominal' => $data['nominal'] ?? $cashflow->nominal,
-            'keterangan' => array_key_exists('keterangan', $data) ? $data['keterangan'] : $cashflow->keterangan,
-            'cash_account_id' => $data['cash_account_id'] ?? $cashflow->cash_account_id,
-            'akun_id' => array_key_exists('akun_id', $data) ? $data['akun_id'] : $cashflow->akun_id,
-            'project_id' => array_key_exists('project_id', $data) ? $data['project_id'] : $cashflow->project_id,
-            'pihak_type_id' => array_key_exists('pihak_type_id', $data) ? $data['pihak_type_id'] : $cashflow->pihak_type_id,
-            'pihak_item_id' => array_key_exists('pihak_item_id', $data) ? $data['pihak_item_id'] : $cashflow->pihak_item_id,
-        ]);
-
-        // Sync voucher if present
-        if ($cashflow->voucher) {
-            $cashflow->voucher->update([
-                'tanggal' => $cashflow->tanggal,
-                'keterangan' => $cashflow->keterangan,
+        return DB::transaction(function () use ($cashflow, $data): Cashflow {
+            $cashflow = Cashflow::query()->lockForUpdate()->findOrFail($cashflow->id);
+            $cashflow->update([
+                'tanggal' => $data['tanggal'] ?? $cashflow->tanggal,
+                'nominal' => $data['nominal'] ?? $cashflow->nominal,
+                'keterangan' => array_key_exists('keterangan', $data) ? $data['keterangan'] : $cashflow->keterangan,
+                'cash_account_id' => $data['cash_account_id'] ?? $cashflow->cash_account_id,
+                'akun_id' => array_key_exists('akun_id', $data) ? $data['akun_id'] : $cashflow->akun_id,
+                'project_id' => array_key_exists('project_id', $data) ? $data['project_id'] : $cashflow->project_id,
+                'pihak_type_id' => array_key_exists('pihak_type_id', $data) ? $data['pihak_type_id'] : $cashflow->pihak_type_id,
+                'pihak_item_id' => array_key_exists('pihak_item_id', $data) ? $data['pihak_item_id'] : $cashflow->pihak_item_id,
             ]);
-        }
 
-        // Re-sync Realisasi if manual entry tagged with project/party
-        if ($cashflow->isPosted() && $cashflow->isManual() && ($cashflow->project_id || $cashflow->pihak_item_id)) {
-            $this->syncRealisasiFromCashflow($cashflow);
-        }
+            if ($cashflow->voucher) {
+                $cashflow->voucher->update([
+                    'tanggal' => $cashflow->tanggal,
+                    'keterangan' => $cashflow->keterangan,
+                ]);
+            }
 
-        DashboardService::clearCache();
+            if ($cashflow->isPosted() && $cashflow->isManual()) {
+                if ($cashflow->jenis === CashflowJenis::Keluar && ($cashflow->project_id || $cashflow->pihak_item_id)) {
+                    $this->syncRealisasiFromCashflow($cashflow);
+                } else {
+                    $this->removeRealisasiFromCashflow($cashflow);
+                }
+            }
 
-        return $cashflow->refresh();
+            DashboardService::clearCache();
+
+            return $cashflow->refresh();
+        });
     }
 
     /**
@@ -96,15 +106,44 @@ class CashflowService
             throw new \LogicException('Records created automatically from settlements cannot be deleted. Use the settlement void workflow if needed.');
         }
 
-        // Delete any synced Realisasi for this manual cashflow entry
-        Realisasi::where('sumber', Realisasi::SUMBER_MANUAL)
-            ->where('sumber_id', $cashflow->id)
-            ->delete();
+        $user = auth()->user();
+        if (! $user) {
+            throw new \LogicException('Authentication is required to delete cash records.');
+        }
 
-        // Delete associated voucher if present
-        $cashflow->voucher?->delete();
+        if (! $user->isAdmin() && (int) $cashflow->created_by !== (int) $user->id) {
+            throw new \LogicException('You can only delete cash records you created.');
+        }
 
-        $cashflow->delete();
+        DB::transaction(function () use ($cashflow): void {
+            $realisasi = Realisasi::withTrashed()
+                ->where('sumber', Realisasi::SUMBER_MANUAL)
+                ->where('sumber_id', $cashflow->id)
+                ->first();
+
+            $payable = $realisasi === null
+                ? null
+                : Payable::withTrashed()->where('realisasi_id', $realisasi->id)->first();
+
+            if ($payable !== null && (
+                Payment::query()->where('payable_id', $payable->id)->exists()
+                || (float) $payable->nominal_dibayar > 0
+            )) {
+                throw new \LogicException('This cash record has an AP with active payments. Reverse those settlements before deleting the source record.');
+            }
+
+            if ($payable !== null && ! $payable->trashed()) {
+                $payable->delete();
+            }
+
+            if ($realisasi !== null && ! $realisasi->trashed()) {
+                $realisasi->delete();
+            }
+
+            // Keep the voucher while the cashflow is in Trash so restoration
+            // brings back the original voucher number and record.
+            $cashflow->delete();
+        });
     }
 
     /**
@@ -112,24 +151,26 @@ class CashflowService
      */
     public function post(Cashflow $cashflow): Cashflow
     {
-        if ($cashflow->isPosted()) {
-            return $cashflow;
-        }
+        return DB::transaction(function () use ($cashflow): Cashflow {
+            $cashflow = Cashflow::query()->lockForUpdate()->findOrFail($cashflow->id);
+            if ($cashflow->isPosted()) {
+                return $cashflow;
+            }
 
-        $cashflow->update([
-            'status' => KasStatus::Posted,
-            'posted_by' => auth()->id(),
-            'posted_at' => now(),
-        ]);
+            $cashflow->update([
+                'status' => KasStatus::Posted,
+                'posted_by' => auth()->id(),
+                'posted_at' => now(),
+            ]);
 
-        app(VoucherService::class)->generateFor($cashflow);
+            app(VoucherService::class)->generateFor($cashflow);
 
-        // For manual entries (no payment_id), create/sync Realisasi if tagged with project/party
-        if ($cashflow->isManual() && ($cashflow->project_id || $cashflow->pihak_item_id)) {
-            $this->syncRealisasiFromCashflow($cashflow);
-        }
+            if ($cashflow->isManual() && $cashflow->jenis === CashflowJenis::Keluar && ($cashflow->project_id || $cashflow->pihak_item_id)) {
+                $this->syncRealisasiFromCashflow($cashflow);
+            }
 
-        return $cashflow->refresh();
+            return $cashflow->refresh();
+        });
     }
 
     /**
@@ -158,10 +199,55 @@ class CashflowService
             'sumber_id' => $cashflow->id,
         ];
 
-        return Realisasi::updateOrCreate(
+        $realisasi = Realisasi::withTrashed()->firstOrNew(
             ['sumber' => Realisasi::SUMBER_MANUAL, 'sumber_id' => $cashflow->id],
-            $data
+            $data,
         );
+
+        $wasTrashed = $realisasi->trashed();
+        if ($wasTrashed) {
+            $realisasi->restore();
+        }
+
+        $realisasi->fill($data);
+        $realisasi->save();
+
+        if ($wasTrashed) {
+            app(PayableService::class)->syncFromRealisasi($realisasi->refresh());
+        }
+
+        return $realisasi->refresh();
+    }
+
+    /** Remove generated actual/AP rows when an edited cashflow no longer qualifies. */
+    private function removeRealisasiFromCashflow(Cashflow $cashflow): void
+    {
+        $realisasi = Realisasi::withTrashed()
+            ->where('sumber', Realisasi::SUMBER_MANUAL)
+            ->where('sumber_id', $cashflow->id)
+            ->first();
+
+        if ($realisasi === null) {
+            return;
+        }
+
+        $payable = Payable::withTrashed()->where('realisasi_id', $realisasi->id)->first();
+        if ($payable !== null && (
+            Payment::query()->where('payable_id', $payable->id)->exists()
+            || (float) $payable->nominal_dibayar > 0
+        )) {
+            throw ValidationException::withMessages([
+                'pihak_item_id' => 'Remove or reverse the linked AP settlements before removing the project and party from this cash record.',
+            ]);
+        }
+
+        if ($payable !== null && ! $payable->trashed()) {
+            $payable->delete();
+        }
+
+        if (! $realisasi->trashed()) {
+            $realisasi->delete();
+        }
     }
 
     /**

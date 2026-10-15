@@ -26,7 +26,7 @@ class PayableExport implements FromQuery, ShouldAutoSize, WithHeadings, WithMapp
      */
     public function query(): Builder
     {
-        $query = Payable::query()->with(['project', 'pihakType', 'pihakItem']);
+        $query = Payable::query()->with(['project', 'pihakType', 'pihakItem', 'cashAccount']);
 
         // Project filter
         if (! empty($this->filters['project_id'])) {
@@ -36,9 +36,9 @@ class PayableExport implements FromQuery, ShouldAutoSize, WithHeadings, WithMapp
         // Status filter
         if (! empty($this->filters['status'])) {
             match ($this->filters['status']) {
-                'belum_bayar' => $query->whereRaw('nominal - nominal_dibayar > 0 AND status != ?', ['lunas']),
-                'sebagian' => $query->whereRaw('nominal_dibayar > 0 AND nominal - nominal_dibayar > 0 AND status = ?', ['sebagian']),
-                'lunas' => $query->where('status', 'lunas'),
+                'belum_bayar' => $query->where('nominal_dibayar', 0),
+                'sebagian' => $query->where('nominal_dibayar', '>', 0)->whereColumn('nominal_dibayar', '<', 'nominal'),
+                'lunas' => $query->whereColumn('nominal_dibayar', '>=', 'nominal'),
                 default => null,
             };
         }
@@ -103,8 +103,13 @@ class PayableExport implements FromQuery, ShouldAutoSize, WithHeadings, WithMapp
             $payable->nominal,
             $payable->nominal_dibayar,
             $payable->nominal - $payable->nominal_dibayar,
+            $payable->jenis_pajak ?? '-',
+            $payable->discount_percent,
+            $payable->pajak_amount,
             $payable->status->label(),
             $payable->keterangan ?? '-',
+            $payable->cashAccount?->kode ?? '-',
+            $payable->cashflow_ref ?? '-',
         ];
     }
 
@@ -126,8 +131,13 @@ class PayableExport implements FromQuery, ShouldAutoSize, WithHeadings, WithMapp
             'Amount',
             'Paid',
             'Outstanding',
+            'Tax Type',
+            'Discount %',
+            'Tax Amount',
             'Status',
             'Description',
+            'Cash Account Code',
+            'Cashflow Ref',
         ];
     }
 }

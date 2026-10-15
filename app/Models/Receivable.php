@@ -3,7 +3,14 @@
 namespace App\Models;
 
 use App\Enums\ReceivableStatus;
+use App\Models\CashAccount;
+use App\Models\Cashflow;
 use App\Models\Concerns\LogsActivity;
+use App\Models\MasterItem;
+use App\Models\MasterType;
+use App\Models\Payment;
+use App\Models\Project;
+use App\Models\User;
 use App\Services\DashboardService;
 use Database\Factories\ReceivableFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
@@ -13,7 +20,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-#[Fillable(['project_id', 'pihak_type_id', 'pihak_item_id', 'tanggal', 'nomor_invoice', 'jatuh_tempo', 'nominal', 'nominal_dibayar', 'keterangan', 'hold_reason', 'held_by', 'held_at'])]
+#[Fillable(['project_id', 'pihak_type_id', 'pihak_item_id', 'akun_id', 'tanggal', 'nomor_invoice', 'jatuh_tempo', 'nominal', 'nominal_dibayar', 'keterangan', 'hold_reason', 'held_by', 'held_at', 'jenis_pajak', 'discount_percent', 'pajak_amount', 'cash_account_id', 'cashflow_ref'])]
 class Receivable extends Model
 {
     /**
@@ -62,6 +69,9 @@ class Receivable extends Model
             'nominal' => 'decimal:2',
             'nominal_dibayar' => 'decimal:2',
             'held_at' => 'datetime',
+            'jenis_pajak' => 'string',
+            'discount_percent' => 'decimal:2',
+            'pajak_amount' => 'decimal:2',
         ];
     }
 
@@ -90,6 +100,14 @@ class Receivable extends Model
     }
 
     /**
+     * Get the COA account for revenue recognition.
+     */
+    public function akun(): BelongsTo
+    {
+        return $this->belongsTo(Akun::class);
+    }
+
+    /**
      * Get the payments made against this receivable.
      */
     public function payments(): HasMany
@@ -98,11 +116,27 @@ class Receivable extends Model
     }
 
     /**
+     * Get the cashflow entries directly linked to this receivable (import-linked entries).
+     */
+    public function cashflows(): HasMany
+    {
+        return $this->hasMany(Cashflow::class, 'receivable_id');
+    }
+
+    /**
      * Get the user who put this receivable on hold.
      */
     public function heldBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'held_by');
+    }
+
+    /**
+     * Get the cash account used when creating linked cashflow entry.
+     */
+    public function cashAccount(): BelongsTo
+    {
+        return $this->belongsTo(CashAccount::class);
     }
 
     /**

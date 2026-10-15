@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Models\Concerns\LogsActivity;
+use App\Services\DashboardService;
 use Database\Factories\BudgetPlanFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -15,6 +16,13 @@ class BudgetPlan extends Model
 {
     /** @use HasFactory<BudgetPlanFactory> */
     use HasFactory, LogsActivity;
+
+    protected static function booted(): void
+    {
+        static::created(fn () => DashboardService::clearCache());
+        static::updated(fn () => DashboardService::clearCache());
+        static::deleted(fn () => DashboardService::clearCache());
+    }
 
     /**
      * Get the attributes that should be cast.

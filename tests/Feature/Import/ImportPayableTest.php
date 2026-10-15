@@ -2,7 +2,9 @@
 
 namespace Tests\Feature\Import;
 
+use App\Exports\PayableTemplateExport;
 use App\Imports\PayableImport;
+use App\Livewire\Imports\ImportPayables;
 use App\Models\Akun;
 use App\Models\MasterItem;
 use App\Models\MasterType;
@@ -11,6 +13,7 @@ use App\Models\Project;
 use App\Models\ProjectAkun;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Livewire\Livewire;
 use Maatwebsite\Excel\Concerns\FromArray;
 use Maatwebsite\Excel\Facades\Excel;
 use Tests\TestCase;
@@ -44,14 +47,17 @@ class ImportPayableTest extends TestCase
         ProjectAkun::create(['project_id' => $this->project->id, 'akun_id' => $this->akun->id, 'budget' => 100000000, 'allocation' => 100000000, 'status' => 'approved']);
 
         $this->user = User::factory()->create();
+
+        // Create cash account for linked cashflow tests
+        $this->cashAccount = \App\Models\CashAccount::factory()->create(['kode' => 'CASH-001', 'status' => 'active']);
     }
 
     /** @test */
     public function test_import_with_project_code(): void
     {
         $path = $this->storeXlsx('payable-with-project.xlsx', [
-            ['Project Code', 'Akun Code', 'Party Type Code', 'Party Name', 'Date', 'Invoice No.', 'Due Date', 'Amount', 'Paid', 'Description'],
-            ['PRJ-001', 'AKUN-001', 'VENDOR', 'PT Vendor Utama', '2026-08-15', 'INV-2026-001', '2026-09-14', 50000000, 0, 'Pembayaran pertama'],
+            ['Project Code', 'Akun Code', 'Party Type Code', 'Party Name', 'Date', 'Invoice No.', 'Due Date', 'Amount', 'Paid', 'Description', 'Cash Account Code', 'Cashflow Ref'],
+            ['PRJ-001', 'AKUN-001', 'VENDOR', 'PT Vendor Utama', '2026-08-15', 'INV-2026-001', '2026-09-14', 50000000, 0, 'Pembayaran pertama', 'CASH-001', ''],
         ]);
 
         $import = new PayableImport(true);
@@ -73,8 +79,8 @@ class ImportPayableTest extends TestCase
     public function test_import_without_project_code(): void
     {
         $path = $this->storeXlsx('payable-without-project.xlsx', [
-            ['Akun Code', 'Party Type Code', 'Party Name', 'Date', 'Invoice No.', 'Due Date', 'Amount', 'Paid', 'Description'],
-            ['AKUN-001', 'VENDOR', 'PT Vendor Utama', '2026-08-15', 'INV-2026-002', '2026-09-14', 50000000, 0, 'Pembayaran pertama'],
+            ['Akun Code', 'Party Type Code', 'Party Name', 'Date', 'Invoice No.', 'Due Date', 'Amount', 'Paid', 'Description', 'Cash Account Code', 'Cashflow Ref'],
+            ['AKUN-001', 'VENDOR', 'PT Vendor Utama', '2026-08-15', 'INV-2026-002', '2026-09-14', 50000000, 0, 'Pembayaran pertama', 'CASH-001', ''],
         ]);
 
         $import = new PayableImport(false);
@@ -107,8 +113,8 @@ class ImportPayableTest extends TestCase
         ]);
 
         $path = $this->storeXlsx('payable-duplicate.xlsx', [
-            ['Akun Code', 'Party Type Code', 'Party Name', 'Date', 'Invoice No.', 'Due Date', 'Amount', 'Paid', 'Description'],
-            ['AKUN-001', 'VENDOR', 'PT Vendor Utama', '2026-08-15', 'INV-EXISTING', '2026-09-14', 50000000, 0, 'Duplicate'],
+            ['Akun Code', 'Party Type Code', 'Party Name', 'Date', 'Invoice No.', 'Due Date', 'Amount', 'Paid', 'Description', 'Cash Account Code', 'Cashflow Ref'],
+            ['AKUN-001', 'VENDOR', 'PT Vendor Utama', '2026-08-15', 'INV-EXISTING', '2026-09-14', 50000000, 0, 'Duplicate', 'CASH-001', ''],
         ]);
 
         $import = new PayableImport(false);
@@ -119,12 +125,36 @@ class ImportPayableTest extends TestCase
         $this->assertStringContainsString('global unique', $import->failures[0]['reason']);
     }
 
+    public function test_import_with_project_code_rejects_invoice_used_by_another_project(): void
+    {
+        $otherProject = Project::factory()->create(['kode' => 'PRJ-002']);
+        Payable::factory()->create([
+            'project_id' => $this->project->id,
+            'akun_id' => $this->akun->id,
+            'pihak_type_id' => $this->vendorType->id,
+            'pihak_item_id' => $this->vendor->id,
+            'nomor_invoice' => 'INV-GLOBAL',
+        ]);
+        $path = $this->storeXlsx('payable-global-duplicate.xlsx', [
+            ['Project Code', 'Akun Code', 'Party Type Code', 'Party Name', 'Date', 'Invoice No.', 'Due Date', 'Amount', 'Paid', 'Description', 'Cash Account Code', 'Cashflow Ref'],
+            ['PRJ-002', 'AKUN-001', 'VENDOR', 'PT Vendor Utama', '2026-08-15', 'INV-GLOBAL', '2026-09-14', 50000000, 0, 'Duplicate across projects', 'CASH-001', ''],
+        ]);
+
+        $import = new PayableImport(true);
+        Excel::import($import, $path);
+
+        $this->assertSame(0, $import->successCount);
+        $this->assertCount(1, $import->failures);
+        $this->assertStringContainsString('global unique', $import->failures[0]['reason']);
+        $this->assertDatabaseMissing('payables', ['project_id' => $otherProject->id, 'nomor_invoice' => 'INV-GLOBAL']);
+    }
+
     /** @test */
     public function test_import_with_project_code_missing_project_fails(): void
     {
         $path = $this->storeXlsx('payable-missing-project.xlsx', [
-            ['Project Code', 'Akun Code', 'Party Type Code', 'Party Name', 'Date', 'Invoice No.', 'Due Date', 'Amount', 'Paid', 'Description'],
-            ['PRJ-999', 'AKUN-001', 'VENDOR', 'PT Vendor Utama', '2026-08-15', 'INV-2026-003', '2026-09-14', 50000000, 0, 'Project not found'],
+            ['Project Code', 'Akun Code', 'Party Type Code', 'Party Name', 'Date', 'Invoice No.', 'Due Date', 'Amount', 'Paid', 'Description', 'Cash Account Code', 'Cashflow Ref'],
+            ['PRJ-999', 'AKUN-001', 'VENDOR', 'PT Vendor Utama', '2026-08-15', 'INV-2026-003', '2026-09-14', 50000000, 0, 'Project not found', 'CASH-001', ''],
         ]);
 
         $import = new PayableImport(true);
@@ -139,8 +169,8 @@ class ImportPayableTest extends TestCase
     public function test_import_without_project_code_empty_project_code_allowed(): void
     {
         $path = $this->storeXlsx('payable-empty-project.xlsx', [
-            ['Akun Code', 'Party Type Code', 'Party Name', 'Date', 'Invoice No.', 'Due Date', 'Amount', 'Paid', 'Description'],
-            ['AKUN-001', 'VENDOR', 'PT Vendor Utama', '2026-08-15', 'INV-2026-004', '2026-09-14', 50000000, 0, 'Empty project code'],
+            ['Akun Code', 'Party Type Code', 'Party Name', 'Date', 'Invoice No.', 'Due Date', 'Amount', 'Paid', 'Description', 'Cash Account Code', 'Cashflow Ref'],
+            ['AKUN-001', 'VENDOR', 'PT Vendor Utama', '2026-08-15', 'INV-2026-004', '2026-09-14', 50000000, 0, 'Empty project code', 'CASH-001', ''],
         ]);
 
         $import = new PayableImport(false);
@@ -168,14 +198,112 @@ class ImportPayableTest extends TestCase
         $response->assertHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     }
 
+    public function test_template_headers_match_both_payable_import_modes(): void
+    {
+        $withProjectTemplate = (new PayableTemplateExport(true))->array();
+        $withoutProjectTemplate = (new PayableTemplateExport(false))->array();
+        $withProject = $withProjectTemplate[0];
+        $withoutProject = $withoutProjectTemplate[0];
+
+        $this->assertSame(
+            ['Project Code', 'Akun Code', 'Party Type Code', 'Party Name', 'Date', 'Invoice No.', 'Due Date', 'Amount', 'Paid', 'Description', 'Cash Account Code', 'Cashflow Ref'],
+            $withProject,
+        );
+        $this->assertSame(
+            ['Akun Code', 'Party Type Code', 'Party Name', 'Date', 'Invoice No.', 'Due Date', 'Amount', 'Paid', 'Description', 'Cash Account Code', 'Cashflow Ref'],
+            $withoutProject,
+        );
+        $this->assertCount(1, $withProjectTemplate, 'Template should not include sample transactions or notes.');
+        $this->assertCount(1, $withoutProjectTemplate, 'Template should not include sample transactions or notes.');
+    }
+
+    public function test_generated_payable_templates_import_in_both_modes(): void
+    {
+        foreach ([true, false] as $useProjectCode) {
+            $headers = (new PayableTemplateExport($useProjectCode))->array()[0];
+            $values = [
+                'Project Code' => 'PRJ-001',
+                'Akun Code' => 'AKUN-001',
+                'Party Type Code' => 'VENDOR',
+                'Party Name' => 'PT Vendor Utama',
+                'Date' => '2026-08-15',
+                'Invoice No.' => $useProjectCode ? 'INV-TEMPLATE-WITH' : 'INV-TEMPLATE-WITHOUT',
+                'Due Date' => '2026-09-14',
+                'Amount' => 50000000,
+                'Paid' => 0,
+                'Description' => 'Template round trip',
+                'Cash Account Code' => 'CASH-001',
+                'Cashflow Ref' => '',
+            ];
+            $path = $this->storeXlsx(
+                $useProjectCode ? 'payable-template-with-project.xlsx' : 'payable-template-without-project.xlsx',
+                [$headers, array_map(fn (string $header) => $values[$header], $headers)],
+            );
+
+            $import = new PayableImport($useProjectCode);
+            Excel::import($import, $path);
+
+            $this->assertSame(1, $import->successCount);
+            $this->assertEmpty($import->failures);
+            $this->assertNull($import->fatalError);
+            $this->assertDatabaseHas('payables', [
+                'project_id' => $useProjectCode ? $this->project->id : null,
+                'akun_id' => $this->akun->id,
+                'nomor_invoice' => $values['Invoice No.'],
+            ]);
+        }
+    }
+
+    public function test_payable_template_link_tracks_the_selected_mode(): void
+    {
+        Livewire::actingAs($this->user)
+            ->test(ImportPayables::class)
+            ->assertSet('importMode', 'with_project')
+            ->assertSee('use_project_code=1', false)
+            ->set('importMode', 'without_project')
+            ->assertSee('use_project_code=0', false);
+    }
+
     private function storeXlsx(string $filename, array $rows): string
     {
         Excel::store(new class($rows) implements FromArray
         {
             public function __construct(private array $rows) {}
-            public function array(): array { return $this->rows; }
+
+            public function array(): array
+            {
+                return $this->rows;
+            }
         }, $filename);
 
         return storage_path('app/private/'.$filename);
+    }
+
+    /** @test */
+    public function test_export_includes_cash_account_and_cashflow_ref_columns(): void
+    {
+        $path = $this->storeXlsx('payable-export-test.xlsx', [
+            ['Project Code', 'Akun Code', 'Party Type Code', 'Party Name', 'Date', 'Invoice No.', 'Due Date', 'Amount', 'Paid', 'Description', 'Cash Account Code', 'Cashflow Ref'],
+            ['PRJ-001', 'AKUN-001', 'VENDOR', 'PT Vendor Utama', '2026-08-15', 'INV-EXPORT-001', '2026-09-14', 50000000, 0, 'Export test', 'CASH-001', 'CF-REF-001'],
+        ]);
+
+        $import = new PayableImport(true);
+        Excel::import($import, $path);
+
+        $this->assertSame(1, $import->successCount);
+
+        $payable = \App\Models\Payable::where('nomor_invoice', 'INV-EXPORT-001')->first();
+        $this->assertNotNull($payable);
+        $this->assertEquals('CASH-001', $payable->cashAccount?->kode);
+        $this->assertEquals('CF-REF-001', $payable->cashflow_ref);
+
+        $export = new \App\Exports\PayableExport([]);
+        $rows = $export->query()->get()->map(fn ($r) => $export->map($r))->toArray();
+
+        $exported = collect($rows)->firstWhere(2, 'INV-EXPORT-001');
+
+        $this->assertNotNull($exported);
+        $this->assertEquals('CASH-001', $exported[15], 'Cash Account Code column'); // 0-indexed: 15 = Cash Account Code
+        $this->assertEquals('CF-REF-001', $exported[16], 'Cashflow Ref column'); // 16 = Cashflow Ref
     }
 }
